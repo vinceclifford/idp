@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+
+// Components
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import TeamManagement from './components/TeamManagement';
@@ -19,6 +21,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Force Dark Mode 
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
@@ -41,20 +44,22 @@ export default function App() {
     return (
       <>
         <LoginPage onLogin={handleLogin} />
-        <Toaster position="top-right" />
+        <Toaster position="top-right" theme="dark" />
       </>
     );
   }
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {/* Updated Background to match the new Glassmorphism Theme */}
+      <div className="min-h-screen bg-[#0b0f19] text-slate-200 selection:bg-blue-500/30">
         <Navigation 
           currentPage={currentPage} 
           onNavigate={navigateToPage}
           onLogout={handleLogout}
         />
-        <div className="max-w-[1440px] mx-auto">
+        
+        <main className="max-w-[1600px] mx-auto">
           {currentPage === 'dashboard' && <Dashboard onNavigate={navigateToPage} />}
           {currentPage === 'team' && <TeamManagement />}
           {currentPage === 'training' && <ExercisesLibrary />}
@@ -63,8 +68,9 @@ export default function App() {
           {currentPage === 'principles' && <PrinciplesLibrary />}
           {currentPage === 'tactics' && <TacticsLibrary />}
           {currentPage === 'match' && <MatchLineup />}
-        </div>
-        <Toaster position="top-right" />
+        </main>
+        
+        <Toaster position="top-right" theme="dark" />
       </div>
     </DndProvider>
   );

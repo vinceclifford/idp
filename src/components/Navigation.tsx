@@ -1,5 +1,6 @@
-import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Moon, Sun, Clipboard } from 'lucide-react';
+import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard } from 'lucide-react';
 import { Page } from '../App';
+import { motion } from 'framer-motion';
 
 interface NavigationProps {
   currentPage: Page;
@@ -20,15 +21,20 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
   ];
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-      <div className="max-w-[1440px] mx-auto px-8 py-4">
+    <nav className="sticky top-0 z-50 bg-[#0b0f19]/80 backdrop-blur-xl border-b border-white/5 shadow-lg shadow-black/20">
+      <div className="max-w-[1600px] mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <span className="text-xl text-gray-900 dark:text-gray-100">CoachHub</span>
+          
+          {/* Logo Section */}
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                <Trophy className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-white tracking-tight hidden md:block">CoachHub</span>
           </div>
           
-          <div className="flex items-center gap-1">
+          {/* Nav Items */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
@@ -36,26 +42,39 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'text-white' // Active Text
+                      : 'text-slate-400 hover:text-white hover:bg-white/5' // Inactive Text
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  {/* Active Indicator Background */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-white/10 border border-white/5 rounded-lg"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  
+                  {/* Icon & Label */}
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Logout Section */}
+          <div className="flex items-center pl-4 border-l border-white/5">
             <button
               onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span className="hidden md:inline">Logout</span>
             </button>
           </div>
         </div>

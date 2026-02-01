@@ -1,37 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, X, Edit2, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
+
+// UI Components
+import { Card } from "./ui/Card";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
+import { Modal } from "./ui/Modal";
 
 interface Principle {
-  id: string;
-  name: string;
-  gamePhase: string;
-  description: string;
-  coachingNotes?: string;
-  implementationTips?: string;
-  mediaUrl?: string;
-  isCustom: boolean;
+  id: string; name: string; gamePhase: string; description: string;
+  coachingNotes?: string; implementationTips?: string; mediaUrl?: string; isCustom: boolean;
 }
 
 const mockPrinciples: Principle[] = [
-  { 
-    id: 'p1', 
-    name: 'Possession-Based Play', 
-    gamePhase: 'In Possession', 
-    description: 'Maintain control of the ball to dominate the game.', 
-    coachingNotes: 'Focus on triangles and player spacing.',
-    implementationTips: 'Start with 4v2 rondos\nProgress to positional play games',
-    isCustom: false 
-  },
+  { id: 'p1', name: 'Possession-Based Play', gamePhase: 'In Possession', description: 'Maintain control of the ball to dominate the game.', coachingNotes: 'Focus on triangles and player spacing.', implementationTips: 'Start with 4v2 rondos\nProgress to positional play games', isCustom: false },
 ];
 
-const GAME_PHASES = [
-  "In Possession",
-  "Transition After Losing Possession",
-  "Out of Possession",
-  "Transition After Winning Possession",
-  "Set Pieces"
-];
+const GAME_PHASES = ["In Possession", "Transition After Losing Possession", "Out of Possession", "Transition After Winning Possession", "Set Pieces"];
 
 export default function PrinciplesLibrary() {
   const [principles, setPrinciples] = useState<Principle[]>(mockPrinciples);
@@ -39,96 +27,43 @@ export default function PrinciplesLibrary() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  
-  const [formData, setFormData] = useState({ 
-    id: '', 
-    name: '', 
-    gamePhase: 'In Possession', 
-    description: '',
-    coachingNotes: '',
-    implementationTips: '',
-    mediaUrl: ''
-  });
+
+  const [formData, setFormData] = useState({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/principles')
-      .then(res => res.json())
-      .then(data => {
-        const dbItems = data.map((item: any) => ({ 
-            id: item.id,
-            name: item.name,
-            gamePhase: item.game_phase, 
-            description: item.description,
-            coachingNotes: item.coaching_notes || '',
-            implementationTips: item.implementation_tips || '',
-            mediaUrl: item.media_url,
-            isCustom: true 
-        }));
-        setPrinciples([...mockPrinciples, ...dbItems]);
-      })
-      .catch(() => toast.error("Backend offline"));
+    fetch('http://127.0.0.1:8000/principles').then(res => res.json()).then(data => {
+      const dbItems = data.map((item: any) => ({
+        id: item.id, name: item.name, gamePhase: item.game_phase, description: item.description, coachingNotes: item.coaching_notes || '', implementationTips: item.implementation_tips || '', mediaUrl: item.media_url, isCustom: true
+      }));
+      setPrinciples([...mockPrinciples, ...dbItems]);
+    }).catch(() => toast.error("Backend offline"));
   }, []);
 
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error('Fill required fields');
-
-    const payload = { 
-        name: formData.name, 
-        game_phase: formData.gamePhase, 
-        description: formData.description, 
-        coaching_notes: formData.coachingNotes,
-        implementation_tips: formData.implementationTips,
-        media_url: mediaPreview || formData.mediaUrl
-    };
+    const payload = { name: formData.name, game_phase: formData.gamePhase, description: formData.description, coaching_notes: formData.coachingNotes, implementation_tips: formData.implementationTips, media_url: mediaPreview || formData.mediaUrl };
 
     try {
       let response;
       if (isEditing && formData.id && !formData.id.startsWith('p')) {
-        response = await fetch(`http://127.0.0.1:8000/principles/${formData.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
+        response = await fetch(`http://127.0.0.1:8000/principles/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       } else {
-        response = await fetch('http://127.0.0.1:8000/principles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
+        response = await fetch('http://127.0.0.1:8000/principles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       }
 
       if (response.ok) {
         const saved = await response.json();
-        const newItem = { 
-            id: saved.id,
-            name: saved.name,
-            gamePhase: saved.game_phase,
-            description: saved.description,
-            coachingNotes: saved.coaching_notes,
-            implementationTips: saved.implementation_tips,
-            mediaUrl: saved.media_url,
-            isCustom: true 
-        };
-        
-        if (isEditing) {
-            setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
-            toast.success('Updated successfully!');
-        } else {
-            setPrinciples(prev => [...prev, newItem]);
-            toast.success('Created successfully!');
-        }
+        const newItem = { id: saved.id, name: saved.name, gamePhase: saved.game_phase, description: saved.description, coachingNotes: saved.coaching_notes, implementationTips: saved.implementation_tips, mediaUrl: saved.media_url, isCustom: true };
+        if (isEditing) setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
+        else setPrinciples(prev => [...prev, newItem]);
+        toast.success(isEditing ? 'Updated successfully!' : 'Created successfully!');
         closeModal();
       }
-    } catch {
-      toast.error('Connection failed');
-    }
+    } catch { toast.error('Connection failed'); }
   };
 
   const handleDelete = async (id: string) => {
-    if (id.startsWith('p')) {
-        setPrinciples(prev => prev.filter(p => p.id !== id));
-        return;
-    }
+    if (id.startsWith('p')) { setPrinciples(prev => prev.filter(p => p.id !== id)); return; }
     await fetch(`http://127.0.0.1:8000/principles/${id}`, { method: 'DELETE' });
     setPrinciples(prev => prev.filter(p => p.id !== id));
     toast.success('Deleted');
@@ -143,181 +78,91 @@ export default function PrinciplesLibrary() {
     }
   };
 
-  const closeModal = () => {
-    setShowCreateModal(false);
-    setIsEditing(false);
-    setMediaPreview(null);
-    setFormData({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' });
-  };
-
-  const openEdit = (p: Principle) => {
-    setFormData({ 
-        id: p.id, 
-        name: p.name, 
-        gamePhase: p.gamePhase, 
-        description: p.description,
-        coachingNotes: p.coachingNotes || '',
-        implementationTips: p.implementationTips || '',
-        mediaUrl: p.mediaUrl || ''
-    });
-    setMediaPreview(p.mediaUrl || null);
-    setIsEditing(true);
-    setShowCreateModal(true);
-  };
-
+  const closeModal = () => { setShowCreateModal(false); setIsEditing(false); setMediaPreview(null); setFormData({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' }); };
+  const openEdit = (p: Principle) => { setFormData({ id: p.id, name: p.name, gamePhase: p.gamePhase, description: p.description, coachingNotes: p.coachingNotes || '', implementationTips: p.implementationTips || '', mediaUrl: p.mediaUrl || '' }); setMediaPreview(p.mediaUrl || null); setIsEditing(true); setShowCreateModal(true); };
   const filteredPrinciples = principles.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const renderTips = (text?: string) => {
-    if (!text) return null;
-    return text.split('\n').map((tip, i) => tip.trim() && (
-        <li key={i} className="flex items-start gap-3 mb-2 text-slate-400 text-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
-            <span className="leading-relaxed">{tip}</span>
-        </li>
-    ));
-  };
-
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div><h1 className="text-3xl font-bold dark:text-white">Principles Library</h1><p className="text-gray-400 mt-1">Tactical philosophy</p></div>
-        <button onClick={() => setShowCreateModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex gap-2 items-center shadow-lg transition-colors">
-            <Plus size={18}/> Create Principle
-        </button>
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div><h1 className="text-3xl font-bold text-white tracking-tight">Principles Library</h1><p className="text-slate-400 mt-1 font-medium">Tactical philosophy</p></div>
+        <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Create Principle</Button>
       </div>
 
-      <div className="bg-white dark:bg-[#1e2330] border border-gray-200 dark:border-slate-800 rounded-xl p-4 mb-6">
-        <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#151922] border border-gray-200 dark:border-slate-800 rounded-lg px-4 py-2.5">
-            <Search className="text-slate-400" size={18} />
-            <input className="bg-transparent w-full outline-none dark:text-slate-200 placeholder-slate-500" 
-                placeholder="Search principles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-        </div>
-      </div>
+      <Card className="p-2 px-4">
+        <Input icon={<Search size={18} />} placeholder="Search principles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 bg-transparent focus:ring-0" />
+      </Card>
 
-      <div className="space-y-4">
-        {filteredPrinciples.map((p) => (
-            <div key={p.id} className="bg-white dark:bg-[#1e2330] p-6 rounded-xl border border-gray-200 dark:border-slate-800 hover:shadow-xl hover:border-purple-500/20 transition-all group relative">
-                
-                {/* Header Section */}
-                <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <h3 className="text-xl font-bold dark:text-white mb-2">{p.name}</h3>
-                        <span className="text-xs bg-[#2d2a3e] text-purple-400 border border-purple-500/20 px-2.5 py-1 rounded font-medium inline-block">
-                            {p.gamePhase}
-                        </span>
-                    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AnimatePresence>
+          {filteredPrinciples.map((p, idx) => (
+            <Card key={p.id} animate delay={idx * 0.05} className="p-6 hover:border-purple-500/30 group flex flex-col shadow-lg">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{p.name}</h3>
+                  <span className="text-[10px] uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2.5 py-1 rounded-md font-bold inline-block shadow-sm shadow-purple-900/20">{p.gamePhase}</span>
                 </div>
+              </div>
 
-                <p className="text-gray-400 leading-relaxed text-sm mb-5">{p.description}</p>
-                
-                {/* COACHING NOTES (Yellow Box) */}
-                {p.coachingNotes && (
-                    <div className="mb-5 bg-[rgba(234,179,8,0.05)] border border-yellow-500/20 rounded-lg p-4">
-                        <h4 className="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-2">Coaching Note</h4>
-                        <p className="text-yellow-200/80 text-sm leading-relaxed">{p.coachingNotes}</p>
-                    </div>
-                )}
+              <p className="text-slate-400 leading-relaxed text-sm mb-6">{p.description}</p>
 
-                {/* IMPLEMENTATION TIPS (List) */}
+              {p.coachingNotes && (
+                <div className="mb-6 bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-4">
+                  <h4 className="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Coaching Note
+                  </h4>
+                  <p className="text-yellow-100/80 text-xs leading-relaxed">{p.coachingNotes}</p>
+                </div>
+              )}
+
+              {/* Content pushes footer down */}
+              <div className="mt-auto space-y-4">
                 {p.implementationTips && (
-                    <div className="border-t border-slate-800 pt-4">
-                        <h4 className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-3">Implementation Tips</h4>
-                        <ul className="space-y-1">{renderTips(p.implementationTips)}</ul>
-                    </div>
+                  <div className="border-t border-white/5 pt-4">
+                    <h4 className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-3">Key Points</h4>
+                    <ul className="space-y-2">
+                      {p.implementationTips.split('\n').map((tip, i) => tip.trim() && (
+                        <li key={i} className="flex items-start gap-3 text-slate-400 text-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                          <span className="leading-relaxed text-xs">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
-                {/* MEDIA */}
-                {p.mediaUrl && (
-                    <div className="mt-5 border-t border-slate-800 pt-4">
-                        <h4 className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-3">Attached Media</h4>
-                        <img src={p.mediaUrl} alt="Principle Media" className="rounded-lg max-h-48 object-cover border border-slate-700/50" />
-                    </div>
-                )}
-
-                {/* ACTION BUTTONS - BOTTOM RIGHT (Floating on Hover) */}
+                {/* Footer Buttons (Consistent with other tabs) */}
                 {p.isCustom && (
-                    <div className="absolute bottom-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                         <button 
-                            onClick={(e) => { e.stopPropagation(); openEdit(p); }} 
-                            className="p-2 text-slate-400 bg-[#1e2330] hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors border border-slate-700/50 shadow-lg"
-                            title="Edit"
-                         >
-                            <Edit2 size={16} />
-                         </button>
-                         <button 
-                            onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} 
-                            className="p-2 text-slate-400 bg-[#1e2330] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-slate-700/50 shadow-lg"
-                            title="Delete"
-                         >
-                            <Trash2 size={16} />
-                         </button>
-                    </div>
+                  <div className="pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(p); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
+                    <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
+                  </div>
                 )}
-            </div>
-        ))}
+              </div>
+            </Card>
+          ))}
+        </AnimatePresence>
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={closeModal}>
-            <div className="bg-[#1e2330] p-6 rounded-xl w-full max-w-lg text-white border border-slate-700 shadow-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between mb-6 border-b border-slate-700 pb-4">
-                    <h2 className="text-xl font-bold">{isEditing ? 'Edit Principle' : 'New Principle'}</h2>
-                    <button onClick={closeModal}><X className="text-slate-400 hover:text-white transition-colors"/></button>
-                </div>
-                <div className="space-y-5">
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Name</label>
-                        <input className="w-full bg-[#151922] border border-slate-700 rounded-lg p-3 text-sm focus:border-purple-500 outline-none transition-colors"
-                            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. High Press" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Phase</label>
-                        <select className="w-full bg-[#151922] border border-slate-700 rounded-lg p-3 text-sm focus:border-purple-500 outline-none transition-colors"
-                            value={formData.gamePhase} onChange={e => setFormData({...formData, gamePhase: e.target.value})}>
-                            {GAME_PHASES.map(phase => (
-                                <option key={phase} value={phase}>{phase}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Description</label>
-                        <textarea className="w-full bg-[#151922] border border-slate-700 rounded-lg p-3 text-sm focus:border-purple-500 outline-none resize-none h-24 transition-colors"
-                            value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Coaching Notes (Yellow Box)</label>
-                        <textarea className="w-full bg-[#151922] border border-slate-700 rounded-lg p-3 text-sm focus:border-yellow-500 outline-none resize-none h-20 transition-colors"
-                            value={formData.coachingNotes} onChange={e => setFormData({...formData, coachingNotes: e.target.value})} placeholder="Key details to focus on..." />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Implementation Tips (One per line)</label>
-                        <textarea className="w-full bg-[#151922] border border-slate-700 rounded-lg p-3 text-sm focus:border-blue-500 outline-none resize-none h-24 transition-colors"
-                            value={formData.implementationTips} onChange={e => setFormData({...formData, implementationTips: e.target.value})} placeholder="Start with basics&#10;Progress to complex drills" />
-                    </div>
-                    {/* Media Upload */}
-                    <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase">Media / Diagram</label>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 px-4 py-2 bg-[#151922] border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-800 cursor-pointer transition-colors">
-                                <Upload size={16} /> Upload File
-                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleFileUpload} />
-                            </label>
-                            {mediaPreview && <span className="text-xs text-green-400 flex items-center gap-1"><Image as ImageIcon size={12}/> Selected</span>}
-                        </div>
-                        {mediaPreview && (
-                            <div className="mt-2 h-32 bg-black/50 rounded-lg border border-slate-700 overflow-hidden flex items-center justify-center">
-                                <img src={mediaPreview} alt="Preview" className="h-full object-contain" />
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <div className="flex gap-3 mt-8">
-                    <button onClick={closeModal} className="flex-1 py-2.5 border border-slate-600 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">Cancel</button>
-                    <button onClick={handleSave} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-medium shadow-lg transition-colors">Save</button>
-                </div>
-            </div>
+      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Principle' : 'New Principle'}
+        footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button><Button onClick={handleSave} className="flex-1 bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/20">Save</Button></div>}>
+        <div className="space-y-6">
+          <Input label="Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. High Press" />
+          <Select label="Phase" value={formData.gamePhase} onChange={val => setFormData({ ...formData, gamePhase: val as string })} options={GAME_PHASES.map(p => ({ label: p, value: p }))} />
+
+          <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Description</label>
+            <textarea className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 focus:bg-slate-900 focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 hover:border-white/10 resize-none h-24 custom-scrollbar" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} /></div>
+
+          <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 text-yellow-500/80">Coaching Notes</label>
+            <textarea className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 focus:bg-slate-900 focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 hover:border-white/10 resize-none h-20 custom-scrollbar" value={formData.coachingNotes} onChange={e => setFormData({ ...formData, coachingNotes: e.target.value })} placeholder="Key details..." /></div>
+
+          <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Implementation Tips (Line Separated)</label>
+            <textarea className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 focus:bg-slate-900 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 hover:border-white/10 resize-none h-24 custom-scrollbar" value={formData.implementationTips} onChange={e => setFormData({ ...formData, implementationTips: e.target.value })} /></div>
+
+          <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Media</label>
+            <label className="flex items-center gap-2 px-4 py-3 bg-slate-900/50 border border-white/5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 cursor-pointer w-full justify-center group"><Upload size={16} className="group-hover:text-purple-400" /> <span className="font-medium">Upload File</span><input type="file" className="hidden" accept="image/*,video/*" onChange={handleFileUpload} /></label></div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

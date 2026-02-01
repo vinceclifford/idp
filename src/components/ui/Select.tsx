@@ -1,0 +1,103 @@
+import { useState, useRef, useEffect } from "react";
+import { cn } from "../../lib/utils";
+import { ChevronDown, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface SelectProps {
+  label?: string;
+  error?: string;
+  options: { label: string; value: string | number }[];
+  value?: string | number;
+  onChange: (value: string | number) => void; // CHANGED API: Returns value directly
+  className?: string;
+  placeholder?: string;
+}
+
+export function Select({ label, error, options, value, onChange, className, placeholder = "Select..." }: SelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedLabel = options.find((opt) => opt.value === value)?.label;
+
+  return (
+    <div className="space-y-2 w-full" ref={containerRef}>
+      {label && (
+        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        {/* The Trigger Button */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "w-full bg-slate-900/50 border border-white/5 text-left text-white rounded-xl px-4 py-3.5 text-sm outline-none transition-all flex items-center justify-between",
+            "focus:bg-slate-900 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10",
+            "hover:border-white/10",
+            isOpen && "border-blue-500/50 bg-slate-900",
+            error && "border-red-500/50",
+            className
+          )}
+        >
+          <span className={cn(!selectedLabel && "text-slate-600")}>
+            {selectedLabel || placeholder}
+          </span>
+          <ChevronDown 
+            size={16} 
+            className={cn(
+              "text-slate-500 transition-transform duration-200", 
+              isOpen && "rotate-180 text-blue-400"
+            )} 
+          />
+        </button>
+
+        {/* The Dropdown Menu */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.1 }}
+              className="absolute z-50 w-full mt-2 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+            >
+              <div className="max-h-60 overflow-y-auto custom-scrollbar p-1">
+                {options.map((opt) => (
+                  <div
+                    key={opt.value}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "px-3 py-2.5 rounded-lg text-sm cursor-pointer flex items-center justify-between group transition-colors",
+                      value === opt.value 
+                        ? "bg-blue-600 text-white" 
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    {value === opt.value && <Check size={14} />}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {error && <p className="text-xs text-red-400 font-medium ml-1">{error}</p>}
+    </div>
+  );
+}

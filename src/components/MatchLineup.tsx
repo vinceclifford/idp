@@ -3,11 +3,13 @@ import { Save, X, Calendar, MapPin, Users } from 'lucide-react';
 import { useDrag, useDrop } from 'react-dnd';
 import { toast } from 'sonner';
 
+// UI Components
+import { Card } from "./ui/Card";
+import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
+
 interface Player {
-  id: number;
-  name: string;
-  position: string;
-  number: number;
+  id: number; name: string; position: string; number: number;
 }
 
 const mockPlayers: Player[] = [
@@ -24,12 +26,7 @@ const mockPlayers: Player[] = [
   { id: 11, name: 'Cameron White', position: 'Midfielder', number: 6 },
 ];
 
-interface PositionSlot {
-  id: string;
-  position: string;
-  x: number;
-  y: number;
-}
+interface PositionSlot { id: string; position: string; x: number; y: number; }
 
 const formationPositions: PositionSlot[] = [
   { id: 'gk-1', position: 'GK', x: 50, y: 90 },
@@ -45,102 +42,43 @@ const formationPositions: PositionSlot[] = [
   { id: 'st-2', position: 'ST', x: 65, y: 20 },
 ];
 
-interface LineupPlayer extends Player {
-  positionSlot: string;
-  isStarter: boolean;
-}
+interface LineupPlayer extends Player { positionSlot: string; isStarter: boolean; }
 
-interface DraggablePlayerProps {
-  player: Player;
-  onClick: () => void;
-}
-
-function DraggablePlayer({ player, onClick }: DraggablePlayerProps) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'player',
-    item: player,
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
+function DraggablePlayer({ player, onClick }: { player: Player; onClick: () => void; }) {
+  const [{ isDragging }, drag] = useDrag(() => ({ type: 'player', item: player, collect: (monitor) => ({ isDragging: !!monitor.isDragging() }) }));
+  
   return (
-    <div
-      ref={drag}
-      onClick={onClick}
-      className={`bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
+    <div ref={drag} onClick={onClick} className={`bg-slate-900/50 border border-white/5 rounded-xl p-3 cursor-pointer hover:border-blue-500/50 hover:bg-slate-800 transition-all ${isDragging ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">
-          {player.number}
-        </div>
+        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-blue-500/20">{player.number}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-900 truncate">{player.name}</p>
-          <p className="text-xs text-gray-500">{player.position}</p>
+          <p className="text-sm font-bold text-slate-200 truncate">{player.name}</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">{player.position}</p>
         </div>
       </div>
     </div>
   );
 }
 
-interface PositionSlotComponentProps {
-  slot: PositionSlot;
-  player: LineupPlayer | null;
-  onDrop: (player: Player, slotId: string) => void;
-  onRemove: (slotId: string) => void;
-  onClick: () => void;
-}
-
-function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick }: PositionSlotComponentProps) {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'player',
-    drop: (item: Player) => {
-      onDrop(item, slot.id);
-    },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-    }),
-  }));
+function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick }: { slot: PositionSlot; player: LineupPlayer | null; onDrop: (p: Player, s: string) => void; onRemove: (s: string) => void; onClick: () => void; }) {
+  const [{ isOver }, drop] = useDrop(() => ({ accept: 'player', drop: (item: Player) => onDrop(item, slot.id), collect: (monitor) => ({ isOver: !!monitor.isOver() }) }));
 
   return (
-    <div
-      ref={drop}
-      style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
-      className="absolute -translate-x-1/2 -translate-y-1/2"
-    >
+    <div ref={drop} style={{ left: `${slot.x}%`, top: `${slot.y}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110">
       {player ? (
-        <div
-          onClick={onClick}
-          className="relative group cursor-pointer"
-        >
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors">
-            <span className="text-lg">{player.number}</span>
+        <div onClick={onClick} className="relative group cursor-pointer">
+          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-blue-400">
+            <span className="text-lg font-bold">{player.number}</span>
           </div>
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
-            <p className="text-xs text-white bg-gray-900 bg-opacity-75 px-2 py-1 rounded">
-              {player.name.split(' ')[0]}
-            </p>
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
+            <p className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">{player.name.split(' ')[0]}</p>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(slot.id);
-            }}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
             <X className="w-3 h-3" />
           </button>
         </div>
       ) : (
-        <div
-          className={`w-16 h-16 border-2 border-dashed rounded-full flex items-center justify-center text-xs transition-colors ${
-            isOver
-              ? 'border-blue-500 bg-blue-100 text-blue-700'
-              : 'border-gray-400 bg-white bg-opacity-20 text-white'
-          }`}
-        >
+        <div className={`w-14 h-14 border-2 border-dashed rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isOver ? 'border-blue-400 bg-blue-500/20 text-white' : 'border-white/20 bg-white/5 text-slate-400'}`}>
           {slot.position}
         </div>
       )}
@@ -154,10 +92,7 @@ export default function MatchLineup() {
   const [selectedPlayer, setSelectedPlayer] = useState<LineupPlayer | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
 
-  const availablePlayers = mockPlayers.filter(
-    player => !Array.from(lineup.values()).some(lp => lp.id === player.id) &&
-              !substitutes.some(sp => sp.id === player.id)
-  );
+  const availablePlayers = mockPlayers.filter(player => !Array.from(lineup.values()).some(lp => lp.id === player.id) && !substitutes.some(sp => sp.id === player.id));
 
   const handleDropToField = (player: Player, slotId: string) => {
     const newLineup = new Map(lineup);
@@ -170,245 +105,121 @@ export default function MatchLineup() {
     const newLineup = new Map(lineup);
     newLineup.delete(slotId);
     setLineup(newLineup);
-    toast.success('Player removed from lineup');
+    toast.success('Player removed');
   };
 
   const handleAddSubstitute = (player: Player) => {
     setSubstitutes([...substitutes, player]);
-    toast.success(`${player.name} added to substitutes`);
+    toast.success(`${player.name} added to subs`);
   };
 
   const handleSaveLineup = () => {
-    if (lineup.size < 11) {
-      toast.error('Please fill all 11 positions');
-      return;
-    }
+    if (lineup.size < 11) return toast.error('Lineup incomplete (need 11 players)');
     toast.success('Lineup saved successfully!');
     setShowSaveModal(false);
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl text-gray-900 dark:text-gray-100 mb-2">Match & Lineup Builder</h1>
-          <p className="text-gray-600 dark:text-gray-400">Create and manage your match lineup</p>
-        </div>
-        <button
-          onClick={() => setShowSaveModal(true)}
-          disabled={lineup.size < 11}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          Save Lineup
-        </button>
+    <div className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div><h1 className="text-3xl font-bold text-white tracking-tight">Match & Lineup</h1><p className="text-slate-400 mt-1 font-medium">Tactical setup for matchday</p></div>
+        <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>Save Lineup</Button>
       </div>
 
-      {/* Match Info */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-between">
+      <Card className="p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg text-gray-900 dark:text-gray-100 mb-2">U-17 Premier Team vs City Rovers FC</h3>
-            <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-              <span className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Saturday, Dec 21, 2024
-              </span>
-              <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                City Stadium (Away)
-              </span>
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                10:00 AM Kickoff
-              </span>
+            <h3 className="text-lg font-bold text-white mb-2">U-17 Premier Team <span className="text-slate-500 mx-2">vs</span> City Rovers FC</h3>
+            <div className="flex flex-wrap gap-6 text-sm text-slate-400 font-medium">
+              <span className="flex items-center gap-2"><Calendar size={14} className="text-blue-500" /> Sat, Dec 21, 2024</span>
+              <span className="flex items-center gap-2"><MapPin size={14} className="text-blue-500" /> City Stadium (Away)</span>
+              <span className="flex items-center gap-2"><Users size={14} className="text-blue-500" /> 10:00 AM Kickoff</span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Formation</p>
-            <p className="text-2xl text-gray-900 dark:text-gray-100">4-4-2</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Formation</p>
+            <p className="text-2xl font-bold text-emerald-400 font-mono">4-4-2</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-12 gap-6">
-        {/* Left Sidebar - Available Players */}
-        <div className="col-span-3 space-y-4">
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-            <h3 className="text-gray-900 dark:text-gray-100 mb-4">Available Players</h3>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {availablePlayers.map(player => (
-                <DraggablePlayer
-                  key={player.id}
-                  player={player}
-                  onClick={() => handleAddSubstitute(player)}
-                />
-              ))}
+        {/* Sidebar */}
+        <div className="col-span-12 lg:col-span-3 space-y-6">
+          <Card className="p-4 h-[400px] flex flex-col">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Available Players</h3>
+            <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
+              {availablePlayers.map(player => <DraggablePlayer key={player.id} player={player} onClick={() => handleAddSubstitute(player)} />)}
+              {availablePlayers.length === 0 && <p className="text-xs text-slate-500 italic text-center mt-10">All players assigned</p>}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-            <h3 className="text-gray-900 dark:text-gray-100 mb-4">Substitutes</h3>
-            <div className="space-y-2">
+          <Card className="p-4 h-[300px] flex flex-col">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Substitutes</h3>
+            <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
               {substitutes.map(player => (
-                <div key={player.id} className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm">
-                      {player.number}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-gray-100 truncate">{player.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{player.position}</p>
-                    </div>
-                  </div>
+                <div key={player.id} className="bg-slate-900/50 border border-white/5 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-bold">{player.number}</div>
+                  <div className="flex-1 min-w-0"><p className="text-sm font-bold text-slate-200 truncate">{player.name}</p><p className="text-[10px] text-slate-500 uppercase">{player.position}</p></div>
                 </div>
               ))}
+              {substitutes.length === 0 && <p className="text-xs text-slate-500 italic text-center mt-10">No substitutes selected</p>}
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Field View */}
-        <div className="col-span-9">
-          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-8 relative" style={{ minHeight: '700px' }}>
-            {/* Field markings */}
-            <div className="absolute inset-8 border-2 border-white border-opacity-30 rounded-lg">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-white border-opacity-30 border-t-0"></div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-white border-opacity-30 border-b-0"></div>
-              <div className="absolute top-1/2 left-0 right-0 h-0 border-t-2 border-white border-opacity-30"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white border-opacity-30 rounded-full"></div>
+        {/* Field */}
+        <div className="col-span-12 lg:col-span-9">
+          <Card className="p-8 bg-gradient-to-br from-emerald-900 to-emerald-950 border-emerald-900/50 relative overflow-hidden" style={{ minHeight: '724px' }}>
+            {/* Field Patterns */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 49px, #fff 50px)' }}></div>
+            
+            {/* Markings */}
+            <div className="absolute inset-8 border-2 border-emerald-400/20 rounded-lg pointer-events-none">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-emerald-400/20 border-t-0 rounded-b-lg"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-emerald-400/20 border-b-0 rounded-t-lg"></div>
+              <div className="absolute top-1/2 left-0 right-0 h-0 border-t-2 border-emerald-400/20"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-400/20 rounded-full"></div>
             </div>
 
-            {/* Position Slots */}
+            {/* Slots */}
             <div className="absolute inset-8">
-              {formationPositions.map((slot) => (
-                <PositionSlotComponent
-                  key={slot.id}
-                  slot={slot}
-                  player={lineup.get(slot.id) || null}
-                  onDrop={handleDropToField}
-                  onRemove={handleRemoveFromField}
-                  onClick={() => {
-                    const player = lineup.get(slot.id);
-                    if (player) setSelectedPlayer(player);
-                  }}
-                />
-              ))}
+              {formationPositions.map((slot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) setSelectedPlayer(p); }} />)}
             </div>
 
-            {/* Lineup Counter */}
-            <div className="absolute top-4 right-4 bg-white bg-opacity-90 rounded-lg px-4 py-2">
-              <p className="text-sm text-gray-600">Starting XI</p>
-              <p className="text-2xl text-gray-900">{lineup.size} / 11</p>
+            <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-md rounded-lg px-4 py-2 border border-white/5">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">Starters</p>
+              <p className="text-xl font-bold text-white">{lineup.size} / 11</p>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* Player Mini Profile Modal */}
-      {selectedPlayer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-8">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl text-gray-900">Player Info</h2>
-              <button
-                onClick={() => setSelectedPlayer(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-center mb-6">
-              <div className="w-20 h-20 bg-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl">
-                {selectedPlayer.number}
-              </div>
-              <h3 className="text-lg text-gray-900">{selectedPlayer.name}</h3>
-              <p className="text-gray-600">{selectedPlayer.position}</p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Assigned Position</p>
-                <p className="text-gray-900">{selectedPlayer.positionSlot}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Status</p>
-                <p className="text-gray-900">{selectedPlayer.isStarter ? 'Starter' : 'Substitute'}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Recent Form</p>
-                  <p className="text-lg text-blue-600">8.5/10</p>
+      <Modal isOpen={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} title="Player Profile" icon={<Users size={20}/>} maxWidth="max-w-md">
+        {selectedPlayer && (
+            <div className="text-center">
+                <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.number}</div>
+                <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.name}</h3>
+                <p className="text-blue-400 font-medium">{selectedPlayer.position}</p>
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                    <div className="bg-slate-900 p-3 rounded-xl border border-white/5"><p className="text-xs text-slate-500 uppercase tracking-wider">Form</p><p className="text-xl font-bold text-emerald-400">8.5</p></div>
+                    <div className="bg-slate-900 p-3 rounded-xl border border-white/5"><p className="text-xs text-slate-500 uppercase tracking-wider">Fitness</p><p className="text-xl font-bold text-blue-400">95%</p></div>
                 </div>
-                <div className="bg-green-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Fitness</p>
-                  <p className="text-lg text-green-600">95%</p>
-                </div>
-              </div>
             </div>
+        )}
+      </Modal>
 
-            <button
-              onClick={() => setSelectedPlayer(null)}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-6"
-            >
-              Close
-            </button>
-          </div>
+      <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title="Confirm Lineup" maxWidth="max-w-sm" 
+        footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowSaveModal(false)} className="flex-1">Cancel</Button><Button onClick={handleSaveLineup} className="flex-1">Confirm</Button></div>}>
+        <div className="space-y-4">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Starters</span><span className="text-white font-bold">{lineup.size}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Subs</span><span className="text-white font-bold">{substitutes.length}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Formation</span><span className="text-emerald-400 font-bold font-mono">4-4-2</span></div>
+            </div>
+            <p className="text-sm text-slate-400 text-center">Ready to save this lineup for Saturday's match?</p>
         </div>
-      )}
-
-      {/* Save Lineup Modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-8">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl text-gray-900">Confirm Lineup</h2>
-              <button
-                onClick={() => setShowSaveModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Starters</span>
-                  <span className="text-sm text-gray-900">{lineup.size}</span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Substitutes</span>
-                  <span className="text-sm text-gray-900">{substitutes.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Formation</span>
-                  <span className="text-sm text-gray-900">4-4-2</span>
-                </div>
-              </div>
-
-              <p className="text-sm text-gray-600">
-                This lineup will be saved for the match against City Rovers FC on Saturday, Dec 21.
-              </p>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowSaveModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveLineup}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }
