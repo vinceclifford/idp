@@ -5,10 +5,9 @@ interface NavigationProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
   onLogout: () => void;
-  onToggleDarkMode: () => void;
 }
 
-export default function Navigation({ currentPage, onNavigate, onLogout, onToggleDarkMode }: NavigationProps) {
+export default function Navigation({ currentPage, onNavigate, onLogout }: NavigationProps) {
   const navItems = [
     { id: 'dashboard' as Page, label: 'Dashboard', icon: Home },
     { id: 'team' as Page, label: 'Team', icon: Users },
@@ -51,15 +50,6 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleDarkMode}
-              className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title="Toggle Dark Mode"
-            >
-              <Moon className="w-4 h-4 dark:hidden" />
-              <Sun className="w-4 h-4 hidden dark:block" />
-            </button>
-
             <button
               onClick={onLogout}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"

@@ -18,23 +18,10 @@ export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'trainin
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved === 'true';
-  });
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('darkMode', isDarkMode.toString());
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
+    document.documentElement.classList.add('dark');
+  }, []);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -66,7 +53,6 @@ export default function App() {
           currentPage={currentPage} 
           onNavigate={navigateToPage}
           onLogout={handleLogout}
-          onToggleDarkMode={toggleDarkMode}
         />
         <div className="max-w-[1440px] mx-auto">
           {currentPage === 'dashboard' && <Dashboard onNavigate={navigateToPage} />}
