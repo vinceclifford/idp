@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText, Play } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -23,15 +23,14 @@ const getMediaType = (url?: string) => {
   if (url.startsWith('data:image')) return 'image';
   if (url.startsWith('data:video')) return 'video';
   if (url.startsWith('data:application/pdf')) return 'pdf';
+  // Fallback for actual URLs if needed
+  if (url.match(/\.(jpeg|jpg|gif|png)$/) != null) return 'image';
+  if (url.match(/\.(mp4|webm)$/) != null) return 'video';
   return 'unknown';
 };
 
-const mockBasics: Basic[] = [
-  { id: 'b1', name: 'Passing Accuracy', description: 'Techniques for short and long range passing.', isCustom: false },
-];
-
 export default function BasicsLibrary() {
-  const [basics, setBasics] = useState<Basic[]>(mockBasics);
+  const [basics, setBasics] = useState<Basic[]>([]); // Initialize empty (No Mock Data)
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -51,9 +50,9 @@ export default function BasicsLibrary() {
           id: item.id, name: item.name, description: item.description,
           diagramUrl: item.diagram_url, isCustom: true
         }));
-        setBasics([...mockBasics, ...dbItems]);
+        setBasics(dbItems); // Set only fetched data
       })
-      .catch(() => toast.error("Backend offline - Showing mocks"));
+      .catch(() => toast.error("Backend offline"));
   }, []);
 
   // --- Handlers ---
@@ -68,7 +67,7 @@ export default function BasicsLibrary() {
 
     try {
       let response;
-      if (isEditing && formData.id && !formData.id.startsWith('b')) {
+      if (isEditing && formData.id) {
         response = await fetch(`http://127.0.0.1:8000/basics/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       } else {
         response = await fetch('http://127.0.0.1:8000/basics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -91,27 +90,22 @@ export default function BasicsLibrary() {
   };
 
   const handleDelete = async (id: string) => {
-    if (id.startsWith('b')) { setBasics(prev => prev.filter(b => b.id !== id)); return; }
-    await fetch(`http://127.0.0.1:8000/basics/${id}`, { method: 'DELETE' });
-    setBasics(prev => prev.filter(b => b.id !== id));
-    toast.success('Deleted');
+    try {
+        await fetch(`http://127.0.0.1:8000/basics/${id}`, { method: 'DELETE' });
+        setBasics(prev => prev.filter(b => b.id !== id));
+        toast.success('Deleted');
+    } catch {
+        toast.error("Failed to delete");
+    }
   };
 
   // --- File Upload Logic ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validation (Max 100MB for video)
-      if (file.size > 100 * 1024 * 1024) {
-        return toast.error("File too large. Max 100MB allowed.");
-      }
-
-      // Convert to Base64
+      if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB allowed.");
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setMediaPreview(base64String);
-      };
+      reader.onloadend = () => setMediaPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -152,25 +146,13 @@ export default function BasicsLibrary() {
 
       {/* Search */}
       <Card className="p-2 px-4">
-        <Input
-          icon={<Search size={18} />}
-          placeholder="Search basics..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="border-0 bg-transparent focus:ring-0"
-        />
+        <Input icon={<Search size={18} />} placeholder="Search basics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 bg-transparent focus:ring-0" />
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence>
           {filteredBasics.map((basic, idx) => (
-            <Card
-              key={basic.id}
-              animate
-              delay={idx * 0.05}
-              className="p-5 hover:border-blue-500/50 group flex flex-col h-full transition-colors"
-            >
-              {/* Clickable Media Container */}
+            <Card key={basic.id} animate delay={idx * 0.05} className="p-5 hover:border-blue-500/50 group flex flex-col h-full transition-colors">
               <div
                 className={`bg-slate-950/50 rounded-xl h-40 mb-5 flex flex-col items-center justify-center border border-slate-800 text-slate-600 relative overflow-hidden shrink-0 group-hover:border-blue-500/20 transition-colors ${basic.diagramUrl ? 'cursor-zoom-in' : ''}`}
                 onClick={(e) => {
@@ -202,12 +184,14 @@ export default function BasicsLibrary() {
             </Card>
           ))}
         </AnimatePresence>
+        {filteredBasics.length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-500 italic">
+                No basics found. Create one to get started.
+            </div>
+        )}
       </div>
 
-      <Modal
-        isOpen={showCreateModal}
-        onClose={closeModal}
-        title={isEditing ? 'Edit Basic' : 'Create Basic'}
+      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Basic' : 'Create Basic'}
         footer={
           <div className="flex gap-3">
             <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
@@ -218,7 +202,7 @@ export default function BasicsLibrary() {
         <div className="space-y-6">
           <Input label="Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Ball Control" />
 
-          {/* Visual Media Upload - Supports Video/PDF */}
+          {/* Visual Media Upload */}
           <div>
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Media (Image, Video, PDF)</label>
             <div className="h-32 bg-slate-900/50 border-2 border-dashed border-slate-800 rounded-xl relative group hover:border-blue-500/30 transition-colors flex flex-col items-center justify-center text-slate-500 overflow-hidden cursor-pointer">
@@ -257,7 +241,7 @@ export default function BasicsLibrary() {
         </div>
       </Modal>
 
-      {/* NEW: Lightbox Viewer (Supports Video/PDF) */}
+      {/* Lightbox Viewer */}
       <AnimatePresence>
         {viewMedia && (
           <motion.div

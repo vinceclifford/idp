@@ -1,3 +1,5 @@
+from datetime import datetime
+from datetime import timedelta
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -298,3 +300,142 @@ def delete_player(id: str, db: Session = Depends(database.get_db)):
     db.delete(db_item)
     db.commit()
     return {"message": "Deleted"}
+
+
+@app.get("/match/suggested-formation")
+def get_suggested_formation(db: Session = Depends(database.get_db)):
+    # 1. Calculate date for 7 days ago
+    seven_days_ago = datetime.now().date() - timedelta(days=7)
+    
+    # 2. Get sessions from the last week, ordered by date (newest first)
+    sessions = db.query(models.TrainingSession)\
+        .filter(models.TrainingSession.date >= seven_days_ago)\
+        .order_by(models.TrainingSession.date.desc())\
+        .all()
+    
+    # 3. Iterate through sessions to find a formation
+    for session in sessions:
+        if not session.selected_exercises:
+            continue
+            
+        # These are IDs coming from the frontend, so let's call them exercise_ids
+        exercise_ids = [x.strip() for x in session.selected_exercises.split(',') if x.strip()]
+        
+        # FIX: Query using .id instead of .name
+        exercises = db.query(models.Exercise).filter(models.Exercise.id.in_(exercise_ids)).all()
+        
+        for exercise in exercises:
+            if exercise.linked_tactics:
+                # Tactics are likely stored by Name inside the Exercise object (based on your frontend logic)
+                tactic_names = [t.strip() for t in exercise.linked_tactics.split(',') if t.strip()]
+                
+                # Fetch tactics by NAME
+                tactic = db.query(models.Tactic).filter(models.Tactic.name.in_(tactic_names)).first()
+                
+                if tactic and tactic.formation:
+                    return {
+                        "formation": tactic.formation, 
+                        "source": f"Based on {session.date} training ({exercise.name})"
+                    }
+
+    # 4. Fallback if no formation is found
+    return {"formation": "4-4-2", "source": "Default"}
+
+
+# ==========================
+#      MATCH MANAGEMENT
+# ==========================
+@app.post("/matches", response_model=schemas.Match)
+def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_db)):
+    import datetime
+    date_obj = datetime.datetime.strptime(item.date, "%Y-%m-%d").date()
+    
+    db_item = models.Match(
+        opponent=item.opponent,
+        date=date_obj,
+        time=item.time,
+        location=item.location,
+        formation=item.formation,
+        lineup=item.lineup # <--- Add this
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/matches")
+def get_upcoming_matches(db: Session = Depends(database.get_db)):
+    import datetime
+    today = datetime.date.today()
+    
+    # Return all matches from today onwards, sorted by date
+    return db.query(models.Match)\
+        .filter(models.Match.date >= today)\
+        .order_by(models.Match.date.asc())\
+        .all()
+
+@app.get("/matches/latest")
+def get_latest_match(db: Session = Depends(database.get_db)):
+    # Get the upcoming match (closest to today or just the last created)
+    # For simplicity, we get the most recently created match
+    import datetime
+    today = datetime.date.today()
+    
+    match = db.query(models.Match)\
+        .filter(models.Match.date >= today)\
+        .order_by(models.Match.date.asc())\
+        .first()
+        
+    if not match:
+        # If no upcoming match, get the very last one recorded
+        match = db.query(models.Match).order_by(models.Match.date.desc()).first()
+        
+    return match
+
+@app.put("/matches/{match_id}")
+def update_match(match_id: str, item: schemas.MatchCreate, db: Session = Depends(database.get_db)):
+    db_match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not db_match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    import datetime
+    date_obj = datetime.datetime.strptime(item.date, "%Y-%m-%d").date()
+    
+    db_match.opponent = item.opponent
+    db_match.date = date_obj
+    db_match.time = item.time
+    db_match.location = item.location
+    db_match.formation = item.formation
+    db_match.lineup = item.lineup # <--- Add this
+    
+    db.commit()
+    db.refresh(db_match)
+    return db_match
+
+
+# 1. REGISTER
+@app.post("/register", response_model=schemas.User)
+def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    new_user = models.User(
+        email=user.email,
+        password=user.password,
+        full_name=user.full_name
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+# 2. LOGIN
+@app.post("/login")
+def login(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    
+    if not db_user or db_user.password != user.password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    return {"message": "Login successful", "user_id": db_user.id, "email": db_user.email}

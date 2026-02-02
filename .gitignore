@@ -7,3 +7,4 @@ node_modules/
 venv/
 backend/__pycache__
 football.db
+package-lock.json

@@ -15,24 +15,23 @@ interface Tactic {
   suggestedDrills?: string; isCustom: boolean;
 }
 
-const mockTactics: Tactic[] = [
-  { id: 't1', name: 'Counter-Attack 4-3-3', formation: '4-3-3', description: 'Sit deep and break fast with wingers.', suggestedDrills: 'Transition Rondo\nCounter Attack 3v2', isCustom: false },
-];
-
 export default function TacticsLibrary() {
-  const [tactics, setTactics] = useState<Tactic[]>(mockTactics);
+  const [tactics, setTactics] = useState<Tactic[]>([]); // Initialize empty
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/tactics').then(res => res.json()).then(data => {
-        const dbItems = data.map((item: any) => ({ 
-            id: item.id, name: item.name, formation: item.formation, description: item.description, suggestedDrills: item.suggested_drills || '', isCustom: true 
-        }));
-        setTactics([...mockTactics, ...dbItems]);
-    }).catch(() => toast.error("Backend offline"));
+    fetch('http://127.0.0.1:8000/tactics')
+        .then(res => res.json())
+        .then(data => {
+            const dbItems = data.map((item: any) => ({ 
+                id: item.id, name: item.name, formation: item.formation, description: item.description, suggestedDrills: item.suggested_drills || '', isCustom: true 
+            }));
+            setTactics(dbItems); // Only fetch from DB
+        })
+        .catch(() => toast.error("Backend offline"));
   }, []);
 
   const handleSave = async () => {
@@ -41,7 +40,7 @@ export default function TacticsLibrary() {
       let response;
       const payload = { name: formData.name, formation: formData.formation, description: formData.description, suggested_drills: formData.suggestedDrills };
       
-      if (isEditing && formData.id && !formData.id.startsWith('t')) {
+      if (isEditing && formData.id) {
         response = await fetch(`http://127.0.0.1:8000/tactics/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       } else {
         response = await fetch('http://127.0.0.1:8000/tactics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -59,10 +58,13 @@ export default function TacticsLibrary() {
   };
 
   const handleDelete = async (id: string) => {
-    if (id.startsWith('t')) { setTactics(prev => prev.filter(t => t.id !== id)); return; }
-    await fetch(`http://127.0.0.1:8000/tactics/${id}`, { method: 'DELETE' });
-    setTactics(prev => prev.filter(t => t.id !== id));
-    toast.success('Deleted');
+    try {
+        await fetch(`http://127.0.0.1:8000/tactics/${id}`, { method: 'DELETE' });
+        setTactics(prev => prev.filter(t => t.id !== id));
+        toast.success('Deleted');
+    } catch {
+        toast.error("Failed to delete");
+    }
   };
 
   const closeModal = () => { setShowCreateModal(false); setIsEditing(false); setFormData({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' }); };
@@ -84,7 +86,6 @@ export default function TacticsLibrary() {
         <AnimatePresence>
         {filteredTactics.map((t, idx) => (
             <Card key={t.id} animate delay={idx * 0.05} className="p-5 hover:border-green-500/30 group flex flex-col h-full shadow-lg">
-                {/* Visual Pitch Header - Green Glow */}
                 <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl h-36 mb-5 flex items-center justify-center relative overflow-hidden shrink-0 group-hover:border-emerald-500/30 transition-colors">
                     <div className="absolute inset-3 border border-emerald-500/10 rounded"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-emerald-500/10 rounded-full"></div>
@@ -117,16 +118,20 @@ export default function TacticsLibrary() {
                     </div>
                 )}
 
-                {/* FIXED: Footer Layout for Buttons */}
                 {t.isCustom && (
                     <div className="mt-auto pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
-                         <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
+                          <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
+                          <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
                     </div>
                 )}
             </Card>
         ))}
         </AnimatePresence>
+        {filteredTactics.length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-500 italic">
+                No tactics found. Create one to get started.
+            </div>
+        )}
       </div>
 
       <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Tactic' : 'New Tactic'}

@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel
 from typing import Optional
 
@@ -113,4 +114,39 @@ class TrainingSession(TrainingSessionCreate):
     class Config:
         orm_mode = True
 
+# ==========================
+#    MATCHES 
+# ==========================
+class MatchCreate(BaseModel):
+    opponent: str
+    date: str
+    time: str
+    location: str
+    formation: Optional[str] = "4-4-2"
+    lineup: Optional[str] = None
 
+class Match(MatchCreate):
+    id: str
+    date : date
+    class Config:
+        orm_mode = True
+
+
+
+# --- AUTH ---
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    full_name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class User(BaseModel):
+    id: str
+    email: str
+    full_name: Optional[str] = None
+    
+    class Config:
+        orm_mode = True

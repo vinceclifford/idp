@@ -24,7 +24,7 @@ interface Exercise {
     linkedBasics: string[];
     linkedPrinciples: string[];
     linkedTactics: string[];
-    mediaUrl?: string; // Base64 string
+    mediaUrl?: string;
     isCustom: boolean;
 }
 
@@ -36,6 +36,8 @@ const getMediaType = (url?: string) => {
     if (url.startsWith('data:image')) return 'image';
     if (url.startsWith('data:video')) return 'video';
     if (url.startsWith('data:application/pdf')) return 'pdf';
+    if (url.match(/\.(jpeg|jpg|gif|png)$/) != null) return 'image';
+    if (url.match(/\.(mp4|webm)$/) != null) return 'video';
     return 'unknown';
 };
 
@@ -47,38 +49,20 @@ const getIntensityStyles = (intensity: string) => {
     }
 };
 
-const mockExercises: Exercise[] = [
-    {
-        id: 'ex1',
-        name: 'Rondo 4v2',
-        equipment: ['Balls', 'Cones', 'Bibs/Vests'],
-        setup: 'Create a 10x10 yard square with cones.',
-        description: 'Possession drill where 4 attackers maintain possession against 2 defenders in a confined space.',
-        variations: '5v2, One touch limit.',
-        intensity: 'Medium',
-        goalkeepers: 0,
-        coachingPoints: 'Quick movement, body shape, first touch.',
-        linkedBasics: ['Passing Accuracy'],
-        linkedPrinciples: [],
-        linkedTactics: [],
-        isCustom: false
-    },
-];
-
 const equipmentOptions = ['Balls', 'Cones', 'Bibs/Vests', 'Goals', 'Hurdles', 'Poles', 'Agility Ladder', 'Markers', 'Mannequins', 'Mini Goals'];
 
 export default function ExercisesLibrary() {
-    const [exercises, setExercises] = useState<Exercise[]>(mockExercises);
+    const [exercises, setExercises] = useState<Exercise[]>([]); // Initialize empty (No Mock Data)
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [mediaPreview, setMediaPreview] = useState<string | null>(null);
 
-    // NEW: State for Full Screen Media Viewer
+    // Lightbox State
     const [viewMedia, setViewMedia] = useState<string | null>(null);
 
-    // Accordion State for Create Modal
+    // Accordion State
     const [openSection, setOpenSection] = useState<string | null>(null);
 
     // Selector Lists
@@ -98,6 +82,7 @@ export default function ExercisesLibrary() {
 
     // --- 1. LOAD DATA ---
     useEffect(() => {
+        // Fetch Exercises
         fetch('http://127.0.0.1:8000/exercises')
             .then(res => res.json())
             .then(data => {
@@ -111,10 +96,11 @@ export default function ExercisesLibrary() {
                     linkedTactics: item.linked_tactics ? item.linked_tactics.split(',') : [],
                     isCustom: true, mediaUrl: item.media_url
                 }));
-                setExercises([...mockExercises, ...formatted]);
+                setExercises(formatted); // Set fetched data
             })
             .catch(() => { toast.error("Backend offline"); });
 
+        // Fetch Selectors (Basics, Principles, Tactics)
         const fetchSelectors = async () => {
             try {
                 const [bRes, pRes, tRes] = await Promise.all([
@@ -144,7 +130,7 @@ export default function ExercisesLibrary() {
 
         try {
             let response;
-            if (isEditing && formData.id && !formData.id.startsWith('ex')) {
+            if (isEditing && formData.id) {
                 response = await fetch(`http://127.0.0.1:8000/exercises/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             } else {
                 response = await fetch('http://127.0.0.1:8000/exercises', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -152,7 +138,19 @@ export default function ExercisesLibrary() {
 
             if (!response.ok) throw new Error('Server Error');
             const savedRaw = await response.json();
-            const savedFormatted: Exercise = { ...formData, id: savedRaw.id, isCustom: true, mediaUrl: savedRaw.media_url };
+            
+            // Format new/updated item to match Frontend Type
+            const savedFormatted: Exercise = { 
+                ...formData, 
+                id: savedRaw.id, 
+                isCustom: true, 
+                mediaUrl: savedRaw.media_url,
+                // Ensure array fields are updated properly
+                equipment: savedRaw.equipment ? savedRaw.equipment.split(',') : [],
+                linkedBasics: savedRaw.linked_basics ? savedRaw.linked_basics.split(',') : [],
+                linkedPrinciples: savedRaw.linked_principles ? savedRaw.linked_principles.split(',') : [],
+                linkedTactics: savedRaw.linked_tactics ? savedRaw.linked_tactics.split(',') : []
+            };
 
             if (isEditing) {
                 setExercises(prev => prev.map(ex => ex.id === savedFormatted.id ? savedFormatted : ex));
@@ -166,10 +164,13 @@ export default function ExercisesLibrary() {
     };
 
     const handleDeleteExercise = async (id: string) => {
-        if (id.startsWith('ex')) { setExercises(prev => prev.filter(ex => ex.id !== id)); toast.success('Deleted'); setSelectedExercise(null); return; }
         try {
             const response = await fetch(`http://127.0.0.1:8000/exercises/${id}`, { method: 'DELETE' });
-            if (response.ok) { setExercises(prev => prev.filter(ex => ex.id !== id)); toast.success('Deleted'); setSelectedExercise(null); }
+            if (response.ok) { 
+                setExercises(prev => prev.filter(ex => ex.id !== id)); 
+                toast.success('Deleted'); 
+                setSelectedExercise(null); 
+            }
         } catch (e) { toast.error('Connection failed'); }
     };
 
@@ -200,7 +201,7 @@ export default function ExercisesLibrary() {
 
     const filteredExercises = exercises.filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Enhanced Media Renderer
+    // Media Renderer
     const renderMedia = (url: string, isPreview = false) => {
         const type = getMediaType(url);
 
@@ -455,7 +456,7 @@ export default function ExercisesLibrary() {
                 </div>
             </Modal>
 
-            {/* NEW: LIGHTBOX VIEWER */}
+            {/* LIGHTBOX VIEWER */}
             <AnimatePresence>
                 {viewMedia && (
                     <motion.div

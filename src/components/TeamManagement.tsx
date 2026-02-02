@@ -10,7 +10,7 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 
-// ... (Keep Interfaces and Mock Data the same) ...
+// --- Types ---
 interface Player {
     id: string; firstName: string; lastName: string; dateOfBirth: string; position: string;
     jerseyNumber: number; status: string; playerPhone: string; height: number; weight: number;
@@ -18,13 +18,8 @@ interface Player {
     imageUrl: string; attendance: number; performance: number;
 }
 
-const mockPlayers: Player[] = [
-    { id: 'm1', firstName: 'Alex', lastName: 'Johnson', dateOfBirth: '2005-03-15', position: 'Forward', jerseyNumber: 9, status: 'Active', playerPhone: '', height: 175, weight: 70, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 95, performance: 88 },
-    { id: 'm2', firstName: 'Sam', lastName: 'Martinez', dateOfBirth: '2006-07-22', position: 'Midfielder', jerseyNumber: 10, status: 'Active', playerPhone: '', height: 172, weight: 68, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 92, performance: 90 },
-];
-
 export default function TeamManagement() {
-    const [players, setPlayers] = useState<Player[]>(mockPlayers);
+    const [players, setPlayers] = useState<Player[]>([]); // Initialize empty (No Mock Data)
     const [searchQuery, setSearchQuery] = useState('');
     const [showPlayerModal, setShowPlayerModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,50 +29,150 @@ export default function TeamManagement() {
         id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
     });
 
-    // ... (Keep Data Loading and Handlers the same) ...
+    // --- Load Data ---
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/players').then(res => res.json()).then(data => {
-            if (data.length > 0) {
-                setPlayers(data.map((p: any) => ({
-                    id: p.id, firstName: p.first_name, lastName: p.last_name, dateOfBirth: p.date_of_birth, position: p.position, jerseyNumber: p.jersey_number, status: p.status, playerPhone: p.player_phone || '', height: p.height, weight: p.weight, motherName: p.mother_name || '', motherPhone: p.mother_phone || '', fatherName: p.father_name || '', fatherPhone: p.father_phone || '', imageUrl: p.image_url || '', attendance: p.attendance, performance: p.performance
-                })));
-            }
-        }).catch(() => console.log("Backend offline - using mocks"));
+        fetch('http://127.0.0.1:8000/players')
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    setPlayers(data.map((p: any) => ({
+                        id: p.id,
+                        firstName: p.first_name,
+                        lastName: p.last_name,
+                        dateOfBirth: p.date_of_birth,
+                        position: p.position,
+                        jerseyNumber: p.jersey_number,
+                        status: p.status,
+                        playerPhone: p.player_phone || '',
+                        height: p.height,
+                        weight: p.weight,
+                        motherName: p.mother_name || '',
+                        motherPhone: p.mother_phone || '',
+                        fatherName: p.father_name || '',
+                        fatherPhone: p.father_phone || '',
+                        imageUrl: p.image_url || '',
+                        attendance: p.attendance,
+                        performance: p.performance
+                    })));
+                }
+            })
+            .catch(() => console.log("Backend offline"));
     }, []);
 
+    // --- Handlers ---
     const handleSave = async () => {
-        if (!formData.firstName || !formData.lastName) return toast.error('Name required');
+        if (!formData.firstName || !formData.lastName) {
+            toast.error('Name required');
+            return;
+        }
 
-        // Simulating save for UI demo
-        const newItem = { ...formData, id: editingId || Date.now().toString(), imageUrl: imagePreview || formData.imageUrl };
-        if (editingId) setPlayers(prev => prev.map(p => p.id === newItem.id ? newItem : p));
-        else setPlayers(prev => [...prev, newItem]);
-        toast.success(editingId ? 'Player updated' : 'Player created');
-        setShowPlayerModal(false);
+        const isEditMode = !!editingId && !!formData.id;
+
+        try {
+            const payload = {
+                first_name: formData.firstName,
+                last_name: formData.lastName,
+                date_of_birth: formData.dateOfBirth,
+                position: formData.position,
+                status: formData.status,
+                jersey_number: parseInt(String(formData.jerseyNumber || 0)),
+                height: parseInt(String(formData.height || 0)),
+                weight: parseInt(String(formData.weight || 0)),
+                player_phone: formData.playerPhone || "",
+                image_url: formData.imageUrl || "",
+                mother_name: formData.motherName || "",
+                mother_phone: formData.motherPhone || "",
+                father_name: formData.fatherName || "",
+                father_phone: formData.fatherPhone || "",
+                attendance: 0,
+                performance: 0
+            };
+
+            const url = isEditMode
+                ? `http://127.0.0.1:8000/players/${formData.id}`
+                : 'http://127.0.0.1:8000/players';
+
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const savedPlayer = await response.json();
+                const formattedPlayer = {
+                    id: savedPlayer.id,
+                    firstName: savedPlayer.first_name,
+                    lastName: savedPlayer.last_name,
+                    dateOfBirth: savedPlayer.date_of_birth,
+                    position: savedPlayer.position,
+                    jerseyNumber: savedPlayer.jersey_number,
+                    status: savedPlayer.status,
+                    playerPhone: savedPlayer.player_phone || '',
+                    height: savedPlayer.height,
+                    weight: savedPlayer.weight,
+                    motherName: savedPlayer.mother_name || '',
+                    motherPhone: savedPlayer.mother_phone || '',
+                    fatherName: savedPlayer.father_name || '',
+                    fatherPhone: savedPlayer.father_phone || '',
+                    imageUrl: savedPlayer.image_url || '',
+                    attendance: savedPlayer.attendance,
+                    performance: savedPlayer.performance
+                };
+
+                if (isEditMode) {
+                    setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
+                } else {
+                    setPlayers(prev => [...prev, formattedPlayer]);
+                }
+
+                toast.success("Player saved!");
+                setShowPlayerModal(false);
+            } else {
+                toast.error("Server rejected the data");
+            }
+        } catch (error) {
+            toast.error('Connection failed');
+        }
     };
 
     const handleDelete = async (id: string) => {
-        setPlayers(prev => prev.filter(p => p.id !== id));
-        toast.success('Player deleted');
+        try {
+            await fetch(`http://127.0.0.1:8000/players/${id}`, { method: 'DELETE' });
+            setPlayers(prev => prev.filter(p => p.id !== id));
+            toast.success('Player deleted');
+        } catch (e) {
+            toast.error("Failed to delete");
+        }
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setImagePreview(reader.result as string);
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setImagePreview(result);
+                setFormData({ ...formData, imageUrl: result });
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const openCreate = () => {
-        setEditingId(null); setImagePreview('');
+        setEditingId(null);
+        setImagePreview('');
         setFormData({ id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0 });
         setShowPlayerModal(true);
     };
 
     const openEdit = (player: Player) => {
-        setEditingId(player.id); setFormData(player); setImagePreview(player.imageUrl); setShowPlayerModal(true);
+        setEditingId(player.id);
+        setFormData(player);
+        setImagePreview(player.imageUrl);
+        setShowPlayerModal(true);
     };
 
     const getStatusColor = (status: string) => {
@@ -93,13 +188,9 @@ export default function TeamManagement() {
 
     return (
         <div className="relative min-h-screen p-8 max-w-7xl mx-auto space-y-6 overflow-hidden">
-
-            {/* Background Blobs (Essential for Glass Effect) */}
             <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none -z-10" />
             <div className="fixed bottom-[10%] right-[-5%] w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none -z-10" />
 
-            {/* ... (Keep Header, Search, and Table exactly as they were in previous answer) ... */}
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white">Squad Roster</h1>
@@ -165,8 +256,6 @@ export default function TeamManagement() {
                 </div>
             </Card>
 
-
-            {/* --- MODAL UPDATED FOR LOOKS --- */}
             <Modal
                 isOpen={showPlayerModal}
                 onClose={() => setShowPlayerModal(false)}
@@ -180,16 +269,12 @@ export default function TeamManagement() {
                 }
             >
                 <div className="space-y-8">
-                    {/* Avatar Section with GLOW */}
                     <div className="flex flex-col items-center py-4">
                         <div className="relative group cursor-pointer">
-                            {/* The Blue Glow behind avatar */}
                             <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
-
                             <div className="relative w-32 h-32 rounded-full bg-slate-900 border-4 border-slate-800 shadow-2xl flex items-center justify-center overflow-hidden group-hover:border-blue-500/50 transition-colors">
                                 {imagePreview ? <img src={imagePreview} className="w-full h-full object-cover" /> : <Camera className="text-slate-600 w-12 h-12" />}
                             </div>
-
                             <label className="absolute bottom-1 right-1 p-2.5 bg-blue-600 rounded-full text-white hover:bg-blue-500 cursor-pointer shadow-lg shadow-blue-600/50 border-4 border-slate-950 transition-transform hover:scale-110">
                                 <Camera size={16} />
                                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -198,61 +283,23 @@ export default function TeamManagement() {
                     </div>
 
                     <div className="space-y-8">
-                        {/* 1. Basic Info */}
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-blue-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-blue-500/50 rounded-full"></span>
-                                Identity & Position
-                                <span className="flex-1 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-blue-500/50 rounded-full"></span>Identity & Position<span className="flex-1 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Input label="First Name" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} placeholder="e.g. Marcus" />
                                 <Input label="Last Name" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} placeholder="e.g. Rashford" />
                                 <Input label="Date of Birth" type="date" value={formData.dateOfBirth} onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })} />
-
-                                <Select
-                                    label="Position"
-                                    value={formData.position}
-                                    // OLD: onChange={e => setFormData({...formData, position: e.target.value})}
-                                    // NEW:
-                                    onChange={(value) => setFormData({ ...formData, position: value as string })}
-                                    options={[
-                                        { label: 'Forward', value: 'Forward' },
-                                        { label: 'Midfielder', value: 'Midfielder' },
-                                        { label: 'Defender', value: 'Defender' },
-                                        { label: 'Goalkeeper', value: 'Goalkeeper' }
-                                    ]}
-                                />
-
-                                <Input
-                                    label="Jersey Number"
-                                    type="number"
-                                    icon={<Hash size={14} />}
-                                    value={formData.jerseyNumber || ''}
-                                    onChange={e => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })}
-                                    className="font-mono font-bold"
-                                />
-                                <Select
-                                    label="Status"
-                                    value={formData.status}
-                                    // OLD: onChange={e => setFormData({...formData, status: e.target.value})}
-                                    // NEW:
-                                    onChange={(value) => setFormData({ ...formData, status: value as string })}
-                                    options={[
-                                        { label: 'Active', value: 'Active' },
-                                        { label: 'Injured', value: 'Injured' },
-                                        { label: 'Away', value: 'Away' }
-                                    ]}
-                                />
+                                <Select label="Position" value={formData.position} onChange={(value) => setFormData({ ...formData, position: value as string })} options={[{ label: 'Forward', value: 'Forward' }, { label: 'Midfielder', value: 'Midfielder' }, { label: 'Defender', value: 'Defender' }, { label: 'Goalkeeper', value: 'Goalkeeper' }]} />
+                                <Input label="Jersey Number" type="number" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })} className="font-mono font-bold" />
+                                <Select label="Status" value={formData.status} onChange={(value) => setFormData({ ...formData, status: value as string })} options={[{ label: 'Active', value: 'Active' }, { label: 'Injured', value: 'Injured' }, { label: 'Away', value: 'Away' }]} />
                             </div>
                         </div>
 
-                        {/* 2. Physical Stats */}
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-emerald-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-emerald-500/50 rounded-full"></span>
-                                Physical Metrics
-                                <span className="flex-1 h-[1px] bg-gradient-to-r from-emerald-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-emerald-500/50 rounded-full"></span>Physical Metrics<span className="flex-1 h-[1px] bg-gradient-to-r from-emerald-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-2 gap-6">
                                 <Input label="Height" type="number" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) || 0 })} />
@@ -260,19 +307,14 @@ export default function TeamManagement() {
                             </div>
                         </div>
 
-                        {/* 3. Contact */}
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-purple-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-purple-500/50 rounded-full"></span>
-                                Contact & Family
-                                <span className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-purple-500/50 rounded-full"></span>Contact & Family<span className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Input className="md:col-span-2" label="Player's Phone" value={formData.playerPhone} onChange={e => setFormData({ ...formData, playerPhone: e.target.value })} placeholder="+1 (555) 000-0000" />
-
                                 <Input label="Mother's Name" value={formData.motherName} onChange={e => setFormData({ ...formData, motherName: e.target.value })} />
                                 <Input label="Mother's Phone" value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value })} />
-
                                 <Input label="Father's Name" value={formData.fatherName} onChange={e => setFormData({ ...formData, fatherName: e.target.value })} />
                                 <Input label="Father's Phone" value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value })} />
                             </div>

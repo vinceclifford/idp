@@ -18,8 +18,17 @@ import Navigation from './components/Navigation';
 export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('login');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 1. Initialize Auth State from LocalStorage
+  // If 'isAuthenticated' exists in browser memory, start as true.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+
+  // 2. Initialize Page State
+  // If logged in, start at 'dashboard', otherwise 'login'
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true' ? 'dashboard' : 'login';
+  });
 
   // Force Dark Mode 
   useEffect(() => {
@@ -27,11 +36,16 @@ export default function App() {
   }, []);
 
   const handleLogin = () => {
+    // Save to browser memory
+    localStorage.setItem('isAuthenticated', 'true');
     setIsAuthenticated(true);
     setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
+    // Clear from browser memory
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('user'); // Clean up user data if any
     setIsAuthenticated(false);
     setCurrentPage('login');
   };
@@ -40,6 +54,7 @@ export default function App() {
     setCurrentPage(page);
   };
 
+  // If not authenticated, show Login Page
   if (!isAuthenticated) {
     return (
       <>
@@ -49,9 +64,9 @@ export default function App() {
     );
   }
 
+  // If authenticated, show the Main App
   return (
     <DndProvider backend={HTML5Backend}>
-      {/* Updated Background to match the new Glassmorphism Theme */}
       <div className="min-h-screen bg-[#0b0f19] text-slate-200 selection:bg-blue-500/30">
         <Navigation 
           currentPage={currentPage} 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Upload, Image as ImageIcon, Video as VideoIcon, FileText, X, Play } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, Image as ImageIcon, Video as VideoIcon, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -15,10 +15,6 @@ interface Principle {
   coachingNotes?: string; implementationTips?: string; mediaUrl?: string; isCustom: boolean;
 }
 
-const mockPrinciples: Principle[] = [
-  { id: 'p1', name: 'Possession-Based Play', gamePhase: 'In Possession', description: 'Maintain control of the ball to dominate the game.', coachingNotes: 'Focus on triangles and player spacing.', implementationTips: 'Start with 4v2 rondos\nProgress to positional play games', isCustom: false },
-];
-
 const GAME_PHASES = ["In Possession", "Transition After Losing Possession", "Out of Possession", "Transition After Winning Possession", "Set Pieces"];
 
 // --- Helper ---
@@ -27,11 +23,14 @@ const getMediaType = (url?: string) => {
     if (url.startsWith('data:image')) return 'image';
     if (url.startsWith('data:video')) return 'video';
     if (url.startsWith('data:application/pdf')) return 'pdf';
+    // Fallback for actual URLs if you switch to cloud storage later
+    if (url.match(/\.(jpeg|jpg|gif|png)$/) != null) return 'image';
+    if (url.match(/\.(mp4|webm)$/) != null) return 'video';
     return 'unknown';
 };
 
 export default function PrinciplesLibrary() {
-  const [principles, setPrinciples] = useState<Principle[]>(mockPrinciples);
+  const [principles, setPrinciples] = useState<Principle[]>([]); // Initialized empty
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -42,32 +41,74 @@ export default function PrinciplesLibrary() {
   
   const [formData, setFormData] = useState({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' });
 
+  // --- Load Data ---
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/principles').then(res => res.json()).then(data => {
-        const dbItems = data.map((item: any) => ({ 
-            id: item.id, name: item.name, gamePhase: item.game_phase, description: item.description, coachingNotes: item.coaching_notes || '', implementationTips: item.implementation_tips || '', mediaUrl: item.media_url, isCustom: true 
-        }));
-        setPrinciples([...mockPrinciples, ...dbItems]);
-    }).catch(() => toast.error("Backend offline"));
+    fetch('http://127.0.0.1:8000/principles')
+        .then(res => res.json())
+        .then(data => {
+            const dbItems = data.map((item: any) => ({ 
+                id: item.id, 
+                name: item.name, 
+                gamePhase: item.game_phase, 
+                description: item.description, 
+                coachingNotes: item.coaching_notes || '', 
+                implementationTips: item.implementation_tips || '', 
+                mediaUrl: item.media_url, 
+                isCustom: true 
+            }));
+            setPrinciples(dbItems); // Set only DB items
+        })
+        .catch(() => toast.error("Backend offline"));
   }, []);
 
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error('Fill required fields');
-    const payload = { name: formData.name, game_phase: formData.gamePhase, description: formData.description, coaching_notes: formData.coachingNotes, implementation_tips: formData.implementationTips, media_url: mediaPreview || formData.mediaUrl };
+    
+    const payload = { 
+        name: formData.name, 
+        game_phase: formData.gamePhase, 
+        description: formData.description, 
+        coaching_notes: formData.coachingNotes, 
+        implementation_tips: formData.implementationTips, 
+        media_url: mediaPreview || formData.mediaUrl 
+    };
 
     try {
       let response;
-      if (isEditing && formData.id && !formData.id.startsWith('p')) {
-        response = await fetch(`http://127.0.0.1:8000/principles/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // Check if it's an existing ID (from DB)
+      if (isEditing && formData.id) {
+        response = await fetch(`http://127.0.0.1:8000/principles/${formData.id}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
       } else {
-        response = await fetch('http://127.0.0.1:8000/principles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        response = await fetch('http://127.0.0.1:8000/principles', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
       }
 
       if (response.ok) {
         const saved = await response.json();
-        const newItem = { id: saved.id, name: saved.name, gamePhase: saved.game_phase, description: saved.description, coachingNotes: saved.coaching_notes, implementationTips: saved.implementation_tips, mediaUrl: saved.media_url, isCustom: true };
-        if (isEditing) setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
-        else setPrinciples(prev => [...prev, newItem]);
+        const newItem = { 
+            id: saved.id, 
+            name: saved.name, 
+            gamePhase: saved.game_phase, 
+            description: saved.description, 
+            coachingNotes: saved.coaching_notes, 
+            implementationTips: saved.implementation_tips, 
+            mediaUrl: saved.media_url, 
+            isCustom: true 
+        };
+        
+        if (isEditing) {
+            setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
+        } else {
+            setPrinciples(prev => [...prev, newItem]);
+        }
+        
         toast.success(isEditing ? 'Updated successfully!' : 'Created successfully!');
         closeModal();
       }
@@ -75,10 +116,13 @@ export default function PrinciplesLibrary() {
   };
 
   const handleDelete = async (id: string) => {
-    if (id.startsWith('p')) { setPrinciples(prev => prev.filter(p => p.id !== id)); return; }
-    await fetch(`http://127.0.0.1:8000/principles/${id}`, { method: 'DELETE' });
-    setPrinciples(prev => prev.filter(p => p.id !== id));
-    toast.success('Deleted');
+    try {
+        await fetch(`http://127.0.0.1:8000/principles/${id}`, { method: 'DELETE' });
+        setPrinciples(prev => prev.filter(p => p.id !== id));
+        toast.success('Deleted');
+    } catch {
+        toast.error('Failed to delete');
+    }
   };
 
   // --- File Upload Logic ---
@@ -92,13 +136,34 @@ export default function PrinciplesLibrary() {
     }
   };
 
-  const closeModal = () => { setShowCreateModal(false); setIsEditing(false); setMediaPreview(null); setFormData({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' }); };
-  const openEdit = (p: Principle) => { setFormData({ id: p.id, name: p.name, gamePhase: p.gamePhase, description: p.description, coachingNotes: p.coachingNotes || '', implementationTips: p.implementationTips || '', mediaUrl: p.mediaUrl || '' }); setMediaPreview(p.mediaUrl || null); setIsEditing(true); setShowCreateModal(true); };
+  const closeModal = () => { 
+      setShowCreateModal(false); 
+      setIsEditing(false); 
+      setMediaPreview(null); 
+      setFormData({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' }); 
+  };
+  
+  const openEdit = (p: Principle) => { 
+      setFormData({ 
+          id: p.id, 
+          name: p.name, 
+          gamePhase: p.gamePhase, 
+          description: p.description, 
+          coachingNotes: p.coachingNotes || '', 
+          implementationTips: p.implementationTips || '', 
+          mediaUrl: p.mediaUrl || '' 
+      }); 
+      setMediaPreview(p.mediaUrl || null); 
+      setIsEditing(true); 
+      setShowCreateModal(true); 
+  };
+  
   const filteredPrinciples = principles.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // --- Media Renderer ---
   const renderCardMedia = (url: string) => {
       const type = getMediaType(url);
+      
       if (type === 'image') return <img src={url} alt="Media" className="w-full h-40 object-cover rounded-lg mt-4 border border-white/5 opacity-80 hover:opacity-100 transition-opacity cursor-zoom-in" onClick={(e) => {e.stopPropagation(); setViewMedia(url)}} />;
       
       if (type === 'video') return (
@@ -183,6 +248,11 @@ export default function PrinciplesLibrary() {
             </Card>
         ))}
         </AnimatePresence>
+        {filteredPrinciples.length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-500 italic">
+                No principles found. Create one to get started.
+            </div>
+        )}
       </div>
 
       <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Principle' : 'New Principle'} 
@@ -229,7 +299,7 @@ export default function PrinciplesLibrary() {
         </div>
       </Modal>
 
-      {/* NEW: Lightbox Viewer */}
+      {/* Lightbox Viewer */}
       <AnimatePresence>
         {viewMedia && (
             <motion.div

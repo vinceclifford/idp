@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trophy, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Trophy, Mail, Lock, AlertCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,52 +15,83 @@ interface LoginPageProps {
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState(''); // Name field for Registration
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // 1. Validation Logic
+    // 1. Basic Validation
     if (!email || !password) {
       setError('Please fill in all fields');
+      setLoading(false);
+      return;
+    }
+    if (isRegister && !fullName) {
+      setError('Please enter your full name');
+      setLoading(false);
       return;
     }
 
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    try {
+      const endpoint = isRegister ? 'http://127.0.0.1:8000/register' : 'http://127.0.0.1:8000/login';
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+      const payload = isRegister
+        ? { email, password, full_name: fullName }
+        : { email, password };
 
-    // 2. Success Action
-    if (isRegister) {
-      toast.success('Account created successfully!');
-      onLogin();
-    } else {
-      onLogin();
-      toast.success('Welcome back!');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Authentication failed');
+      }
+
+      // Success Action
+      if (isRegister) {
+        toast.success('Account created! Please sign in.');
+        setIsRegister(false); // Redirect to Login view
+        setFullName('');
+        setPassword('');
+      } else {
+        toast.success(`Welcome back!`);
+
+        localStorage.setItem('isAuthenticated', 'true');
+        // localStorage.setItem('user', JSON.stringify(data)); 
+
+        onLogin();
+      }
+
+    } catch (err: any) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#0b0f19]">
-      
+
       {/* Background Blobs */}
       <div className="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Glass Card Container */}
       <Card animate delay={0.1} className="w-full max-w-md p-8 sm:p-10 z-10 border-white/10 bg-slate-900/60">
-        
+
         {/* Logo & Header */}
         <div className="flex flex-col items-center mb-8">
-          <motion.div 
+          <motion.div
             whileHover={{ scale: 1.05, rotate: 5 }}
             className="bg-gradient-to-br from-blue-600 to-indigo-600 p-4 rounded-2xl shadow-xl shadow-blue-500/20 mb-6"
           >
@@ -73,11 +104,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          
+
           {/* Error Message Animation */}
           <AnimatePresence mode="wait">
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -89,36 +120,50 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             )}
           </AnimatePresence>
 
-          {/* Centralized Inputs */}
-          <Input 
+          {/* Full Name Field (Only for Registration) */}
+          <AnimatePresence>
+            {isRegister && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Input
+                  label="Full Name"
+                  type="text"
+                  icon={<User size={16} />}
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="mb-6"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Input
             label="Email Address"
             type="email"
             icon={<Mail size={16} />}
             placeholder="coach@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            // Pass error boolean or string if specific field validation is needed
-            className={error && !email ? "border-red-500/50" : ""}
+            className={error ? "border-red-500/50" : ""}
           />
 
-          <Input 
+          <Input
             label="Password"
             type="password"
             icon={<Lock size={16} />}
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={error && !password ? "border-red-500/50" : ""}
-            rightElement={
-              <button type="button" className="text-slate-500 hover:text-blue-400 transition-colors text-xs font-medium">
-                Forgot?
-              </button>
-            }
+            className={error ? "border-red-500/50" : ""}
           />
 
-          {/* Centralized Submit Button */}
-          <Button type="submit" className="w-full shadow-lg shadow-blue-600/20">
-            {isRegister ? 'Create Account' : 'Sign In'}
+          <Button type="submit" className="w-full shadow-lg shadow-blue-600/20" disabled={loading}>
+            {loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Sign In')}
           </Button>
 
         </form>
@@ -128,12 +173,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-slate-500 text-sm mb-3">
             {isRegister ? "Already have an account?" : "Don't have an account?"}
           </p>
-          <Button 
-            variant="ghost" 
-            onClick={() => { setIsRegister(!isRegister); setError(''); }}
+          <Button
+            variant="ghost"
+            onClick={() => { setIsRegister(!isRegister); setError(''); setFullName(''); }}
             className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 w-full"
           >
-             {isRegister ? 'Sign in instead' : "Create an account"}
+            {isRegister ? 'Sign in instead' : "Create an account"}
           </Button>
         </div>
 
