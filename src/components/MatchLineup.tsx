@@ -9,6 +9,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
+import { DatePicker } from "./ui/DatePicker";
 
 // --- Types ---
 interface Player {
@@ -16,7 +17,8 @@ interface Player {
   name: string; 
   position: string; 
   number: number;
-  status: string; 
+  status: string;
+  performance?: number;
 }
 
 interface MatchDetails {
@@ -76,7 +78,7 @@ function DraggablePlayer({ player, onClick, isSubstitute = false }: { player: Pl
   );
 }
 
-function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick }: { slot: PositionSlot; player: LineupPlayer | null; onDrop: (p: any, s: string) => void; onRemove: (s: string) => void; onClick: () => void; }) {
+function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatchPast }: { slot: PositionSlot; player: LineupPlayer | null; onDrop: (p: any, s: string) => void; onRemove: (s: string) => void; onClick: () => void; isMatchPast: boolean; }) {
   const [{ isOver }, drop] = useDrop(() => ({ 
       accept: 'player', 
       drop: (item: any) => onDrop(item, slot.id), 
@@ -89,7 +91,7 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick }: { sl
         <div onClick={onClick} className="relative group cursor-pointer">
           <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-blue-400"><span className="text-lg font-bold">{player.number}</span></div>
           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">{player.name.split(' ')[0]}</p></div>
-          <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="w-3 h-3" /></button>
+          {!isMatchPast && <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="w-3 h-3" /></button>}
         </div>
       ) : (
         <div className={`w-14 h-14 border-2 border-dashed rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isOver ? 'border-blue-400 bg-blue-500/20 text-white' : 'border-white/20 bg-white/5 text-slate-400'}`}>{slot.position}</div>
@@ -111,9 +113,11 @@ export default function MatchLineup() {
 
   const [matches, setMatches] = useState<MatchDetails[]>([]); 
   const [matchDetails, setMatchDetails] = useState<MatchDetails | null>(null); 
+  const [selectedPlayerPerformance, setSelectedPlayerPerformance] = useState(0);
   
   const [isEditingMatch, setIsEditingMatch] = useState(false);
   const [matchForm, setMatchForm] = useState({ opponent: '', date: '', time: '', location: '' });
+  const [showPastMatches, setShowPastMatches] = useState(false);
 
   const [currentFormation, setCurrentFormation] = useState<string>('4-4-2');
   const [formationSource, setFormationSource] = useState<string>('Default');
@@ -133,7 +137,8 @@ export default function MatchLineup() {
               name: `${p.first_name} ${p.last_name}`,
               position: p.position,
               number: p.jersey_number,
-              status: p.status
+              status: p.status,
+              performance: p.performance || 0
           }));
           setAllPlayers(mappedPlayers);
       });
@@ -254,9 +259,59 @@ useEffect(() => {
       !substitutes.some(sp => sp.id === player.id)
   );
   
+  // Separate past and upcoming matches
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const upcomingMatches = matches.filter(match => {
+    const matchDate = new Date(match.date);
+    matchDate.setHours(0, 0, 0, 0);
+    return matchDate >= today;
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  const pastMatches = matches.filter(match => {
+    const matchDate = new Date(match.date);
+    matchDate.setHours(0, 0, 0, 0);
+    return matchDate < today;
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  // Check if currently viewing a past match
+  const isMatchPast = matchDetails ? (() => {
+    const matchDate = new Date(matchDetails.date);
+    matchDate.setHours(0, 0, 0, 0);
+    return matchDate < today;
+  })() : false;
+  
   const activeSlots = FORMATIONS[currentFormation] || FORMATIONS['4-4-2'];
 
+  // Calculate average performance for a player from past matches
+  const getPlayerAveragePerformance = (playerId: string): number | null => {
+    const playerPastPerformances: number[] = [];
+    pastMatches.forEach(match => {
+      if (match.lineup) {
+        try {
+          const parsedLineup = JSON.parse(match.lineup);
+          parsedLineup.forEach((item: any) => {
+            if (item.player.id === playerId && item.player.performance) {
+              playerPastPerformances.push(item.player.performance);
+            }
+          });
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    });
+    
+    if (playerPastPerformances.length === 0) return null;
+    const avg = playerPastPerformances.reduce((a, b) => a + b, 0) / playerPastPerformances.length;
+    return Math.round(avg * 10) / 10; // Round to 1 decimal
+  };
+
   const handleDropToField = (item: any, slotId: string) => {
+    if (isMatchPast) {
+      toast.error('Cannot edit past match lineups');
+      return;
+    }
     const player = item as Player;
     const fromBench = item.fromBench;
 
@@ -332,14 +387,14 @@ useEffect(() => {
         <div><h1 className="text-3xl font-bold text-white tracking-tight">Match & Lineup</h1><p className="text-slate-400 mt-1 font-medium">Tactical setup for matchday</p></div>
         <div className="flex gap-3">
             <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>Create Match</Button>
-            <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>Save Lineup</Button>
+            <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11 || isMatchPast} icon={<Save size={18} />}>{isMatchPast ? 'Past Match (View Only)' : 'Save Lineup'}</Button>
         </div>
       </div>
 
       <Card className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            {matchDetails ? (
+            {matchDetails && !isMatchPast ? (
                 <>
                     <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-2xl font-bold text-white flex items-center gap-3"><span className="text-slate-500 text-lg">VS</span> {matchDetails.opponent}</h3>
@@ -369,29 +424,63 @@ useEffect(() => {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-3 space-y-6">
           <Card className="p-4 flex flex-col h-[250px]">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Upcoming Fixtures</h3>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setShowPastMatches(false)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
+                  !showPastMatches
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50'
+                    : 'bg-slate-900/50 text-slate-400 border border-white/5'
+                }`}
+              >
+                Upcoming ({upcomingMatches.length})
+              </button>
+              <button
+                onClick={() => setShowPastMatches(true)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
+                  showPastMatches
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50'
+                    : 'bg-slate-900/50 text-slate-400 border border-white/5'
+                }`}
+              >
+                Past ({pastMatches.length})
+              </button>
+            </div>
             <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
-                {matches.length > 0 ? matches.map(match => (
+                {(!showPastMatches ? upcomingMatches : pastMatches).length > 0 ? (
+                  (!showPastMatches ? upcomingMatches : pastMatches).map(match => (
                     <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-slate-900/50 border-white/5 hover:border-white/20'}`}>
-                        <div><p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-slate-200'}`}>vs {match.opponent}</p><p className="text-[10px] text-slate-500">{match.date}</p></div>
+                        <div>
+                          <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-slate-200'}`}>vs {match.opponent}</p>
+                          <p className="text-[10px] text-slate-500">{match.date}</p>
+                        </div>
                         {matchDetails?.id === match.id && <ChevronRight size={14} className="text-blue-400" />}
                     </div>
-                )) : <p className="text-xs text-slate-500 italic text-center mt-10">No upcoming matches</p>}
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500 italic text-center mt-10">No {showPastMatches ? 'past' : 'upcoming'} matches</p>
+                )}
             </div>
           </Card>
 
           <Card className="p-4 h-[350px] flex flex-col">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Available Players</h3>
-            <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Available Players</h3>
+              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">View Only</span>}
+            </div>
+            <div className={`space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2 ${isMatchPast ? 'opacity-60 pointer-events-none' : ''}`}>
               {availablePlayers.length > 0 ? availablePlayers.map(player => 
-                <DraggablePlayer key={player.id} player={player} onClick={() => handleAddSubstitute(player)} />
+                <DraggablePlayer key={player.id} player={player} onClick={() => !isMatchPast && handleAddSubstitute(player)} />
               ) : <p className="text-xs text-slate-500 italic text-center mt-10">No active players available</p>}
             </div>
           </Card>
 
           <Card className="p-4 h-[200px] flex flex-col">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Substitutes</h3>
-            <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Substitutes</h3>
+              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">View Only</span>}
+            </div>
+            <div className={`space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2 ${isMatchPast ? 'opacity-60' : ''}`}>
               {substitutes.map(player => (
                 <DraggablePlayer key={player.id} player={player} isSubstitute={true} />
               ))}
@@ -409,7 +498,7 @@ useEffect(() => {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-400/20 rounded-full"></div>
             </div>
             <div className="absolute inset-8">
-              {activeSlots.map((slot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) setSelectedPlayer(p); }} />)}
+              {activeSlots.map((slot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) { setSelectedPlayer(p); setSelectedPlayerPerformance(p.performance || 0); } }} isMatchPast={isMatchPast} />)}
             </div>
             <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-md rounded-lg px-4 py-2 border border-white/5">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest">Starters</p>
@@ -421,14 +510,127 @@ useEffect(() => {
 
       <Modal isOpen={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} title="Player Profile" icon={<Users size={20}/>} maxWidth="max-w-md">
         {selectedPlayer && (
-            <div className="text-center">
-                <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.number}</div>
-                <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.name}</h3>
-                <p className="text-blue-400 font-medium">{selectedPlayer.position}</p>
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                    <div className="bg-slate-900 p-3 rounded-xl border border-white/5"><p className="text-xs text-slate-500 uppercase tracking-wider">Form</p><p className="text-xl font-bold text-emerald-400">8.5</p></div>
-                    <div className="bg-slate-900 p-3 rounded-xl border border-white/5"><p className="text-xs text-slate-500 uppercase tracking-wider">Fitness</p><p className="text-xl font-bold text-blue-400">95%</p></div>
+            <div className="text-center space-y-6">
+                <div>
+                  <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.number}</div>
+                  <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.name}</h3>
+                  <p className="text-blue-400 font-medium">{selectedPlayer.position}</p>
                 </div>
+                
+                <div className="w-full space-y-4">
+                    {isMatchPast ? (
+                      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Match Performance</p>
+                        <div className="space-y-3">
+                          <input
+                            type="range"
+                            min="0"
+                            max="10"
+                            value={selectedPlayerPerformance}
+                            onChange={(e) => setSelectedPlayerPerformance(Number(e.target.value))}
+                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-colors"
+                          />
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-1">
+                              {[...Array(10)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`w-2 h-6 rounded-sm transition-all ${
+                                    i < selectedPlayerPerformance
+                                      ? 'bg-blue-500 shadow-lg shadow-blue-500/50'
+                                      : 'bg-slate-700'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-3xl font-bold text-blue-400">{selectedPlayerPerformance}</p>
+                              <p className="text-xs text-slate-500">/10</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                          <p className="text-xs text-slate-500">
+                            {selectedPlayerPerformance <= 3 && '🔴 Below Average'}
+                            {selectedPlayerPerformance > 3 && selectedPlayerPerformance <= 5 && '🟡 Average'}
+                            {selectedPlayerPerformance > 5 && selectedPlayerPerformance <= 7 && '🟢 Good'}
+                            {selectedPlayerPerformance > 7 && selectedPlayerPerformance <= 9 && '⭐ Excellent'}
+                            {selectedPlayerPerformance === 10 && '👑 Outstanding'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Average Performance</p>
+                        {getPlayerAveragePerformance(selectedPlayer.id) !== null ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-1">
+                                {[...Array(10)].map((_, i) => {
+                                  const avg = getPlayerAveragePerformance(selectedPlayer.id) || 0;
+                                  return (
+                                    <div
+                                      key={i}
+                                      className={`w-2 h-6 rounded-sm transition-all ${
+                                        i < Math.round(avg)
+                                          ? 'bg-emerald-500 shadow-lg shadow-emerald-500/50'
+                                          : 'bg-slate-700'
+                                      }`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-3xl font-bold text-emerald-400">{getPlayerAveragePerformance(selectedPlayer.id)}</p>
+                                <p className="text-xs text-slate-500">/10</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              {(() => {
+                                const avg = getPlayerAveragePerformance(selectedPlayer.id) || 0;
+                                if (avg <= 3) return '🔴 Below Average';
+                                if (avg <= 5) return '🟡 Average';
+                                if (avg <= 7) return '🟢 Good';
+                                if (avg <= 9) return '⭐ Excellent';
+                                return '👑 Outstanding';
+                              })()}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400 italic">No past match data available</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
+                      <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">Status</p>
+                      <p className={`text-lg font-bold mt-2 ${
+                        selectedPlayer.status === 'Active' 
+                          ? 'text-emerald-400' 
+                          : selectedPlayer.status === 'Injured'
+                          ? 'text-red-400'
+                          : 'text-slate-400'
+                      }`}>
+                        {selectedPlayer.status}
+                      </p>
+                    </div>
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    if (isMatchPast) {
+                      // Update player performance in backend only for past matches
+                      const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id ? { ...p, performance: selectedPlayerPerformance } : p);
+                      setAllPlayers(updatedPlayers);
+                      toast.success('Performance updated');
+                    }
+                    setSelectedPlayer(null);
+                  }}
+                  disabled={!isMatchPast}
+                  className="w-full"
+                >
+                  {isMatchPast ? 'Save Performance' : 'Upcoming Match (View Only)'}
+                </Button>
             </div>
         )}
       </Modal>
@@ -437,7 +639,7 @@ useEffect(() => {
         footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowCreateMatchModal(false)} className="flex-1">Cancel</Button><Button onClick={handleSaveMatch} className="flex-1">{isEditingMatch ? "Update Match" : "Create Match"}</Button></div>}>
         <div className="space-y-4">
             <Input label="Opponent Name" value={matchForm.opponent} onChange={e => setMatchForm({...matchForm, opponent: e.target.value})} placeholder="e.g. City Rovers FC" />
-            <Input label="Date" type="date" value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} />
+            <DatePicker label="Match Date" value={matchForm.date} onChange={date => setMatchForm({...matchForm, date})} />
             <div className="grid grid-cols-2 gap-4">
                 <Input label="Kickoff Time" type="time" value={matchForm.time} onChange={e => setMatchForm({...matchForm, time: e.target.value})} />
                 <Input label="Location" value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} placeholder="e.g. Home / Away" />

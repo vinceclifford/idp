@@ -364,14 +364,10 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
     return db_item
 
 @app.get("/matches")
-def get_upcoming_matches(db: Session = Depends(database.get_db)):
-    import datetime
-    today = datetime.date.today()
-    
-    # Return all matches from today onwards, sorted by date
+def get_all_matches(db: Session = Depends(database.get_db)):
+    # Return all matches (both past and upcoming), sorted by date descending (newest first)
     return db.query(models.Match)\
-        .filter(models.Match.date >= today)\
-        .order_by(models.Match.date.asc())\
+        .order_by(models.Match.date.desc())\
         .all()
 
 @app.get("/matches/latest")
