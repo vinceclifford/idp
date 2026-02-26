@@ -65,6 +65,8 @@ export default function TrainingManager() {
         selectedExerciseIds: [] as string[]
     });
 
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+
     // --- 1. LOAD DATA ---
     useEffect(() => {
         const fetchData = async () => {
@@ -264,6 +266,15 @@ export default function TrainingManager() {
     const togglePlayer = (id: string) => { setFormData(prev => { const exists = prev.selectedPlayerIds.includes(id); return { ...prev, selectedPlayerIds: exists ? prev.selectedPlayerIds.filter(pid => pid !== id) : [...prev.selectedPlayerIds, id] }; }); };
     const toggleExercise = (id: string) => { setFormData(prev => { const exists = prev.selectedExerciseIds.includes(id); return { ...prev, selectedExerciseIds: exists ? prev.selectedExerciseIds.filter(eid => eid !== id) : [...prev.selectedExerciseIds, id] }; }); };
 
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingSessions = sessions
+        .filter(s => s.date >= today)
+        .sort((a, b) => a.date.localeCompare(b.date));
+    const pastSessions = sessions
+        .filter(s => s.date < today)
+        .sort((a, b) => b.date.localeCompare(a.date));
+    const displaySessions = activeTab === 'upcoming' ? upcomingSessions : pastSessions;
+
     return (
         <div className="relative min-h-screen p-8 max-w-7xl mx-auto space-y-6 overflow-hidden">
 
@@ -281,9 +292,32 @@ export default function TrainingManager() {
                 </Button>
             </div>
 
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-slate-900/50 border border-white/5 rounded-xl w-fit">
+                {([
+                    { key: 'upcoming', label: 'Upcoming', count: upcomingSessions.length },
+                    { key: 'past',     label: 'Past',     count: pastSessions.length },
+                ] as const).map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                            activeTab === tab.key
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        {tab.label}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                            activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500'
+                        }`}>{tab.count}</span>
+                    </button>
+                ))}
+            </div>
+
             <div className="grid grid-cols-1 gap-4">
                 <AnimatePresence>
-                    {sessions.map((s, idx) => (
+                    {displaySessions.map((s, idx) => (
                         <Card
                             key={s.id}
                             animate
@@ -291,7 +325,11 @@ export default function TrainingManager() {
                             className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden"
                         >
                             {/* Decorative left accent */}
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600"></div>
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${
+                                activeTab === 'past'
+                                    ? 'from-slate-500 to-slate-600'
+                                    : 'from-blue-500 to-indigo-600'
+                            }`}></div>
 
                             <div className="flex-1 pl-2">
                                 <div className="flex items-center gap-3 mb-2">
@@ -322,7 +360,11 @@ export default function TrainingManager() {
                         </Card>
                     ))}
                 </AnimatePresence>
-                {sessions.length === 0 && <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">No training sessions scheduled.</div>}
+                {displaySessions.length === 0 && (
+                    <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">
+                        {activeTab === 'upcoming' ? 'No upcoming sessions scheduled.' : 'No past sessions recorded.'}
+                    </div>
+                )}
             </div>
 
             <Modal
