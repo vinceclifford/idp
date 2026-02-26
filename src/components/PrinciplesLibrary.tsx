@@ -41,6 +41,8 @@ export default function PrinciplesLibrary() {
   // New State for Lightbox
   const [viewMedia, setViewMedia] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   
   const [formData, setFormData] = useState({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' });
 
@@ -224,7 +226,14 @@ export default function PrinciplesLibrary() {
                     </div>
                 </div>
 
-                <p className="text-slate-400 leading-relaxed text-sm mb-6">{p.description}</p>
+                <div className="mb-6">
+                  <p className={`text-slate-400 leading-relaxed text-sm transition-all ${!expandedIds.has(p.id) ? 'line-clamp-3' : ''}`}>{p.description}</p>
+                  {p.description?.length > 120 && (
+                    <button onClick={e => { e.stopPropagation(); toggleExpanded(p.id); }} className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 mt-1.5 transition-colors">
+                      {expandedIds.has(p.id) ? 'Show less ↑' : 'Read more ↓'}
+                    </button>
+                  )}
+                </div>
                 
                 {/* Media Preview inside Card */}
                 {p.mediaUrl && renderCardMedia(p.mediaUrl)}
@@ -234,7 +243,12 @@ export default function PrinciplesLibrary() {
                         <h4 className="text-yellow-500 text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Coaching Note
                         </h4>
-                        <p className="text-yellow-100/80 text-xs leading-relaxed">{p.coachingNotes}</p>
+                        <p className={`text-yellow-100/80 text-xs leading-relaxed transition-all ${!expandedIds.has(p.id + '-cn') ? 'line-clamp-2' : ''}`}>{p.coachingNotes}</p>
+                        {(p.coachingNotes?.length ?? 0) > 100 && (
+                          <button onClick={e => { e.stopPropagation(); toggleExpanded(p.id + '-cn'); }} className="text-[9px] font-semibold text-yellow-500/70 hover:text-yellow-400 mt-1.5 transition-colors">
+                            {expandedIds.has(p.id + '-cn') ? 'Show less ↑' : 'Read more ↓'}
+                          </button>
+                        )}
                     </div>
                 )}
 
@@ -243,13 +257,21 @@ export default function PrinciplesLibrary() {
                         <div className="border-t border-white/5 pt-4">
                             <h4 className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-3">Key Points</h4>
                             <ul className="space-y-2">
-                                {p.implementationTips.split('\n').map((tip, i) => tip.trim() && (
+                                {(expandedIds.has(p.id + '-tips')
+                                    ? p.implementationTips.split('\n')
+                                    : p.implementationTips.split('\n').slice(0, 3)
+                                ).map((tip, i) => tip.trim() && (
                                     <li key={i} className="flex items-start gap-3 text-slate-400 text-sm">
                                         <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                                         <span className="leading-relaxed text-xs">{tip}</span>
                                     </li>
                                 ))}
                             </ul>
+                            {p.implementationTips.split('\n').filter(t => t.trim()).length > 3 && (
+                              <button onClick={e => { e.stopPropagation(); toggleExpanded(p.id + '-tips'); }} className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 mt-2 transition-colors">
+                                {expandedIds.has(p.id + '-tips') ? 'Show less ↑' : `+${p.implementationTips.split('\n').filter(t => t.trim()).length - 3} more ↓`}
+                              </button>
+                            )}
                         </div>
                     )}
 

@@ -43,6 +43,8 @@ export default function BasicsLibrary() {
 
   const [formData, setFormData] = useState({ id: '', name: '', description: '', diagramUrl: '' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // --- Load Data ---
   useEffect(() => {
@@ -184,7 +186,12 @@ export default function BasicsLibrary() {
 
               <div className="mb-4">
                 <h3 className="text-lg font-bold text-white mb-2 tracking-tight">{basic.name}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed line-clamp-2">{basic.description}</p>
+                <p className={`text-slate-400 text-sm leading-relaxed transition-all ${!expandedIds.has(basic.id) ? 'line-clamp-3' : ''}`}>{basic.description}</p>
+                {basic.description?.length > 120 && (
+                  <button onClick={e => { e.stopPropagation(); toggleExpanded(basic.id); }} className="text-[10px] font-semibold text-sky-400 hover:text-sky-300 mt-1.5 transition-colors">
+                    {expandedIds.has(basic.id) ? 'Show less ↑' : 'Read more ↓'}
+                  </button>
+                )}
               </div>
 
               {basic.isCustom && (

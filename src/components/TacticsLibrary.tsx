@@ -22,6 +22,8 @@ export default function TacticsLibrary() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [formData, setFormData] = useState({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' });
 
   useEffect(() => {
@@ -107,7 +109,12 @@ export default function TacticsLibrary() {
 
                 <div className="mb-4 px-1">
                     <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{t.name}</h3>
-                    <p className="text-slate-400 text-sm leading-relaxed line-clamp-3">{t.description}</p>
+                    <p className={`text-slate-400 text-sm leading-relaxed transition-all ${!expandedIds.has(t.id) ? 'line-clamp-3' : ''}`}>{t.description}</p>
+                {t.description?.length > 120 && (
+                  <button onClick={e => { e.stopPropagation(); toggleExpanded(t.id); }} className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 mt-1.5 transition-colors">
+                    {expandedIds.has(t.id) ? 'Show less ↑' : 'Read more ↓'}
+                  </button>
+                )}
                 </div>
 
                 {t.suggestedDrills && (
@@ -116,13 +123,21 @@ export default function TacticsLibrary() {
                             <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span> Suggested Drills
                         </h4>
                         <div className="space-y-2">
-                            {t.suggestedDrills.split('\n').map((d, i) => d.trim() && (
+                            {(expandedIds.has(t.id + '-drills')
+                                ? t.suggestedDrills.split('\n')
+                                : t.suggestedDrills.split('\n').slice(0, 3)
+                            ).map((d, i) => d.trim() && (
                                 <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
                                     <span className="text-orange-500/50 mt-[3px] text-[8px]">•</span>
                                     <span>{d}</span>
                                 </div>
                             ))}
                         </div>
+                        {t.suggestedDrills.split('\n').filter(d => d.trim()).length > 3 && (
+                          <button onClick={e => { e.stopPropagation(); toggleExpanded(t.id + '-drills'); }} className="text-[9px] font-semibold text-orange-400/70 hover:text-orange-400 mt-2 transition-colors">
+                            {expandedIds.has(t.id + '-drills') ? 'Show less ↑' : `+${t.suggestedDrills.split('\n').filter(d => d.trim()).length - 3} more ↓`}
+                          </button>
+                        )}
                     </div>
                 )}
 
