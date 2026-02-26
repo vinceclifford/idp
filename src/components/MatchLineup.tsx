@@ -19,6 +19,7 @@ interface Player {
   number: number;
   status: string;
   performance?: number;
+  dateOfBirth?: string;
 }
 
 interface MatchDetails {
@@ -138,7 +139,8 @@ export default function MatchLineup() {
               position: p.position,
               number: p.jersey_number,
               status: p.status,
-              performance: p.performance || 0
+              performance: p.performance || 0,
+              dateOfBirth: p.date_of_birth
           }));
           setAllPlayers(mappedPlayers);
       });
@@ -301,6 +303,12 @@ useEffect(() => {
         }
       }
     });
+    
+    // Also add the current performance from allPlayers if it exists
+    const playerFromDb = allPlayers.find(p => p.id === playerId);
+    if (playerFromDb && playerFromDb.performance && playerFromDb.performance > 0) {
+      playerPastPerformances.push(playerFromDb.performance);
+    }
     
     if (playerPastPerformances.length === 0) return null;
     const avg = playerPastPerformances.reduce((a, b) => a + b, 0) / playerPastPerformances.length;
@@ -617,12 +625,39 @@ useEffect(() => {
                 </div>
                 
                 <Button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (isMatchPast) {
-                      // Update player performance in backend only for past matches
-                      const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id ? { ...p, performance: selectedPlayerPerformance } : p);
-                      setAllPlayers(updatedPlayers);
-                      toast.success('Performance updated');
+                      try {
+                        // Get full player data from allPlayers to ensure we have dateOfBirth
+                        const fullPlayerData = allPlayers.find(p => p.id === selectedPlayer.id) || selectedPlayer;
+                        
+                        // Update player performance in backend
+                        const response = await fetch(`http://127.0.0.1:8000/players/${selectedPlayer.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            first_name: selectedPlayer.name.split(' ')[0],
+                            last_name: selectedPlayer.name.split(' ').slice(1).join(' ') || '',
+                            position: selectedPlayer.position,
+                            jersey_number: selectedPlayer.number,
+                            status: selectedPlayer.status,
+                            performance: selectedPlayerPerformance,
+                            date_of_birth: fullPlayerData.dateOfBirth
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          const updatedPlayer = await response.json();
+                          const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id 
+                            ? { ...p, performance: updatedPlayer.performance } 
+                            : p
+                          );
+                          setAllPlayers(updatedPlayers);
+                          toast.success('Performance updated');
+                        }
+                      } catch (e) {
+                        toast.error('Failed to save performance');
+                      }
                     }
                     setSelectedPlayer(null);
                   }}
