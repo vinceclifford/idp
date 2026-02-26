@@ -15,13 +15,22 @@ import { TimePicker } from "./ui/TimePicker";
 
 // --- Types ---
 interface Player {
-  id: string; 
-  name: string; 
-  position: string; 
+  id: string;
+  name: string;
+  position: string;
   number: number;
   status: string;
   performance?: number;
   dateOfBirth?: string;
+  height?: number;
+  weight?: number;
+  playerPhone?: string;
+  imageUrl?: string;
+  motherName?: string;
+  motherPhone?: string;
+  fatherName?: string;
+  fatherPhone?: string;
+  attendance?: number;
 }
 
 interface MatchDetails {
@@ -142,7 +151,16 @@ export default function MatchLineup() {
               number: p.jersey_number,
               status: p.status,
               performance: p.performance || 0,
-              dateOfBirth: p.date_of_birth
+              dateOfBirth: p.date_of_birth,
+              height: p.height,
+              weight: p.weight,
+              playerPhone: p.player_phone || '',
+              imageUrl: p.image_url || '',
+              motherName: p.mother_name || '',
+              motherPhone: p.mother_phone || '',
+              fatherName: p.father_name || '',
+              fatherPhone: p.father_phone || '',
+              attendance: p.attendance || 0,
           }));
           setAllPlayers(mappedPlayers);
       });
@@ -642,18 +660,27 @@ useEffect(() => {
                         // Get full player data from allPlayers to ensure we have dateOfBirth
                         const fullPlayerData = allPlayers.find(p => p.id === selectedPlayer.id) || selectedPlayer;
                         
-                        // Update player performance in backend
+                        // Update player performance in backend (send ALL fields to avoid data loss)
                         const response = await fetch(`http://127.0.0.1:8000/players/${selectedPlayer.id}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            first_name: selectedPlayer.name.split(' ')[0],
-                            last_name: selectedPlayer.name.split(' ').slice(1).join(' ') || '',
-                            position: selectedPlayer.position,
-                            jersey_number: selectedPlayer.number,
-                            status: selectedPlayer.status,
+                            first_name: fullPlayerData.name.split(' ')[0],
+                            last_name: fullPlayerData.name.split(' ').slice(1).join(' ') || '',
+                            position: fullPlayerData.position,
+                            jersey_number: fullPlayerData.number,
+                            status: fullPlayerData.status,
                             performance: selectedPlayerPerformance,
-                            date_of_birth: fullPlayerData.dateOfBirth
+                            date_of_birth: fullPlayerData.dateOfBirth || '',
+                            height: fullPlayerData.height || 0,
+                            weight: fullPlayerData.weight || 0,
+                            player_phone: fullPlayerData.playerPhone || '',
+                            image_url: fullPlayerData.imageUrl || '',
+                            mother_name: fullPlayerData.motherName || '',
+                            mother_phone: fullPlayerData.motherPhone || '',
+                            father_name: fullPlayerData.fatherName || '',
+                            father_phone: fullPlayerData.fatherPhone || '',
+                            attendance: fullPlayerData.attendance || 0,
                           })
                         });
                         
