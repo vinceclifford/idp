@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, Search, Edit2, Trash2, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, Play, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
+import { uploadFile } from '../lib/uploadFile';
 
 // UI Components
 import { Card } from "./ui/Card";
@@ -189,13 +190,20 @@ export default function ExercisesLibrary() {
         setFormData({ ...formData, [field]: newList });
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB");
-            const reader = new FileReader();
-            reader.onloadend = () => setMediaPreview(reader.result as string);
-            reader.readAsDataURL(file);
+        if (!file) return;
+        if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB");
+        // Show a local object-URL preview immediately while the upload runs
+        if (file.type.startsWith('image/')) {
+            setMediaPreview(URL.createObjectURL(file));
+        }
+        try {
+            const url = await uploadFile(file);
+            setMediaPreview(url);
+        } catch {
+            toast.error('File upload failed. Please try again.');
+            setMediaPreview(null);
         }
     };
 

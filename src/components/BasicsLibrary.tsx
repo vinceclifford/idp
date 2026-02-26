@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
+import { uploadFile } from '../lib/uploadFile';
 
 // UI Components
 import { Card } from "./ui/Card";
@@ -100,13 +101,19 @@ export default function BasicsLibrary() {
   };
 
   // --- File Upload Logic ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB allowed.");
-      const reader = new FileReader();
-      reader.onloadend = () => setMediaPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB allowed.");
+    if (file.type.startsWith('image/')) {
+      setMediaPreview(URL.createObjectURL(file));
+    }
+    try {
+      const url = await uploadFile(file);
+      setMediaPreview(url);
+    } catch {
+      toast.error('File upload failed. Please try again.');
+      setMediaPreview(null);
     }
   };
 

@@ -1,11 +1,17 @@
 from datetime import datetime
 from datetime import timedelta
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import models, schemas, database
+import uuid, os, shutil
 
 models.Base.metadata.create_all(bind=database.engine)
+
+# Ensure uploads directory exists (relative to repo root, where uvicorn is launched)
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
 
@@ -16,6 +22,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve uploaded files as static assets
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static")), name="static")
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Save an uploaded file to disk and return its public URL path."""
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    filename = f"{uuid.uuid4()}{ext}"
+    dest = os.path.join(UPLOAD_DIR, filename)
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return {"url": f"/static/uploads/{filename}"}
 
 # --- GET ALL ---
 @app.get("/exercises")

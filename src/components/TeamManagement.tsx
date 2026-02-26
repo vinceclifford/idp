@@ -10,6 +10,7 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { DatePicker } from "./ui/DatePicker";
+import { uploadFile } from "../lib/uploadFile";
 
 // --- Types ---
 interface Player {
@@ -149,16 +150,19 @@ export default function TeamManagement() {
         }
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                setImagePreview(result);
-                setFormData({ ...formData, imageUrl: result });
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        // Show a local preview immediately while the upload runs
+        const localPreview = URL.createObjectURL(file);
+        setImagePreview(localPreview);
+        try {
+            const url = await uploadFile(file);
+            setImagePreview(url);
+            setFormData(prev => ({ ...prev, imageUrl: url }));
+        } catch {
+            toast.error('Image upload failed. Please try again.');
+            setImagePreview('');
         }
     };
 

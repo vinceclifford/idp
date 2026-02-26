@@ -1,0 +1,28 @@
+const API = 'http://127.0.0.1:8000';
+
+/**
+ * Upload a file to the backend and return a fully-qualified URL to the saved file.
+ * Replaces the old FileReader.readAsDataURL() approach — no more giant base64
+ * strings in the database or API responses.
+ *
+ * Returns a URL like: http://127.0.0.1:8000/static/uploads/<uuid>.jpg
+ * The DB stores this short path; all existing base64 values still render fine.
+ */
+export async function uploadFile(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await fetch(`${API}/upload`, {
+    method: 'POST',
+    body: form,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Upload failed: ${text}`);
+  }
+
+  const { url } = await res.json() as { url: string };
+  // url is a root-relative path like "/static/uploads/abc.jpg"
+  return `${API}${url}`;
+}
