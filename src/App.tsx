@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -64,25 +65,40 @@ export default function App() {
     );
   }
 
+  const pageContent: Record<Exclude<Page, 'login'>, React.ReactNode> = {
+    dashboard:      <Dashboard onNavigate={navigateToPage} />,
+    team:           <TeamManagement />,
+    training:       <ExercisesLibrary />,
+    'session-planner': <TrainingManager />,
+    basics:         <BasicsLibrary />,
+    principles:     <PrinciplesLibrary />,
+    tactics:        <TacticsLibrary />,
+    match:          <MatchLineup />,
+  };
+
   // If authenticated, show the Main App
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-[#0b0f19] text-slate-200 selection:bg-blue-500/30">
+      <div className="flex h-screen bg-[#0b0f19] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
         <Navigation 
           currentPage={currentPage} 
           onNavigate={navigateToPage}
           onLogout={handleLogout}
         />
         
-        <main className="max-w-[1600px] mx-auto">
-          {currentPage === 'dashboard' && <Dashboard onNavigate={navigateToPage} />}
-          {currentPage === 'team' && <TeamManagement />}
-          {currentPage === 'training' && <ExercisesLibrary />}
-          {currentPage === 'session-planner' && <TrainingManager />}
-          {currentPage === 'basics' && <BasicsLibrary />}
-          {currentPage === 'principles' && <PrinciplesLibrary />}
-          {currentPage === 'tactics' && <TacticsLibrary />}
-          {currentPage === 'match' && <MatchLineup />}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.18, ease: 'easeInOut' }}
+              className="min-h-full"
+            >
+              {pageContent[currentPage as Exclude<Page, 'login'>]}
+            </motion.div>
+          </AnimatePresence>
         </main>
         
         <Toaster position="top-right" theme="dark" />

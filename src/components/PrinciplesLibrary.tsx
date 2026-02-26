@@ -195,9 +195,15 @@ export default function PrinciplesLibrary() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold text-white tracking-tight">Principles Library</h1><p className="text-slate-400 mt-1 font-medium">Tactical philosophy</p></div>
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-10 rounded-full bg-purple-500 flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Principles Library</h1>
+            <p className="text-sm text-slate-400 mt-0.5">Tactical philosophy</p>
+          </div>
+        </div>
         <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18}/>}>Create Principle</Button>
       </div>
 

@@ -276,16 +276,14 @@ export default function TrainingManager() {
     const displaySessions = activeTab === 'upcoming' ? upcomingSessions : pastSessions;
 
     return (
-        <div className="relative min-h-screen p-8 max-w-7xl mx-auto space-y-6 overflow-hidden">
-
-            {/* Background Blobs */}
-            <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none -z-10" />
-            <div className="fixed bottom-[10%] right-[-5%] w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-
+        <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white">Training Sessions</h1>
-                    <p className="text-slate-400 mt-1">Plan, Execute, Analyze</p>
+                <div className="flex items-center gap-3">
+                    <div className="w-1 h-10 rounded-full bg-cyan-500 flex-shrink-0" />
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-white">Training Sessions</h1>
+                        <p className="text-sm text-slate-400 mt-0.5">Plan, Execute, Analyze</p>
+                    </div>
                 </div>
                 <Button onClick={openCreate} icon={<Plus size={18} />} className="shadow-lg shadow-blue-500/20">
                     New Session

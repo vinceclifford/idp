@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp } from 'lucide-react';
+import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,6 +11,7 @@ import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { DatePicker } from "./ui/DatePicker";
 import { uploadFile } from "../lib/uploadFile";
+import { PlayerRowSkeleton } from "./ui/Skeleton";
 
 // --- Types ---
 interface Player {
@@ -29,6 +30,7 @@ export default function TeamManagement() {
     const [computedAttendance, setComputedAttendance] = useState<Record<string, number>>({});
     const [editingPerf, setEditingPerf] = useState<string | null>(null);
     const [perfDraft, setPerfDraft] = useState<number>(0);
+    const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState<Player>({
         id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
@@ -61,7 +63,8 @@ export default function TeamManagement() {
                     })));
                 }
             })
-            .catch(() => console.log("Backend offline"));
+            .catch(() => console.log("Backend offline"))
+            .finally(() => setLoading(false));
 
         // Compute real attendance from training sessions
         fetch('http://127.0.0.1:8000/training_sessions')
@@ -246,14 +249,14 @@ export default function TeamManagement() {
     const filteredPlayers = players.filter(p => p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) || p.lastName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div className="relative min-h-screen p-8 max-w-7xl mx-auto space-y-6 overflow-hidden">
-            <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none -z-10" />
-            <div className="fixed bottom-[10%] right-[-5%] w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-
+        <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white">Squad Roster</h1>
-                    <p className="text-slate-400 mt-1">Manage player profiles and status</p>
+                <div className="flex items-center gap-3">
+                    <div className="w-1 h-10 rounded-full bg-indigo-500 flex-shrink-0" />
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-white">Squad Roster</h1>
+                        <p className="text-sm text-slate-400 mt-0.5">Manage player profiles and status</p>
+                    </div>
                 </div>
                 <Button onClick={openCreate} icon={<Plus size={18} />} className="shadow-lg shadow-blue-500/20">Add Player</Button>
             </div>
@@ -263,8 +266,8 @@ export default function TeamManagement() {
             <Card className="overflow-hidden border-white/5 bg-slate-900/40">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/5 text-xs uppercase tracking-wider text-slate-500 font-semibold bg-slate-950/30">
+                        <thead className="sticky top-0 z-10 backdrop-blur-sm bg-slate-950/80">
+                            <tr className="border-b border-white/5 text-xs uppercase tracking-wider text-slate-500 font-semibold">
                                 <th className="px-6 py-4">#</th>
                                 <th className="px-6 py-4">Player</th>
                                 <th className="px-6 py-4">Position</th>
@@ -275,8 +278,29 @@ export default function TeamManagement() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
+                            {loading && Array.from({ length: 5 }).map((_, i) => <PlayerRowSkeleton key={i} />)}
+                            {!loading && filteredPlayers.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-4 text-slate-500">
+                                            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+                                                <Users className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-slate-400">{searchQuery ? 'No players found' : 'No players yet'}</p>
+                                                <p className="text-sm mt-1">{searchQuery ? 'Try a different search term.' : 'Add your first player to get started.'}</p>
+                                            </div>
+                                            {!searchQuery && (
+                                                <button onClick={openCreate} className="mt-2 px-4 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/20 transition-colors">
+                                                    Add Player
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
                             <AnimatePresence>
-                                {filteredPlayers.map((player, idx) => (
+                                {!loading && filteredPlayers.map((player, idx) => (
                                     <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} key={player.id} className="group hover:bg-white/[0.02] transition-colors">
                                         <td className="px-6 py-4 font-mono text-slate-500">{player.jerseyNumber}</td>
                                         <td className="px-6 py-4">

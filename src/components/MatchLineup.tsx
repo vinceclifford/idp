@@ -391,10 +391,15 @@ useEffect(() => {
 
   return (
     <DndProvider backend={HTML5Backend}> 
-    <div className="p-8 max-w-[1600px] mx-auto space-y-6">
-      
+    <div className="p-6 sm:p-8 max-w-[1600px] mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-bold text-white tracking-tight">Match & Lineup</h1><p className="text-slate-400 mt-1 font-medium">Tactical setup for matchday</p></div>
+        <div className="flex items-center gap-3">
+            <div className="w-1 h-10 rounded-full bg-rose-500 flex-shrink-0" />
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">Match & Lineup</h1>
+              <p className="text-sm text-slate-400 mt-0.5">Tactical setup for matchday</p>
+            </div>
+        </div>
         <div className="flex gap-3">
             <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>Create Match</Button>
             <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11 || isMatchPast} icon={<Save size={18} />}>{isMatchPast ? 'Past Match (View Only)' : 'Save Lineup'}</Button>

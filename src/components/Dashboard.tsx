@@ -195,12 +195,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const attendanceTrend = lastMonthAvg > 0 ? Math.round(thisMonthAvg - lastMonthAvg) : null;
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">Dashboard</h1>
-          <p className="text-slate-400 font-medium">Welcome back, Coach Martinez</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-10 rounded-full bg-blue-500 flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+            <p className="text-sm text-slate-400 mt-0.5">Welcome back, Coach</p>
+          </div>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
