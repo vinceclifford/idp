@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Upload, Image as ImageIcon, Video as VideoIcon, FileText, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, Video as VideoIcon, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';

@@ -53,7 +53,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [calculatedAttendance, setCalculatedAttendance] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   // Calculate attendance rate based on training session participation
   const calculateAttendance = (playerList: Player[], sessionList: TrainingSession[]) => {
@@ -147,18 +146,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               attendance: Math.round(monthMap[month].total / monthMap[month].count)
             }));
 
-          return chartData.length > 0 ? chartData : monthOrder.slice(0, 6).map((month, idx) => ({
+          return chartData.length > 0 ? chartData : monthOrder.slice(0, 6).map((month) => ({
             month: month.slice(0, 3),
             attendance: 85 + Math.floor(Math.random() * 10)
           }));
         };
 
         setAttendanceData(calculateMonthlyAttendance());
-
-        setLoading(false);
       } catch (error) {
         toast.error('Failed to load dashboard data');
-        setLoading(false);
       }
     };
 
