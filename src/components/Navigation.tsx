@@ -106,6 +106,27 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
         })}
       </nav>
 
+      {/* ⌘K hint */}
+      <AnimatePresence>
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="px-4 py-2"
+          >
+            <div className="flex items-center justify-between px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-[10px] font-semibold text-slate-700">
+              <span>Search</span>
+              <div className="flex items-center gap-0.5">
+                <kbd className="px-1 py-0.5 rounded bg-white/5 border border-white/5">⌘</kbd>
+                <kbd className="px-1 py-0.5 rounded bg-white/5 border border-white/5">K</kbd>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom: Logout + Toggle */}
       <div className="px-2 py-3 border-t border-white/5 space-y-1">
         <button

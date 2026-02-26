@@ -9,6 +9,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 interface Basic {
   id: string;
@@ -41,6 +42,7 @@ export default function BasicsLibrary() {
   const [viewMedia, setViewMedia] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({ id: '', name: '', description: '', diagramUrl: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // --- Load Data ---
   useEffect(() => {
@@ -188,7 +190,7 @@ export default function BasicsLibrary() {
               {basic.isCustom && (
                 <div className="mt-auto pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(basic); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
-                  <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(basic.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
+                  <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(basic.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
                 </div>
               )}
             </Card>
@@ -288,6 +290,15 @@ export default function BasicsLibrary() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteId !== null}
+        title="Delete item?"
+        message="This will permanently remove this entry from the library."
+        confirmLabel="Delete"
+        onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

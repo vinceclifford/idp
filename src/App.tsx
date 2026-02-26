@@ -15,6 +15,7 @@ import PrinciplesLibrary from './components/PrinciplesLibrary';
 import TacticsLibrary from './components/TacticsLibrary';
 import MatchLineup from './components/MatchLineup';
 import Navigation from './components/Navigation';
+import CommandPalette from './components/CommandPalette';
 
 export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match';
 
@@ -54,6 +55,19 @@ export default function App() {
   const navigateToPage = (page: Page) => {
     setCurrentPage(page);
   };
+
+  // Global ⌘K / Ctrl+K to open command palette
+  const [cmdOpen, setCmdOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(o => !o);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // If not authenticated, show Login Page
   if (!isAuthenticated) {
@@ -102,6 +116,12 @@ export default function App() {
         </main>
         
         <Toaster position="top-right" theme="dark" />
+
+        <CommandPalette
+          isOpen={cmdOpen}
+          onClose={() => setCmdOpen(false)}
+          onNavigate={(page) => { navigateToPage(page as Page); }}
+        />
       </div>
     </DndProvider>
   );

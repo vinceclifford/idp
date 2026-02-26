@@ -14,6 +14,8 @@ import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { DatePicker } from "./ui/DatePicker";
 import { TimePicker } from "./ui/TimePicker";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+import SessionSlideOver from "./ui/SessionSlideOver";
 
 // --- Interfaces ---
 interface Player {
@@ -66,6 +68,8 @@ export default function TrainingManager() {
     });
 
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
 
     // --- 1. LOAD DATA ---
     useEffect(() => {
@@ -261,7 +265,7 @@ export default function TrainingManager() {
 
     // --- 4. UI HELPERS ---
     const openCreate = () => { setIsEditing(false); setEditingId(null); setFormData({ date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '11:00', focus: '', intensity: 'Medium', selectedPlayerIds: allPlayers.map(p => p.id), selectedExerciseIds: [] }); setShowCreateModal(true); };
-    const openEdit = (s: TrainingSession) => { setIsEditing(true); setEditingId(s.id); setFormData({ date: s.date, startTime: s.startTime, endTime: s.endTime, focus: s.focus, intensity: s.intensity, selectedPlayerIds: s.selectedPlayers, selectedExerciseIds: s.selectedExercises }); setShowCreateModal(true); };
+    const openEdit = (s: TrainingSession) => { setSelectedSession(null); setIsEditing(true); setEditingId(s.id); setFormData({ date: s.date, startTime: s.startTime, endTime: s.endTime, focus: s.focus, intensity: s.intensity, selectedPlayerIds: s.selectedPlayers, selectedExerciseIds: s.selectedExercises }); setShowCreateModal(true); };
     const closeModal = () => setShowCreateModal(false);
     const togglePlayer = (id: string) => { setFormData(prev => { const exists = prev.selectedPlayerIds.includes(id); return { ...prev, selectedPlayerIds: exists ? prev.selectedPlayerIds.filter(pid => pid !== id) : [...prev.selectedPlayerIds, id] }; }); };
     const toggleExercise = (id: string) => { setFormData(prev => { const exists = prev.selectedExerciseIds.includes(id); return { ...prev, selectedExerciseIds: exists ? prev.selectedExerciseIds.filter(eid => eid !== id) : [...prev.selectedExerciseIds, id] }; }); };
@@ -320,7 +324,8 @@ export default function TrainingManager() {
                             key={s.id}
                             animate
                             delay={idx * 0.05}
-                            className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden"
+                            onClick={() => setSelectedSession(s)}
+                            className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden cursor-pointer hover:border-white/10"
                         >
                             {/* Decorative left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${
@@ -351,7 +356,7 @@ export default function TrainingManager() {
                                 <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
                                     <Edit2 size={18} />
                                 </Button>
-                                <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} className="p-2.5" title="Delete">
+                                <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
                                     <Trash2 size={18} />
                                 </Button>
                             </div>
@@ -500,6 +505,26 @@ export default function TrainingManager() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={confirmDeleteId !== null}
+                title="Delete session?"
+                message="This will permanently remove the training session."
+                confirmLabel="Delete Session"
+                onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
+
+            <SessionSlideOver
+                session={!showCreateModal ? selectedSession : null}
+                allPlayers={allPlayers}
+                allExercises={allExercises}
+                isPast={selectedSession ? selectedSession.date < today : false}
+                onClose={() => setSelectedSession(null)}
+                onEdit={openEdit}
+                onDelete={(id) => { setSelectedSession(null); setConfirmDeleteId(id); }}
+                onExportPDF={generatePDF}
+            />
         </div>
     );
 }

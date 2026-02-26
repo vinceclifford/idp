@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp, Users } from 'lucide-react';
+import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp, Users, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,8 @@ import { Modal } from "./ui/Modal";
 import { DatePicker } from "./ui/DatePicker";
 import { uploadFile } from "../lib/uploadFile";
 import { PlayerRowSkeleton } from "./ui/Skeleton";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+import PlayerSlideOver from "./PlayerSlideOver";
 
 // --- Types ---
 interface Player {
@@ -31,6 +33,21 @@ export default function TeamManagement() {
     const [editingPerf, setEditingPerf] = useState<string | null>(null);
     const [perfDraft, setPerfDraft] = useState<number>(0);
     const [loading, setLoading] = useState(true);
+
+    type SortKey = 'jerseyNumber' | 'firstName' | 'position' | 'attendance' | 'performance' | 'status';
+    const [sortKey, setSortKey] = useState<SortKey>('jerseyNumber');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
+    };
 
     const [formData, setFormData] = useState<Player>({
         id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
@@ -248,6 +265,22 @@ export default function TeamManagement() {
 
     const filteredPlayers = players.filter(p => p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) || p.lastName.toLowerCase().includes(searchQuery.toLowerCase()));
 
+    const sortedPlayers = [...filteredPlayers].sort((a, b) => {
+        let av: string | number, bv: string | number;
+        switch (sortKey) {
+            case 'jerseyNumber': av = a.jerseyNumber; bv = b.jerseyNumber; break;
+            case 'firstName': av = (a.firstName + ' ' + a.lastName).toLowerCase(); bv = (b.firstName + ' ' + b.lastName).toLowerCase(); break;
+            case 'position': av = a.position; bv = b.position; break;
+            case 'attendance': av = computedAttendance[a.id] ?? a.attendance; bv = computedAttendance[b.id] ?? b.attendance; break;
+            case 'performance': av = a.performance; bv = b.performance; break;
+            case 'status': av = a.status; bv = b.status; break;
+            default: av = 0; bv = 0;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
     return (
         <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -268,12 +301,30 @@ export default function TeamManagement() {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 backdrop-blur-sm bg-slate-950/80">
                             <tr className="border-b border-white/5 text-xs uppercase tracking-wider text-slate-500 font-semibold">
-                                <th className="px-6 py-4">#</th>
-                                <th className="px-6 py-4">Player</th>
-                                <th className="px-6 py-4">Position</th>
-                                <th className="px-6 py-4">Attendance</th>
-                                <th className="px-6 py-4">Performance</th>
-                                <th className="px-6 py-4">Status</th>
+                                {([
+                                    { key: 'jerseyNumber', label: '#' },
+                                    { key: 'firstName',    label: 'Player' },
+                                    { key: 'position',     label: 'Position' },
+                                    { key: 'attendance',   label: 'Attendance' },
+                                    { key: 'performance',  label: 'Performance' },
+                                    { key: 'status',       label: 'Status' },
+                                ] as const).map(col => (
+                                    <th key={col.key} className="px-6 py-4">
+                                        <button
+                                            onClick={() => handleSort(col.key)}
+                                            className="flex items-center gap-1.5 hover:text-slate-300 transition-colors group"
+                                        >
+                                            {col.label}
+                                            <span className="text-slate-700 group-hover:text-slate-500">
+                                                {sortKey === col.key
+                                                    ? sortDir === 'asc'
+                                                        ? <ChevronUp size={13} className="text-blue-400" />
+                                                        : <ChevronDown size={13} className="text-blue-400" />
+                                                    : <ChevronsUpDown size={13} />}
+                                            </span>
+                                        </button>
+                                    </th>
+                                ))}
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -300,20 +351,23 @@ export default function TeamManagement() {
                                 </tr>
                             )}
                             <AnimatePresence>
-                                {!loading && filteredPlayers.map((player, idx) => (
+                                {!loading && sortedPlayers.map((player, idx) => (
                                     <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} key={player.id} className="group hover:bg-white/[0.02] transition-colors">
                                         <td className="px-6 py-4 font-mono text-slate-500">{player.jerseyNumber}</td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => setSelectedPlayer(player)}
+                                                className="flex items-center gap-4 text-left group/name hover:opacity-80 transition-opacity"
+                                            >
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-[2px] shadow-lg shadow-blue-500/20">
                                                     <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
                                                         {player.imageUrl ? <img src={player.imageUrl} className="w-full h-full object-cover" /> : <span className="font-bold text-blue-500">{player.firstName[0]}</span>}
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-white">{player.firstName} {player.lastName}</p>
+                                                    <p className="font-semibold text-white group-hover/name:text-blue-400 transition-colors">{player.firstName} {player.lastName}</p>
                                                 </div>
-                                            </div>
+                                            </button>
                                         </td>
                                         <td className="px-6 py-4"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/50 text-slate-300 text-xs font-medium border border-white/5"><Shield size={12} /> {player.position}</span></td>
                                         <td className="px-6 py-4">
@@ -358,7 +412,7 @@ export default function TeamManagement() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => openEdit(player)} className="p-2 hover:bg-blue-500/10 text-slate-400 hover:text-blue-500 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(player.id)} className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                                <button onClick={() => setConfirmDeleteId(player.id)} className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
                                             </div>
                                         </td>
                                     </motion.tr>
@@ -435,6 +489,23 @@ export default function TeamManagement() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={confirmDeleteId !== null}
+                title="Delete player?"
+                message="This will permanently remove the player and all their data."
+                confirmLabel="Delete Player"
+                onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
+
+            <PlayerSlideOver
+                player={selectedPlayer}
+                computedAttendance={computedAttendance}
+                onClose={() => setSelectedPlayer(null)}
+                onEdit={(p) => { setSelectedPlayer(null); openEdit(p); }}
+                onDelete={(id) => { setSelectedPlayer(null); setConfirmDeleteId(id); }}
+            />
         </div>
     );
 }

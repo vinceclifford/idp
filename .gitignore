@@ -6,5 +6,10 @@ Attributions.md
 node_modules/
 venv/
 backend/__pycache__
+backend/seed_libraries.py
+backend/seed_past_matches.py
+backend/seed_players.py
 football.db
 package-lock.json
+.github/copilot-instructions.md
+Changes.md

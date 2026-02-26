@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Search, Edit2, Trash2, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import { Plus, X, Search, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
@@ -10,6 +10,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+import ExerciseSlideOver from "./ExerciseSlideOver"
 
 // --- Types ---
 interface Exercise {
@@ -65,6 +67,7 @@ export default function ExercisesLibrary() {
 
     // Accordion State
     const [openSection, setOpenSection] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     // Selector Lists
     const [allBasics, setAllBasics] = useState<SelectorItem[]>([]);
@@ -306,62 +309,12 @@ export default function ExercisesLibrary() {
                 </AnimatePresence>
             </div>
 
-            {/* DETAIL MODAL */}
-            <Modal isOpen={!!selectedExercise && !showCreateModal} onClose={closeModal} title={selectedExercise?.name || ''} maxWidth="max-w-4xl"
-                footer={selectedExercise?.isCustom && (
-                    <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => openEditModal(selectedExercise!)} icon={<Edit2 size={16} />}>Edit</Button>
-                        <Button variant="danger" onClick={() => handleDeleteExercise(selectedExercise!.id)} icon={<Trash2 size={16} />}>Delete</Button>
-                    </div>
-                )}
-            >
-                {selectedExercise && (
-                    <div className="space-y-8">
-                        <div className="flex gap-3">
-                            <span className={`px-3 py-1 text-xs font-bold rounded uppercase tracking-wider border ${getIntensityStyles(selectedExercise.intensity)}`}>{selectedExercise.intensity} Intensity</span>
-                            <span className="px-3 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold rounded uppercase tracking-wider">{selectedExercise.goalkeepers} Goalkeepers</span>
-                        </div>
-
-                        {selectedExercise.mediaUrl && (
-                            <div className="w-full h-96 bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl">
-                                {renderMedia(selectedExercise.mediaUrl, true)}
-                            </div>
-                        )}
-
-                        <div className="space-y-6">
-                            {[
-                                { label: 'Description', value: selectedExercise.description },
-                                { label: 'Setup', value: selectedExercise.setup },
-                                { label: 'Coaching Points', value: selectedExercise.coachingPoints },
-                            ].map(section => section.value && (
-                                <div key={section.label}>
-                                    <h4 className="text-[11px] uppercase tracking-widest font-bold text-slate-500 mb-2">{section.label}</h4>
-                                    <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 text-slate-300 text-sm leading-relaxed">{section.value}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
-                            {[
-                                { label: 'RELATED BASICS', items: selectedExercise.linkedBasics, style: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
-                                { label: 'RELATED PRINCIPLES', items: selectedExercise.linkedPrinciples, style: 'bg-purple-500/10 border-purple-500/20 text-purple-400' },
-                                { label: 'RELATED TACTICS', items: selectedExercise.linkedTactics, style: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
-                            ].map(section => (
-                                <div key={section.label}>
-                                    <h4 className="text-[11px] uppercase tracking-widest font-bold text-slate-500 mb-2">{section.label}</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {section.items.length > 0 ? section.items.map(item => (
-                                            <span key={item} className={`px-3 py-1.5 border text-xs rounded-md font-medium ${section.style}`}>
-                                                {item}
-                                            </span>
-                                        )) : <span className="text-xs text-slate-600 italic">None selected</span>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </Modal>
+            <ExerciseSlideOver
+                exercise={!showCreateModal ? selectedExercise : null}
+                onClose={() => setSelectedExercise(null)}
+                onEdit={(ex) => { setSelectedExercise(null); openEditModal(ex); }}
+                onDelete={(id) => { setSelectedExercise(null); setConfirmDeleteId(id); }}
+            />
 
             {/* CREATE / EDIT FORM MODAL */}
             <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Exercise' : 'Create New Exercise'} maxWidth="max-w-3xl"
@@ -507,6 +460,15 @@ export default function ExercisesLibrary() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <ConfirmDialog
+                isOpen={confirmDeleteId !== null}
+                title="Delete exercise?"
+                message="This will permanently remove this exercise from the library."
+                confirmLabel="Delete"
+                onConfirm={() => { if (confirmDeleteId) handleDeleteExercise(confirmDeleteId); setConfirmDeleteId(null); }}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 // UI Components
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
+import { CountUp } from "./ui/CountUp";
 
 // Assuming Page type matches your App's routing
 type Page = 'dashboard' | 'session-planner' | 'team' | 'match'; 
@@ -323,7 +324,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Attendance Rate</h3>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-white">{calculatedAttendance}%</p>
+              <p className="text-3xl font-bold text-white"><CountUp value={calculatedAttendance} suffix="%" /></p>
               <p className="text-xs text-slate-500">Based on training</p>
             </div>
           </Card>
@@ -439,15 +440,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="pt-6 mt-2 border-t border-white/5">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:bg-slate-800 transition-colors">
-                    <p className="text-2xl font-bold text-emerald-500">{players.filter(p => p.status === 'Active').length}</p>
+                    <p className="text-2xl font-bold text-emerald-500"><CountUp value={players.filter(p => p.status === 'Active').length} /></p>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:bg-slate-800 transition-colors">
-                    <p className="text-2xl font-bold text-slate-300">{players.filter(p => p.status === 'Injured').length}</p>
+                    <p className="text-2xl font-bold text-slate-300"><CountUp value={players.filter(p => p.status === 'Injured').length} /></p>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Injured</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:bg-slate-800 transition-colors">
-                    <p className="text-2xl font-bold text-white">{players.length}</p>
+                    <p className="text-2xl font-bold text-white"><CountUp value={players.length} /></p>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total</p>
                   </div>
                 </div>

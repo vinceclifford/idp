@@ -9,6 +9,7 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 interface Tactic {
   id: string; name: string; formation: string; description: string;
@@ -20,6 +21,7 @@ export default function TacticsLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' });
 
   useEffect(() => {
@@ -127,7 +129,7 @@ export default function TacticsLibrary() {
                 {t.isCustom && (
                     <div className="mt-auto pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
-                          <Button variant="danger" onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
+                          <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(t.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
                     </div>
                 )}
             </Card>
@@ -151,6 +153,15 @@ export default function TacticsLibrary() {
             <textarea className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 focus:bg-slate-900 focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/10 hover:border-white/10 resize-none h-20 custom-scrollbar" value={formData.suggestedDrills} onChange={e => setFormData({...formData, suggestedDrills: e.target.value})} placeholder="Rondo&#10;Small Sided Game" /></div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteId !== null}
+        title="Delete tactic?"
+        message="This will permanently remove this tactic from the library."
+        confirmLabel="Delete"
+        onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }
