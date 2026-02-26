@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface DatePickerProps {
   value: string;
@@ -10,10 +11,22 @@ interface DatePickerProps {
 export function DatePicker({ value, onChange, label }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(value ? new Date(value) : new Date());
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedDate = value ? new Date(value) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Close when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Get first day of month and number of days
   const firstDay = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
@@ -49,90 +62,92 @@ export function DatePicker({ value, onChange, label }: DatePickerProps) {
   const displayValue = selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
 
   return (
-    <div className="relative">
-      {label && <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{label}</label>}
+    <div className="relative space-y-2" ref={containerRef}>
+      {label && <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">{label}</label>}
       
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-slate-200 hover:border-white/20 transition-colors text-left flex items-center justify-between"
+        className={`w-full px-4 py-3.5 bg-slate-900/50 border text-sm text-left rounded-xl flex items-center justify-between transition-all
+          ${isOpen 
+            ? 'border-blue-500/50 bg-slate-900 ring-4 ring-blue-500/10' 
+            : 'border-white/5 hover:border-white/10'
+          }`}
       >
-        <span>{displayValue}</span>
-        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+        <span className={selectedDate ? 'text-white' : 'text-slate-600'}>{displayValue}</span>
+        <Calendar size={16} className={`transition-colors ${isOpen ? 'text-blue-400' : 'text-slate-500'}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-slate-900 border border-white/10 rounded-lg shadow-xl z-50 p-4 w-80">
-          {/* Month/Year Header */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-white/10 rounded transition-colors"
-            >
-              <ChevronLeft size={18} className="text-slate-400" />
-            </button>
-            <span className="text-sm font-bold text-white">{monthYear}</span>
-            <button
-              onClick={handleNextMonth}
-              className="p-1.5 hover:bg-white/10 rounded transition-colors"
-            >
-              <ChevronRight size={18} className="text-slate-400" />
-            </button>
-          </div>
-
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center text-[10px] font-bold text-slate-500 uppercase py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((day, index) => {
-              if (day === null) {
-                return <div key={`empty-${index}`} />;
-              }
-
-              const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
-              date.setHours(0, 0, 0, 0);
-              
-              const isSelected = selectedDate && selectedDate.getTime() === date.getTime();
-              const isToday = date.getTime() === today.getTime();
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  className={`
-                    aspect-square rounded text-sm font-bold transition-all
-                    ${isSelected
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 border border-blue-400'
-                      : isToday
-                      ? 'bg-slate-800 text-white border border-blue-500/50'
-                      : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-white/5'
-                    }
-                  `}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Close Button */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="w-full mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-sm font-semibold transition-colors border border-white/5"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className="absolute top-full left-0 mt-2 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50 p-4 w-80"
           >
-            Close
-          </button>
-        </div>
-      )}
+            {/* Month/Year Header */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <ChevronLeft size={18} className="text-slate-400" />
+              </button>
+              <span className="text-sm font-bold text-white">{monthYear}</span>
+              <button
+                onClick={handleNextMonth}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <ChevronRight size={18} className="text-slate-400" />
+              </button>
+            </div>
+
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-center text-[10px] font-bold text-slate-500 uppercase py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day, index) => {
+                if (day === null) {
+                  return <div key={`empty-${index}`} />;
+                }
+
+                const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day);
+                date.setHours(0, 0, 0, 0);
+                
+                const isSelected = selectedDate && selectedDate.getTime() === date.getTime();
+                const isToday = date.getTime() === today.getTime();
+
+                return (
+                  <button
+                    key={day}
+                    onClick={() => handleDateClick(day)}
+                    className={`
+                      aspect-square rounded-lg text-sm font-bold transition-all
+                      ${isSelected
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 border border-blue-400'
+                        : isToday
+                        ? 'bg-slate-800 text-white border border-blue-500/50'
+                        : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700 border border-white/5'
+                      }
+                    `}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { InputHTMLAttributes, forwardRef } from "react";
+import { InputHTMLAttributes, forwardRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { motion } from "framer-motion";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
@@ -9,7 +10,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, icon, label, error, rightElement, type, ...props }, ref) => {
+  ({ className, icon, label, error, rightElement, type, onFocus, onBlur, ...props }, ref) => {
+    const [isFocused, setIsFocused] = useState(false);
+
     return (
       <div className="space-y-2 w-full">
         {label && (
@@ -17,9 +20,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative group">
+        <motion.div
+          className="relative group"
+          animate={{
+            scale: isFocused ? 1.01 : 1,
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors z-10">
               {icon}
             </div>
           )}
@@ -27,12 +36,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             type={type}
+            onFocus={(e) => {
+              setIsFocused(true);
+              onFocus?.(e);
+            }}
+            onBlur={(e) => {
+              setIsFocused(false);
+              onBlur?.(e);
+            }}
             className={cn(
               "w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none transition-all",
               "placeholder:text-slate-600",
               "focus:bg-slate-900 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10",
               "hover:border-white/10",
-              // THE FIX: Added 'no-spinner' class here
               type === 'number' && "no-spinner", 
               icon && "pl-10",
               rightElement && "pr-12",
@@ -47,7 +63,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               {rightElement}
             </div>
           )}
-        </div>
+        </motion.div>
         {error && <p className="text-xs text-red-400 font-medium ml-1">{error}</p>}
       </div>
     );

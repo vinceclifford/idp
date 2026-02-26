@@ -10,6 +10,7 @@ import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
 import { DatePicker } from "./ui/DatePicker";
+import { TimePicker } from "./ui/TimePicker";
 
 // --- Types ---
 interface Player {
@@ -676,7 +677,7 @@ useEffect(() => {
             <Input label="Opponent Name" value={matchForm.opponent} onChange={e => setMatchForm({...matchForm, opponent: e.target.value})} placeholder="e.g. City Rovers FC" />
             <DatePicker label="Match Date" value={matchForm.date} onChange={date => setMatchForm({...matchForm, date})} />
             <div className="grid grid-cols-2 gap-4">
-                <Input label="Kickoff Time" type="time" value={matchForm.time} onChange={e => setMatchForm({...matchForm, time: e.target.value})} />
+                <TimePicker label="Kickoff Time" value={matchForm.time} onChange={time => setMatchForm({...matchForm, time})} />
                 <Input label="Location" value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} placeholder="e.g. Home / Away" />
             </div>
         </div>

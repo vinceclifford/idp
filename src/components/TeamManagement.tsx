@@ -9,6 +9,7 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
+import { DatePicker } from "./ui/DatePicker";
 
 // --- Types ---
 interface Player {
@@ -199,10 +200,7 @@ export default function TeamManagement() {
                 <Button onClick={openCreate} icon={<Plus size={18} />} className="shadow-lg shadow-blue-500/20">Add Player</Button>
             </div>
 
-            <Card className="p-2 px-4 flex items-center gap-3 bg-slate-900/60">
-                <Search className="text-slate-400" size={20} />
-                <input className="bg-transparent w-full outline-none text-slate-200 placeholder-slate-500 py-2" placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            </Card>
+            <Input icon={<Search size={18} />} placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
 
             <Card className="overflow-hidden border-white/5 bg-slate-900/40">
                 <div className="overflow-x-auto">
@@ -290,7 +288,7 @@ export default function TeamManagement() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Input label="First Name" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} placeholder="e.g. Marcus" />
                                 <Input label="Last Name" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} placeholder="e.g. Rashford" />
-                                <Input label="Date of Birth" type="date" value={formData.dateOfBirth} onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })} />
+                                <DatePicker label="Date of Birth" value={formData.dateOfBirth} onChange={date => setFormData({ ...formData, dateOfBirth: date })} />
                                 <Select label="Position" value={formData.position} onChange={(value) => setFormData({ ...formData, position: value as string })} options={[{ label: 'Forward', value: 'Forward' }, { label: 'Midfielder', value: 'Midfielder' }, { label: 'Defender', value: 'Defender' }, { label: 'Goalkeeper', value: 'Goalkeeper' }]} />
                                 <Input label="Jersey Number" type="number" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })} className="font-mono font-bold" />
                                 <Select label="Status" value={formData.status} onChange={(value) => setFormData({ ...formData, status: value as string })} options={[{ label: 'Active', value: 'Active' }, { label: 'Injured', value: 'Injured' }, { label: 'Away', value: 'Away' }]} />

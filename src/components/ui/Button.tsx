@@ -1,15 +1,17 @@
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { forwardRef } from "react";
 import { cn } from "../../lib/utils";
 import { Loader2 } from "lucide-react";
+import { motion, HTMLMotionProps } from "framer-motion";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref" | "children"> {
   variant?: "primary" | "secondary" | "danger" | "ghost";
   isLoading?: boolean;
   icon?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", isLoading, icon, children, ...props }, ref) => {
+  ({ className, variant = "primary", isLoading, icon, children, disabled, ...props }, ref) => {
     
     const variants = {
       primary: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 border-0",
@@ -19,11 +21,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <button
+      <motion.button
         ref={ref}
-        disabled={isLoading || props.disabled}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        disabled={isLoading || disabled}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-bold transition-all disabled:opacity-50 disabled:pointer-events-none",
           variants[variant],
           className
         )}
@@ -32,7 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {!isLoading && icon && <span className="mr-2">{icon}</span>}
         {children}
-      </button>
+      </motion.button>
     );
   }
 );

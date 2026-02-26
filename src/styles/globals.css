@@ -21,34 +21,7 @@
 }
 
 @layer components {
-  /* GLASS CARD: Locked to Dark Mode styling */
-  .glass-card {
-    @apply bg-slate-900/80 backdrop-blur-xl 
-           border border-white/10 
-           rounded-2xl transition-all duration-300;
-    
-    /* The specific dark mode glow/shadow */
-    box-shadow: 0 0 40px -10px rgba(0, 0, 0, 0.5);
-  }
-
-  /* INPUTS: Locked to Dark Mode styling */
-  .modern-input {
-    @apply w-full px-4 py-3 
-           bg-slate-950 border border-slate-800 text-white
-           rounded-xl
-           focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 
-           outline-none transition-all duration-200
-           placeholder:text-slate-600;
-  }
-
-  /* BUTTON: Locked to Dark Mode styling */
-  .btn-primary {
-    @apply w-full bg-gradient-to-r from-blue-600 to-indigo-600 
-           text-white font-bold tracking-wide py-3 rounded-xl 
-           shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 
-           active:scale-[0.98] transition-all duration-200
-           flex items-center justify-center; 
-  }
+  /* Component-level classes removed — all styling now handled by React UI components (Button, Input, Card) */
 }
 
 @layer utilities {

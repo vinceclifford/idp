@@ -11,6 +11,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
+import { DatePicker } from "./ui/DatePicker";
+import { TimePicker } from "./ui/TimePicker";
 
 // --- Interfaces ---
 interface Player {
@@ -348,11 +350,10 @@ export default function TrainingManager() {
                                 onChange={e => setFormData({ ...formData, focus: e.target.value })}
                             />
                         </div>
-                        <Input
+                        <DatePicker
                             label="Date"
-                            type="date"
                             value={formData.date}
-                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                            onChange={date => setFormData({ ...formData, date })}
                         />
                         <Select
                             label="Intensity"
@@ -364,17 +365,15 @@ export default function TrainingManager() {
                                 { label: 'High', value: 'High' }
                             ]}
                         />
-                        <Input
+                        <TimePicker
                             label="Start Time"
-                            type="time"
                             value={formData.startTime}
-                            onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                            onChange={time => setFormData({ ...formData, startTime: time })}
                         />
-                        <Input
+                        <TimePicker
                             label="End Time"
-                            type="time"
                             value={formData.endTime}
-                            onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                            onChange={time => setFormData({ ...formData, endTime: time })}
                         />
                     </div>
 
