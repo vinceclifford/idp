@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, TrendingUp, Plus, Clock, MapPin } from 'lucide-react';
+import { formatDate } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -250,7 +251,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     <Clock className="w-3.5 h-3.5 text-slate-500" /> {sessions[0].start_time} - {sessions[0].end_time}
                   </span>
                   <span className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {sessions[0].date}
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {formatDate(sessions[0].date)}
                   </span>
                 </>
               )}

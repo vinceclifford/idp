@@ -3,6 +3,7 @@ import { Save, X, Calendar, MapPin, Users, Plus, Trophy, Edit2, ChevronRight } f
 import { useDrag, useDrop, DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { toast } from 'sonner';
+import { formatDate } from '../lib/utils';
 
 // UI Components
 import { Card } from "./ui/Card";
@@ -414,7 +415,7 @@ useEffect(() => {
                         )}
                     </div>
                     <div className="flex flex-wrap gap-6 text-sm text-slate-400 font-medium">
-                        <span className="flex items-center gap-2"><Calendar size={14} className="text-blue-500" /> {matchDetails.date}</span>
+                        <span className="flex items-center gap-2"><Calendar size={14} className="text-blue-500" /> {formatDate(matchDetails.date)}</span>
                         <span className="flex items-center gap-2"><Users size={14} className="text-blue-500" /> {matchDetails.time || 'TBD'}</span>
                         <span className="flex items-center gap-2"><MapPin size={14} className="text-blue-500" /> {matchDetails.location || 'Home'}</span>
                     </div>
@@ -465,7 +466,7 @@ useEffect(() => {
                     <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-slate-900/50 border-white/5 hover:border-white/20'}`}>
                         <div>
                           <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-slate-200'}`}>vs {match.opponent}</p>
-                          <p className="text-[10px] text-slate-500">{match.date}</p>
+                          <p className="text-[10px] text-slate-500">{formatDate(match.date)}</p>
                         </div>
                         {matchDetails?.id === match.id && <ChevronRight size={14} className="text-blue-400" />}
                     </div>

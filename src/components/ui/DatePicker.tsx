@@ -58,8 +58,11 @@ export function DatePicker({ value, onChange, label }: DatePickerProps) {
     setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1));
   };
 
-  const monthYear = displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const displayValue = selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
+  const monthYear = displayMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  // Display as DD/MM/YYYY — string-sliced from the stored YYYY-MM-DD value to avoid timezone drift
+  const displayValue = value && value.length >= 10
+    ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}`
+    : 'DD/MM/YYYY';
 
   return (
     <div className="relative space-y-2" ref={containerRef}>

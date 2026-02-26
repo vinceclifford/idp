@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, Calendar, Clock, Trash2, Edit2, User, Activity, Download, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
+import { formatDate } from '../lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -300,7 +301,7 @@ export default function TrainingManager() {
                                     <h3 className="text-lg font-bold text-white">{s.focus}</h3>
                                 </div>
                                 <div className="flex flex-wrap gap-4 text-sm text-slate-400 mt-2">
-                                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500" /> {s.date}</span>
+                                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500" /> {formatDate(s.date)}</span>
                                     <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500" /> {s.startTime} - {s.endTime}</span>
                                     <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {s.selectedExercises.length} Drills</span>
                                     <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {s.selectedPlayers.length} Players</span>
