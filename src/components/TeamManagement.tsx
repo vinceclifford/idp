@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User } from 'lucide-react';
+import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,6 +26,9 @@ export default function TeamManagement() {
     const [showPlayerModal, setShowPlayerModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
+    const [computedAttendance, setComputedAttendance] = useState<Record<string, number>>({});
+    const [editingPerf, setEditingPerf] = useState<string | null>(null);
+    const [perfDraft, setPerfDraft] = useState<number>(0);
 
     const [formData, setFormData] = useState<Player>({
         id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
@@ -59,6 +62,26 @@ export default function TeamManagement() {
                 }
             })
             .catch(() => console.log("Backend offline"));
+
+        // Compute real attendance from training sessions
+        fetch('http://127.0.0.1:8000/training_sessions')
+            .then(res => res.json())
+            .then((sessions: any[]) => {
+                if (sessions.length === 0) return;
+                const countMap: Record<string, number> = {};
+                sessions.forEach(s => {
+                    (s.selected_players || '').split(',').forEach((id: string) => {
+                        const trimmed = id.trim();
+                        if (trimmed) countMap[trimmed] = (countMap[trimmed] || 0) + 1;
+                    });
+                });
+                const pctMap: Record<string, number> = {};
+                Object.entries(countMap).forEach(([id, count]) => {
+                    pctMap[id] = Math.round((count / sessions.length) * 100);
+                });
+                setComputedAttendance(pctMap);
+            })
+            .catch(() => {});
     }, []);
 
     // --- Handlers ---
@@ -87,7 +110,7 @@ export default function TeamManagement() {
                 father_name: formData.fatherName || "",
                 father_phone: formData.fatherPhone || "",
                 attendance: 0,
-                performance: 0
+                performance: formData.performance ?? 0
             };
 
             const url = isEditMode
@@ -180,6 +203,31 @@ export default function TeamManagement() {
         setShowPlayerModal(true);
     };
 
+    // Save inline performance rating for a player
+    const savePerformance = async (player: Player, value: number) => {
+        const clamped = Math.max(0, Math.min(10, value));
+        try {
+            const payload = {
+                first_name: player.firstName, last_name: player.lastName,
+                date_of_birth: player.dateOfBirth, position: player.position,
+                status: player.status, jersey_number: player.jerseyNumber,
+                height: player.height, weight: player.weight,
+                player_phone: player.playerPhone, image_url: player.imageUrl,
+                mother_name: player.motherName, mother_phone: player.motherPhone,
+                father_name: player.fatherName, father_phone: player.fatherPhone,
+                attendance: player.attendance, performance: clamped
+            };
+            const res = await fetch(`http://127.0.0.1:8000/players/${player.id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, performance: clamped } : p));
+                toast.success('Performance updated');
+            }
+        } catch { toast.error('Failed to save'); }
+        setEditingPerf(null);
+    };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Active': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
@@ -187,6 +235,12 @@ export default function TeamManagement() {
             case 'Away': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
             default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
         }
+    };
+
+    const getPerfColor = (score: number) => {
+        if (score >= 7) return { bar: 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]', text: 'text-emerald-400' };
+        if (score >= 4) return { bar: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]', text: 'text-amber-400' };
+        return { bar: 'bg-rose-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]', text: 'text-rose-400' };
     };
 
     const filteredPlayers = players.filter(p => p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) || p.lastName.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -215,6 +269,7 @@ export default function TeamManagement() {
                                 <th className="px-6 py-4">Player</th>
                                 <th className="px-6 py-4">Position</th>
                                 <th className="px-6 py-4">Attendance</th>
+                                <th className="px-6 py-4">Performance</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -239,9 +294,41 @@ export default function TeamManagement() {
                                         <td className="px-6 py-4"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/50 text-slate-300 text-xs font-medium border border-white/5"><Shield size={12} /> {player.position}</span></td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex-1 w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ width: `${player.attendance}%` }}></div></div>
-                                                <span className="text-xs font-bold text-slate-400">{player.attendance}%</span>
+                                                <div className="flex-1 w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ width: `${computedAttendance[player.id] ?? player.attendance}%` }}></div>
+                                                </div>
+                                                <span className="text-xs font-bold text-slate-400">{computedAttendance[player.id] ?? player.attendance}%</span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {editingPerf === player.id ? (
+                                                <div className="flex items-center gap-2 min-w-[140px]">
+                                                    <input
+                                                        type="range"
+                                                        min={0} max={10} step={1}
+                                                        value={perfDraft}
+                                                        onChange={e => setPerfDraft(parseInt(e.target.value))}
+                                                        onKeyDown={e => { if (e.key === 'Enter') savePerformance(player, perfDraft); if (e.key === 'Escape') setEditingPerf(null); }}
+                                                        autoFocus
+                                                        className="flex-1 h-1.5 rounded-full appearance-none bg-slate-700 accent-blue-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-xs font-bold w-4 tabular-nums ${getPerfColor(perfDraft).text}`}>{perfDraft}</span>
+                                                    <button onClick={() => savePerformance(player, perfDraft)} className="text-[10px] font-bold text-blue-400 hover:text-blue-300">✓</button>
+                                                    <button onClick={() => setEditingPerf(null)} className="text-[10px] font-bold text-slate-500 hover:text-slate-300">✕</button>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className="flex items-center gap-3 group/perf cursor-pointer"
+                                                    onClick={() => { setEditingPerf(player.id); setPerfDraft(player.performance); }}
+                                                    title="Click to edit"
+                                                >
+                                                    <div className="flex-1 w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                        <div className={`h-full rounded-full ${getPerfColor(player.performance).bar}`} style={{ width: `${player.performance * 10}%` }}></div>
+                                                    </div>
+                                                    <span className={`text-xs font-bold w-8 ${getPerfColor(player.performance).text}`}>{player.performance}</span>
+                                                    <TrendingUp size={12} className="text-slate-700 group-hover/perf:text-blue-400 transition-colors" />
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(player.status)}`}>{player.status}</span></td>
                                         <td className="px-6 py-4 text-right">
@@ -290,11 +377,11 @@ export default function TeamManagement() {
                                 <span className="w-6 h-[2px] bg-blue-500/50 rounded-full"></span>Identity & Position<span className="flex-1 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input label="First Name" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} placeholder="e.g. Marcus" />
-                                <Input label="Last Name" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} placeholder="e.g. Rashford" />
+                                <Input label="First Name" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Marcus" />
+                                <Input label="Last Name" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Rashford" />
                                 <DatePicker label="Date of Birth" value={formData.dateOfBirth} onChange={date => setFormData({ ...formData, dateOfBirth: date })} />
                                 <Select label="Position" value={formData.position} onChange={(value) => setFormData({ ...formData, position: value as string })} options={[{ label: 'Forward', value: 'Forward' }, { label: 'Midfielder', value: 'Midfielder' }, { label: 'Defender', value: 'Defender' }, { label: 'Goalkeeper', value: 'Goalkeeper' }]} />
-                                <Input label="Jersey Number" type="number" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })} className="font-mono font-bold" />
+                                <Input label="Jersey Number" type="text" inputMode="numeric" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(99, parseInt(raw)); setFormData({ ...formData, jerseyNumber: v }); }} className="font-mono font-bold" />
                                 <Select label="Status" value={formData.status} onChange={(value) => setFormData({ ...formData, status: value as string })} options={[{ label: 'Active', value: 'Active' }, { label: 'Injured', value: 'Injured' }, { label: 'Away', value: 'Away' }]} />
                             </div>
                         </div>
@@ -304,8 +391,8 @@ export default function TeamManagement() {
                                 <span className="w-6 h-[2px] bg-emerald-500/50 rounded-full"></span>Physical Metrics<span className="flex-1 h-[1px] bg-gradient-to-r from-emerald-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-2 gap-6">
-                                <Input label="Height" type="number" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) || 0 })} />
-                                <Input label="Weight" type="number" icon={<Weight size={14} />} rightElement="kg" value={formData.weight || ''} onChange={e => setFormData({ ...formData, weight: parseInt(e.target.value) || 0 })} />
+                                <Input label="Height" type="text" inputMode="numeric" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(250, parseInt(raw)); setFormData({ ...formData, height: v }); }} />
+                                <Input label="Weight" type="text" inputMode="numeric" icon={<Weight size={14} />} rightElement="kg" value={formData.weight || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(200, parseInt(raw)); setFormData({ ...formData, weight: v }); }} />
                             </div>
                         </div>
 
@@ -314,11 +401,11 @@ export default function TeamManagement() {
                                 <span className="w-6 h-[2px] bg-purple-500/50 rounded-full"></span>Contact & Family<span className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input className="md:col-span-2" label="Player's Phone" value={formData.playerPhone} onChange={e => setFormData({ ...formData, playerPhone: e.target.value })} placeholder="+1 (555) 000-0000" />
-                                <Input label="Mother's Name" value={formData.motherName} onChange={e => setFormData({ ...formData, motherName: e.target.value })} />
-                                <Input label="Mother's Phone" value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value })} />
-                                <Input label="Father's Name" value={formData.fatherName} onChange={e => setFormData({ ...formData, fatherName: e.target.value })} />
-                                <Input label="Father's Phone" value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value })} />
+                                <Input className="md:col-span-2" label="Player's Phone" value={formData.playerPhone} onChange={e => setFormData({ ...formData, playerPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} placeholder="+1 (555) 000-0000" />
+                                <Input label="Mother's Name" value={formData.motherName} onChange={e => setFormData({ ...formData, motherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
+                                <Input label="Mother's Phone" value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
+                                <Input label="Father's Name" value={formData.fatherName} onChange={e => setFormData({ ...formData, fatherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
+                                <Input label="Father's Phone" value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
                             </div>
                         </div>
                     </div>

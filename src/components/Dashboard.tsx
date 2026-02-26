@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, TrendingUp, Plus, Clock, MapPin } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity, Shield } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 // UI Components
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
-import { Select } from "./ui/Select";
 
 // Assuming Page type matches your App's routing
 type Page = 'dashboard' | 'session-planner' | 'team' | 'match'; 
@@ -47,7 +46,6 @@ interface Match {
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const [selectedTeam, setSelectedTeam] = useState('All Teams');
   const [players, setPlayers] = useState<Player[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -146,10 +144,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               attendance: Math.round(monthMap[month].total / monthMap[month].count)
             }));
 
-          return chartData.length > 0 ? chartData : monthOrder.slice(0, 6).map((month) => ({
-            month: month.slice(0, 3),
-            attendance: 85 + Math.floor(Math.random() * 10)
-          }));
+        return chartData;
         };
 
         setAttendanceData(calculateMonthlyAttendance());
@@ -170,6 +165,35 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
+  // --- Derived values (computed each render from real data) ---
+  const today = new Date().toISOString().split('T')[0];
+
+  const upcomingSessions = sessions
+    .filter(s => s.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextSession = upcomingSessions[0] ?? null;
+
+  const upcomingMatches = matches
+    .filter(m => m.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextMatch = upcomingMatches[0] ?? null;
+
+  // Month-over-month attendance trend
+  const now = new Date();
+  const thisMonthIdx = now.getMonth();
+  const lastMonthIdx = thisMonthIdx === 0 ? 11 : thisMonthIdx - 1;
+  const avgAttendanceForGroup = (group: TrainingSession[]) => {
+    if (group.length === 0 || players.length === 0) return 0;
+    const total = group.reduce((sum, s) => {
+      const count = s.selected_players.split(',').filter(id => id.trim()).length;
+      return sum + (count / players.length) * 100;
+    }, 0);
+    return total / group.length;
+  };
+  const thisMonthAvg = avgAttendanceForGroup(sessions.filter(s => new Date(s.date).getMonth() === thisMonthIdx));
+  const lastMonthAvg = avgAttendanceForGroup(sessions.filter(s => new Date(s.date).getMonth() === lastMonthIdx));
+  const attendanceTrend = lastMonthAvg > 0 ? Math.round(thisMonthAvg - lastMonthAvg) : null;
+
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       {/* Header Section */}
@@ -180,20 +204,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {/* Team Select using Custom UI Component */}
-          <div className="w-56">
-            <Select 
-              value={selectedTeam} 
-              onChange={(val) => setSelectedTeam(val as string)}
-              options={[
-                { label: 'All Teams', value: 'All Teams' },
-                { label: 'U-17 Premier Team', value: 'U-17 Premier Team' },
-                { label: 'U-19 Development Squad', value: 'U-19 Development Squad' },
-                { label: "Women's First Team", value: "Women's First Team" }
-              ]} 
-            />
-          </div>
-
           <Button 
             onClick={() => onNavigate('session-planner')} 
             icon={<Plus size={16} />}
@@ -233,21 +243,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <Calendar className="w-6 h-6 text-blue-400" />
               </div>
               <span className="text-[10px] font-bold px-2 py-1 bg-slate-800 text-slate-400 rounded border border-slate-700 uppercase tracking-wider">
-                {sessions.length > 0 ? 'Scheduled' : 'None'}
+                {nextSession ? 'Scheduled' : 'None'}
               </span>
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Next Session</h3>
             <p className="text-sm text-slate-400 mb-4 line-clamp-1">
-              {sessions.length > 0 ? sessions[0].focus : 'No sessions scheduled'}
+              {nextSession ? nextSession.focus : 'No sessions scheduled'}
             </p>
             <div className="flex flex-col gap-2 text-xs font-medium text-slate-400">
-              {sessions.length > 0 && (
+              {nextSession && (
                 <>
                   <span className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {sessions[0].start_time} - {sessions[0].end_time}
+                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {nextSession.start_time} - {nextSession.end_time}
                   </span>
                   <span className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {formatDate(sessions[0].date)}
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {formatDate(nextSession.date)}
                   </span>
                 </>
               )}
@@ -266,21 +276,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <Users className="w-6 h-6 text-emerald-400" />
               </div>
               <span className="text-[10px] font-bold px-2 py-1 bg-slate-800 text-slate-400 rounded border border-slate-700 uppercase tracking-wider">
-                {matches.length > 0 ? 'Upcoming' : 'None'}
+                {nextMatch ? 'Upcoming' : 'None'}
               </span>
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Upcoming Match</h3>
             <p className="text-sm text-slate-400 mb-4">
-              {matches.length > 0 ? `vs. ${matches[0].opponent}` : 'No matches scheduled'}
+              {nextMatch ? `vs. ${nextMatch.opponent}` : 'No matches scheduled'}
             </p>
             <div className="flex flex-col gap-2 text-xs font-medium text-slate-400">
-              {matches.length > 0 && (
+              {nextMatch && (
                 <>
                   <span className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {matches[0].time} Kickoff
+                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {nextMatch.time} Kickoff
                   </span>
                   <span className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {matches[0].location}
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" /> {nextMatch.location}
                   </span>
                 </>
               )}
@@ -298,7 +308,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="bg-purple-500/10 p-3 rounded-xl group-hover:bg-purple-500/20 transition-colors">
                 <TrendingUp className="w-6 h-6 text-purple-400" />
               </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-wider">+3% vs Last Month</span>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider ${
+                attendanceTrend === null
+                  ? 'text-slate-400 bg-slate-800 border-slate-700'
+                  : attendanceTrend >= 0
+                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+              }`}>
+                {attendanceTrend === null ? 'No trend data' : `${attendanceTrend >= 0 ? '+' : ''}${attendanceTrend}% vs Last Month`}
+              </span>
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Attendance Rate</h3>
             <div className="flex items-baseline gap-2">
@@ -312,6 +330,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card animate delay={0.3} className="p-6 md:p-8">
             <h3 className="text-lg font-bold text-white mb-6">Attendance Overview</h3>
+            {attendanceData.length > 0 ? (
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={attendanceData}>
@@ -354,6 +373,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            ) : (
+              <div className="h-[300px] flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-xl">
+                <Activity size={32} className="mb-3 opacity-40" />
+                <p className="text-sm font-medium">No session data yet</p>
+                <p className="text-xs text-slate-700 mt-1">Create training sessions to see attendance trends</p>
+              </div>
+            )}
           </Card>
 
           <Card animate delay={0.4} className="p-6 md:p-8">
@@ -363,12 +389,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-400">Training Sessions</span>
-                  <span className="text-sm font-bold text-white">{sessions.length} sessions</span>
+                  <span className="text-sm font-bold text-white">{sessions.length} total</span>
                 </div>
                 <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((sessions.length / 30) * 100, 100)}%` }}
+                    animate={{ width: `${Math.min((sessions.length / Math.max(sessions.length, 1)) * 100, 100)}%` }}
                     transition={{ duration: 1, delay: 0.5 }}
                     className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
                   />
@@ -379,12 +405,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-400">Upcoming Matches</span>
-                  <span className="text-sm font-bold text-white">{matches.length} / 10</span>
+                  <span className="text-sm font-bold text-white">{upcomingMatches.length} scheduled</span>
                 </div>
                 <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                   <motion.div 
                      initial={{ width: 0 }}
-                     animate={{ width: `${(matches.length / 10) * 100}%` }}
+                     animate={{ width: `${Math.min((upcomingMatches.length / Math.max(upcomingMatches.length, 1)) * 100, 100)}%` }}
                      transition={{ duration: 1, delay: 0.7 }}
                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
                   />
@@ -418,7 +444,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Injured</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:bg-slate-800 transition-colors">
-                    <p className="text-2xl font-bold text-red-500">{players.length}</p>
+                    <p className="text-2xl font-bold text-white">{players.length}</p>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total</p>
                   </div>
                 </div>
@@ -426,6 +452,44 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </Card>
         </div>
+
+        {/* Upcoming Schedule */}
+        {upcomingSessions.length > 0 && (
+          <Card animate delay={0.5} className="p-6 md:p-8">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-white">Upcoming Schedule</h3>
+              <button onClick={() => onNavigate('session-planner')} className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-semibold">
+                View All →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {upcomingSessions.slice(0, 5).map((s) => (
+                <div key={s.id} className="flex items-center gap-4 p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:border-white/10 transition-colors group">
+                  <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/20 flex flex-col items-center justify-center shrink-0">
+                    <span className="text-[9px] font-bold text-blue-400 uppercase leading-none">
+                      {new Date(s.date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short' })}
+                    </span>
+                    <span className="text-base font-bold text-white leading-tight">{s.date.slice(8, 10)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate group-hover:text-blue-400 transition-colors">{s.focus}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                      <Clock size={11} /> {s.start_time} – {s.end_time}
+                      <span className="text-slate-700">·</span>
+                      <Shield size={11} /> {s.selected_players.split(',').filter(id => id.trim()).length} players
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider shrink-0 ${
+                    s.intensity === 'High'   ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                    s.intensity === 'Low'    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                              'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                  }`}>{s.intensity}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
       </motion.div>
     </div>
   );
