@@ -36,11 +36,15 @@ interface SelectorItem { id: string; name: string; }
 // --- Helpers ---
 const getMediaType = (url?: string) => {
     if (!url) return null;
-    if (url.startsWith('data:image')) return 'image';
-    if (url.startsWith('data:video')) return 'video';
-    if (url.startsWith('data:application/pdf')) return 'pdf';
-    if (url.match(/\.(jpeg|jpg|gif|png)$/) != null) return 'image';
-    if (url.match(/\.(mp4|webm)$/) != null) return 'video';
+    if (url.startsWith('data:image') || url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) return 'image';
+    if (url.startsWith('data:video') || url.match(/\.(mp4|webm|ogg)$/i)) return 'video';
+    if (url.startsWith('data:application/pdf') || url.endsWith('.pdf')) return 'pdf';
+    if (url.startsWith('/static/')) {
+        const ext = url.split('.').pop()?.toLowerCase();
+        if (['jpg','jpeg','png','gif','webp'].includes(ext||'')) return 'image';
+        if (['mp4','webm'].includes(ext||'')) return 'video';
+        if (ext === 'pdf') return 'pdf';
+    }
     return 'unknown';
 };
 
@@ -55,8 +59,9 @@ const getIntensityStyles = (intensity: string) => {
 const equipmentOptions = ['Balls', 'Cones', 'Bibs/Vests', 'Goals', 'Hurdles', 'Poles', 'Agility Ladder', 'Markers', 'Mannequins', 'Mini Goals'];
 
 export default function ExercisesLibrary() {
-    const [exercises, setExercises] = useState<Exercise[]>([]); // Initialize empty (No Mock Data)
+    const [exercises, setExercises] = useState<Exercise[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeIntensity, setActiveIntensity] = useState<string>('All');
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -210,7 +215,11 @@ export default function ExercisesLibrary() {
         }
     };
 
-    const filteredExercises = exercises.filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredExercises = exercises.filter(ex => {
+        const matchIntensity = activeIntensity === 'All' || ex.intensity === activeIntensity;
+        const matchSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchIntensity && matchSearch;
+    });
 
     // Media Renderer
     const renderMedia = (url: string, isPreview = false) => {
@@ -263,21 +272,68 @@ export default function ExercisesLibrary() {
     };
 
     return (
-        <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="p-6 sm:p-8 max-w-[1600px] mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-amber-500 flex-shrink-0" />
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-white">Exercises Library</h1>
-                        <p className="text-sm text-slate-400 mt-0.5">Manage training exercises and drills</p>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                            {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
+                        </p>
                     </div>
                 </div>
-                <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>Create Exercise</Button>
+                <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>Add Exercise</Button>
             </div>
 
-            <Card className="p-2 px-4">
-                <Input icon={<Search size={18} />} placeholder="Search exercises..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 bg-transparent focus:ring-0" />
-            </Card>
+            {/* Intensity Filter Tabs */}
+            <div className="flex flex-wrap gap-2">
+                <button
+                    onClick={() => setActiveIntensity('All')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        activeIntensity === 'All'
+                            ? 'bg-white/10 border-white/30 text-white'
+                            : 'bg-transparent border-white/10 text-slate-500 hover:text-white hover:border-white/20'
+                    }`}
+                >
+                    All <span className="ml-1 opacity-60">{exercises.length}</span>
+                </button>
+                {(['Low', 'Medium', 'High'] as const).map(level => {
+                    const count = exercises.filter(ex => ex.intensity === level).length;
+                    const styles = {
+                        Low:    { active: 'bg-emerald-500/15 border-emerald-500/50 text-emerald-400', hover: 'hover:border-emerald-500/30 hover:text-emerald-400', dot: 'bg-emerald-500' },
+                        Medium: { active: 'bg-amber-500/15 border-amber-500/50 text-amber-400',   hover: 'hover:border-amber-500/30 hover:text-amber-400',   dot: 'bg-amber-500'   },
+                        High:   { active: 'bg-rose-500/15 border-rose-500/50 text-rose-400',     hover: 'hover:border-rose-500/30 hover:text-rose-400',     dot: 'bg-rose-500'    },
+                    }[level];
+                    const isActive = activeIntensity === level;
+                    return (
+                        <button
+                            key={level}
+                            onClick={() => setActiveIntensity(level)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                isActive ? styles.active : `bg-transparent border-white/10 text-slate-500 ${styles.hover}`
+                            }`}
+                        >
+                            <span className="flex items-center gap-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${styles.dot} ${isActive ? 'opacity-100' : 'opacity-30'}`} />
+                                {level}
+                                <span className="opacity-60">{count}</span>
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search exercises..."
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-900/60 border border-white/5 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 focus:bg-slate-900 transition-colors"
+                />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence>
