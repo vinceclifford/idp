@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
-// UI Components
-import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+
+const ALL_FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','4-3-2-1','4-1-4-1','4-1-2-1-2','4-4-2 DM','3-5-2','3-4-3','3-4-1-2','5-3-2','5-4-1'];
 
 interface Tactic {
   id: string; name: string; formation: string; description: string;
@@ -17,25 +17,27 @@ interface Tactic {
 }
 
 export default function TacticsLibrary() {
-  const [tactics, setTactics] = useState<Tactic[]>([]); // Initialize empty
+  const [tactics, setTactics] = useState<Tactic[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeFormation, setActiveFormation] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const toggleExpanded = (id: string) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [formData, setFormData] = useState({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' });
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/tactics')
         .then(res => res.json())
         .then(data => {
-            const dbItems = data.map((item: any) => ({ 
-                id: item.id, name: item.name, formation: item.formation, description: item.description, suggestedDrills: item.suggested_drills || '', isCustom: true 
+            const dbItems: Tactic[] = data.map((item: any) => ({
+                id: item.id, name: item.name, formation: item.formation,
+                description: item.description, suggestedDrills: item.suggested_drills || '', isCustom: true,
             }));
-            setTactics(dbItems); // Only fetch from DB
+            setTactics(dbItems);
+            if (dbItems.length > 0) setSelectedId(dbItems[0].id);
         })
-        .catch(() => toast.error("Backend offline"));
+        .catch(() => toast.error('Backend offline'));
   }, []);
 
   const handleSave = async () => {
@@ -52,9 +54,13 @@ export default function TacticsLibrary() {
 
       if (response.ok) {
         const saved = await response.json();
-        const newItem = { id: saved.id, name: saved.name, formation: saved.formation, description: saved.description, suggestedDrills: saved.suggested_drills || '', isCustom: true };
-        if (isEditing) setTactics(prev => prev.map(t => t.id === newItem.id ? newItem : t));
-        else setTactics(prev => [...prev, newItem]);
+        const newItem: Tactic = { id: saved.id, name: saved.name, formation: saved.formation, description: saved.description, suggestedDrills: saved.suggested_drills || '', isCustom: true };
+        if (isEditing) {
+          setTactics(prev => prev.map(t => t.id === newItem.id ? newItem : t));
+        } else {
+          setTactics(prev => [...prev, newItem]);
+          setSelectedId(newItem.id);
+        }
         toast.success(isEditing ? 'Updated!' : 'Created!');
         closeModal();
       }
@@ -63,98 +69,229 @@ export default function TacticsLibrary() {
 
   const handleDelete = async (id: string) => {
     try {
-        await fetch(`http://127.0.0.1:8000/tactics/${id}`, { method: 'DELETE' });
-        setTactics(prev => prev.filter(t => t.id !== id));
-        toast.success('Deleted');
-    } catch {
-        toast.error("Failed to delete");
-    }
+      await fetch(`http://127.0.0.1:8000/tactics/${id}`, { method: 'DELETE' });
+      setTactics(prev => {
+        const next = prev.filter(t => t.id !== id);
+        if (selectedId === id) setSelectedId(next[0]?.id ?? null);
+        return next;
+      });
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
   };
 
   const closeModal = () => { setShowCreateModal(false); setIsEditing(false); setFormData({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' }); };
   const openEdit = (t: Tactic) => { setFormData({ id: t.id, name: t.name, formation: t.formation, description: t.description, suggestedDrills: t.suggestedDrills || '' }); setIsEditing(true); setShowCreateModal(true); };
-  const filteredTactics = tactics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  // Derived data
+  const usedFormations = ALL_FORMATIONS.filter(f => tactics.some(t => t.formation === f));
+  const filtered = tactics.filter(t => {
+    const matchFormation = activeFormation === 'All' || t.formation === activeFormation;
+    const matchSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchFormation && matchSearch;
+  });
+  const selected = tactics.find(t => t.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 sm:p-8 max-w-[1600px] mx-auto space-y-6">
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-emerald-500 flex-shrink-0" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Tactics Library</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Systems & Formations</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {tactics.length} {tactics.length === 1 ? 'tactic' : 'tactics'}
+              {usedFormations.length > 0 && <> &middot; {usedFormations.length} formation{usedFormations.length > 1 ? 's' : ''}</>}
+            </p>
           </div>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18}/>}>Create Tactic</Button>
+        <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Add Tactic</Button>
       </div>
 
-      <Card className="p-2 px-4">
-        <Input icon={<Search size={18} />} placeholder="Search tactics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 bg-transparent focus:ring-0" />
-      </Card>
+      {/* Formation Filter Tabs */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveFormation('All')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+            activeFormation === 'All'
+              ? 'bg-white/10 border-white/30 text-white'
+              : 'bg-transparent border-white/10 text-slate-500 hover:text-white hover:border-white/20'
+          }`}
+        >
+          All <span className="ml-1 opacity-60">{tactics.length}</span>
+        </button>
+        {usedFormations.map(f => {
+          const count = tactics.filter(t => t.formation === f).length;
+          const isActive = activeFormation === f;
+          return (
+            <button
+              key={f}
+              onClick={() => setActiveFormation(f)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                isActive
+                  ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-400'
+                  : 'bg-transparent border-white/10 text-slate-500 hover:border-emerald-500/30 hover:text-emerald-400'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full bg-emerald-500 ${isActive ? 'opacity-100' : 'opacity-30'}`} />
+                {f}
+                <span className="opacity-60">{count}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AnimatePresence>
-        {filteredTactics.map((t, idx) => (
-            <Card key={t.id} animate delay={idx * 0.05} className="p-5 hover:border-green-500/30 group flex flex-col h-full shadow-lg">
-                <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl h-36 mb-5 flex items-center justify-center relative overflow-hidden shrink-0 group-hover:border-emerald-500/30 transition-colors">
-                    <div className="absolute inset-3 border border-emerald-500/10 rounded"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-emerald-500/10 rounded-full"></div>
-                    <div className="absolute top-0 bottom-0 left-1/2 border-l border-emerald-500/10"></div>
-                    
-                    <div className="text-center z-10">
-                        <span className="text-4xl font-bold text-emerald-400 block tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">{t.formation}</span>
-                        <span className="text-[10px] uppercase text-emerald-500/60 tracking-[0.2em] font-bold mt-2 block">System</span>
-                    </div>
+      {/* Master / Detail */}
+      <div className="grid grid-cols-12 gap-6" style={{ minHeight: '640px' }}>
+
+        {/* LEFT: List */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search tactics..."
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-900/60 border border-white/5 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 focus:bg-slate-900 transition-colors"
+            />
+          </div>
+
+          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1" style={{ maxHeight: '620px' }}>
+            <AnimatePresence>
+              {filtered.length === 0 && (
+                <div className="text-center py-16 text-slate-600">
+                  <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No tactics found</p>
                 </div>
-
-                <div className="mb-4 px-1">
-                    <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{t.name}</h3>
-                    <p className={`text-slate-400 text-sm leading-relaxed transition-all ${!expandedIds.has(t.id) ? 'line-clamp-3' : ''}`}>{t.description}</p>
-                {t.description?.length > 120 && (
-                  <button onClick={e => { e.stopPropagation(); toggleExpanded(t.id); }} className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 mt-1.5 transition-colors">
-                    {expandedIds.has(t.id) ? 'Show less ↑' : 'Read more ↓'}
-                  </button>
-                )}
-                </div>
-
-                {t.suggestedDrills && (
-                    <div className="bg-slate-950/50 border border-white/5 rounded-lg p-4 mb-4">
-                        <h4 className="text-orange-400 text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span> Suggested Drills
-                        </h4>
-                        <div className="space-y-2">
-                            {(expandedIds.has(t.id + '-drills')
-                                ? t.suggestedDrills.split('\n')
-                                : t.suggestedDrills.split('\n').slice(0, 3)
-                            ).map((d, i) => d.trim() && (
-                                <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
-                                    <span className="text-orange-500/50 mt-[3px] text-[8px]">•</span>
-                                    <span>{d}</span>
-                                </div>
-                            ))}
+              )}
+              {filtered.map(t => {
+                const isSelected = selectedId === t.id;
+                return (
+                  <motion.div
+                    key={t.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    onClick={() => setSelectedId(t.id)}
+                    className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
+                      isSelected
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : 'bg-slate-900/40 border-white/5 hover:border-white/15 hover:bg-slate-900/70'
+                    }`}
+                  >
+                    <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-emerald-500 ${
+                      isSelected ? 'opacity-100' : 'opacity-20 group-hover:opacity-50'
+                    } transition-opacity`} />
+                    <div className="pl-3 flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>{t.name}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-widest mt-1 inline-block text-emerald-400">{t.formation}</span>
+                        {t.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{t.description}</p>}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {isSelected && <ChevronRight size={14} className="text-emerald-400 mt-0.5" />}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                          <button
+                            onClick={e => { e.stopPropagation(); openEdit(t); }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/5 transition-colors"
+                          ><Edit2 size={11} /></button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDeleteId(t.id); }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-400 border border-white/5 transition-colors"
+                          ><Trash2 size={11} /></button>
                         </div>
-                        {t.suggestedDrills.split('\n').filter(d => d.trim()).length > 3 && (
-                          <button onClick={e => { e.stopPropagation(); toggleExpanded(t.id + '-drills'); }} className="text-[9px] font-semibold text-orange-400/70 hover:text-orange-400 mt-2 transition-colors">
-                            {expandedIds.has(t.id + '-drills') ? 'Show less ↑' : `+${t.suggestedDrills.split('\n').filter(d => d.trim()).length - 3} more ↓`}
-                          </button>
-                        )}
+                      </div>
                     </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* RIGHT: Detail Panel */}
+        <div className="col-span-12 lg:col-span-8">
+          {selected ? (
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2 }}
+              className="h-full rounded-2xl border border-emerald-500/20 bg-slate-900/40 overflow-y-auto custom-scrollbar"
+              style={{ maxHeight: '672px' }}
+            >
+              {/* Detail Header */}
+              <div className="p-6 border-b border-emerald-500/20 bg-emerald-500/5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border mb-3 bg-emerald-500/10 border-emerald-500/20 text-emerald-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      {selected.formation}
+                    </span>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{selected.name}</h2>
+                  </div>
+                  {selected.isCustom && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => openEdit(selected)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-colors"
+                      ><Edit2 size={12} /> Edit</button>
+                      <button
+                        onClick={() => setConfirmDeleteId(selected.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-400 text-xs font-bold border border-white/10 transition-colors"
+                      ><Trash2 size={12} /> Delete</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Formation Visualisation */}
+                <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl h-44 flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-4 border border-emerald-500/10 rounded" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-emerald-500/10 rounded-full" />
+                  <div className="absolute top-0 bottom-0 left-1/2 border-l border-emerald-500/10" />
+                  <div className="text-center z-10">
+                    <span className="text-5xl font-bold text-emerald-400 block tracking-tighter drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]">{selected.formation}</span>
+                    <span className="text-[10px] uppercase text-emerald-500/60 tracking-[0.2em] font-bold mt-2 block">Formation</span>
+                  </div>
+                </div>
+
+                {selected.description && (
+                  <div>
+                    <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Description</h4>
+                    <p className="text-slate-300 text-sm leading-relaxed">{selected.description}</p>
+                  </div>
                 )}
 
-                {t.isCustom && (
-                    <div className="mt-auto pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
-                          <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(t.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
-                    </div>
+                {selected.suggestedDrills && (
+                  <div className="bg-orange-500/5 border border-orange-500/15 rounded-xl p-4">
+                    <h4 className="text-orange-400 text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Suggested Drills
+                    </h4>
+                    <ul className="space-y-2">
+                      {selected.suggestedDrills.split('\n').filter(d => d.trim()).map((drill, i) => (
+                        <li key={i} className="flex items-start gap-3 text-slate-300 text-sm">
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" />
+                          <span className="leading-relaxed">{drill}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-            </Card>
-        ))}
-        </AnimatePresence>
-        {filteredTactics.length === 0 && (
-            <div className="col-span-full text-center py-12 text-slate-500 italic">
-                No tactics found. Create one to get started.
+              </div>
+            </motion.div>
+          ) : (
+            <div className="h-full min-h-[400px] rounded-2xl border border-white/5 bg-slate-900/20 flex flex-col items-center justify-center text-slate-600">
+              <BookOpen size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Select a tactic to view details</p>
             </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Tactic' : 'New Tactic'}

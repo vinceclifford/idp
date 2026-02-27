@@ -1,63 +1,56 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
 
-// UI Components
-import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 interface Basic {
-  id: string;
-  name: string;
-  description: string;
-  diagramUrl?: string;
-  isCustom: boolean;
+  id: string; name: string; description: string; diagramUrl?: string; isCustom: boolean;
 }
 
-// --- Helper ---
 const getMediaType = (url?: string) => {
   if (!url) return null;
-  if (url.startsWith('data:image')) return 'image';
-  if (url.startsWith('data:video')) return 'video';
-  if (url.startsWith('data:application/pdf')) return 'pdf';
-  // Fallback for actual URLs if needed
-  if (url.match(/\.(jpeg|jpg|gif|png)$/) != null) return 'image';
-  if (url.match(/\.(mp4|webm)$/) != null) return 'video';
+  if (url.startsWith('data:image') || url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) return 'image';
+  if (url.startsWith('data:video') || url.match(/\.(mp4|webm|ogg)$/i)) return 'video';
+  if (url.startsWith('data:application/pdf') || url.endsWith('.pdf')) return 'pdf';
+  if (url.startsWith('/static/')) {
+    const ext = url.split('.').pop()?.toLowerCase();
+    if (['jpg','jpeg','png','gif','webp'].includes(ext||'')) return 'image';
+    if (['mp4','webm'].includes(ext||'')) return 'video';
+    if (ext === 'pdf') return 'pdf';
+  }
   return 'unknown';
 };
 
 export default function BasicsLibrary() {
-  const [basics, setBasics] = useState<Basic[]>([]); // Initialize empty (No Mock Data)
+  const [basics, setBasics] = useState<Basic[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-
-  // State for Full Screen Media Viewer
   const [viewMedia, setViewMedia] = useState<string | null>(null);
-
   const [formData, setFormData] = useState({ id: '', name: '', description: '', diagramUrl: '' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const toggleExpanded = (id: string) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // --- Load Data ---
   useEffect(() => {
     fetch('http://127.0.0.1:8000/basics')
       .then(res => res.json())
       .then(data => {
-        const dbItems = data.map((item: any) => ({
+        const dbItems: Basic[] = data.map((item: any) => ({
           id: item.id, name: item.name, description: item.description,
-          diagramUrl: item.diagram_url, isCustom: true
+          diagramUrl: item.diagram_url, isCustom: true,
         }));
-        setBasics(dbItems); // Set only fetched data
+        setBasics(dbItems);
+        if (dbItems.length > 0) setSelectedId(dbItems[0].id);
       })
-      .catch(() => toast.error("Backend offline"));
+      .catch(() => toast.error('Backend offline'));
   }, []);
 
   // --- Handlers ---
@@ -84,10 +77,11 @@ export default function BasicsLibrary() {
 
         if (isEditing) {
           setBasics(prev => prev.map(b => b.id === newItem.id ? newItem : b));
-          toast.success('Updated successfully!');
+          toast.success('Updated!');
         } else {
           setBasics(prev => [...prev, newItem]);
-          toast.success('Created successfully!');
+          setSelectedId(newItem.id);
+          toast.success('Created!');
         }
         closeModal();
       } else { toast.error('Server Error'); }
@@ -96,12 +90,14 @@ export default function BasicsLibrary() {
 
   const handleDelete = async (id: string) => {
     try {
-        await fetch(`http://127.0.0.1:8000/basics/${id}`, { method: 'DELETE' });
-        setBasics(prev => prev.filter(b => b.id !== id));
-        toast.success('Deleted');
-    } catch {
-        toast.error("Failed to delete");
-    }
+      await fetch(`http://127.0.0.1:8000/basics/${id}`, { method: 'DELETE' });
+      setBasics(prev => {
+        const next = prev.filter(b => b.id !== id);
+        if (selectedId === id) setSelectedId(next[0]?.id ?? null);
+        return next;
+      });
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
   };
 
   // --- File Upload Logic ---
@@ -131,83 +127,180 @@ export default function BasicsLibrary() {
     setMediaPreview(basic.diagramUrl || null); setIsEditing(true); setShowCreateModal(true);
   };
 
-  const filteredBasics = basics.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  // Helper to render media in grid
-  const renderCardMedia = (url: string) => {
-    const type = getMediaType(url);
-    if (type === 'image') return <img src={url} alt="Diagram" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />;
-    if (type === 'video') return <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-blue-400 transition-colors"><VideoIcon size={32} /><span className="text-[10px] font-bold uppercase tracking-widest">Video</span></div>;
-    if (type === 'pdf') return <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-blue-400 transition-colors"><FileText size={32} /><span className="text-[10px] font-bold uppercase tracking-widest">PDF</span></div>;
-    return <ImageIcon size={24} className="text-slate-600" />;
-  };
+  const filtered = basics.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const selected = basics.find(b => b.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 sm:p-8 max-w-[1600px] mx-auto space-y-6">
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-sky-500 flex-shrink-0" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Basics Library</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Fundamental technical concepts</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {basics.length} {basics.length === 1 ? 'concept' : 'concepts'}
+            </p>
           </div>
         </div>
-        <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>
-          Create Basic
-        </Button>
+        <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>Add Basic</Button>
       </div>
 
-      {/* Search */}
-      <Card className="p-2 px-4">
-        <Input icon={<Search size={18} />} placeholder="Search basics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 bg-transparent focus:ring-0" />
-      </Card>
+      {/* Master / Detail */}
+      <div className="grid grid-cols-12 gap-6" style={{ minHeight: '640px' }}>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AnimatePresence>
-          {filteredBasics.map((basic, idx) => (
-            <Card key={basic.id} animate delay={idx * 0.05} className="p-5 hover:border-blue-500/50 group flex flex-col h-full transition-colors">
-              <div
-                className={`bg-slate-950/50 rounded-xl h-40 mb-5 flex flex-col items-center justify-center border border-slate-800 text-slate-600 relative overflow-hidden shrink-0 group-hover:border-blue-500/20 transition-colors ${basic.diagramUrl ? 'cursor-zoom-in' : ''}`}
-                onClick={(e) => {
-                  if (basic.diagramUrl) {
-                    e.stopPropagation();
-                    setViewMedia(basic.diagramUrl);
-                  }
-                }}
-              >
-                {basic.diagramUrl ? renderCardMedia(basic.diagramUrl) : (
-                  <>
-                    <ImageIcon size={24} className="mb-3 opacity-30 group-hover:text-blue-500 group-hover:opacity-100 transition-all" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-hover:opacity-80 transition-opacity">Diagram Missing</span>
-                  </>
-                )}
-              </div>
+        {/* LEFT: List */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search basics..."
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-900/60 border border-white/5 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 focus:bg-slate-900 transition-colors"
+            />
+          </div>
 
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-white mb-2 tracking-tight">{basic.name}</h3>
-                <p className={`text-slate-400 text-sm leading-relaxed transition-all ${!expandedIds.has(basic.id) ? 'line-clamp-3' : ''}`}>{basic.description}</p>
-                {basic.description?.length > 120 && (
-                  <button onClick={e => { e.stopPropagation(); toggleExpanded(basic.id); }} className="text-[10px] font-semibold text-sky-400 hover:text-sky-300 mt-1.5 transition-colors">
-                    {expandedIds.has(basic.id) ? 'Show less ↑' : 'Read more ↓'}
-                  </button>
-                )}
-              </div>
-
-              {basic.isCustom && (
-                <div className="mt-auto pt-4 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(basic); }} className="p-2 h-8 w-8"><Edit2 size={14} /></Button>
-                  <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(basic.id); }} className="p-2 h-8 w-8"><Trash2 size={14} /></Button>
+          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1" style={{ maxHeight: '620px' }}>
+            <AnimatePresence>
+              {filtered.length === 0 && (
+                <div className="text-center py-16 text-slate-600">
+                  <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No basics found</p>
                 </div>
               )}
-            </Card>
-          ))}
-        </AnimatePresence>
-        {filteredBasics.length === 0 && (
-            <div className="col-span-full text-center py-12 text-slate-500 italic">
-                No basics found. Create one to get started.
+              {filtered.map(basic => {
+                const isSelected = selectedId === basic.id;
+                return (
+                  <motion.div
+                    key={basic.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    onClick={() => setSelectedId(basic.id)}
+                    className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
+                      isSelected
+                        ? 'bg-sky-500/10 border-sky-500/30'
+                        : 'bg-slate-900/40 border-white/5 hover:border-white/15 hover:bg-slate-900/70'
+                    }`}
+                  >
+                    <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-sky-500 ${
+                      isSelected ? 'opacity-100' : 'opacity-20 group-hover:opacity-50'
+                    } transition-opacity`} />
+                    <div className="pl-3 flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>{basic.name}</p>
+                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{basic.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {isSelected && <ChevronRight size={14} className="text-sky-400 mt-0.5" />}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                          <button
+                            onClick={e => { e.stopPropagation(); openEdit(basic); }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/5 transition-colors"
+                          ><Edit2 size={11} /></button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDeleteId(basic.id); }}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-400 border border-white/5 transition-colors"
+                          ><Trash2 size={11} /></button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* RIGHT: Detail Panel */}
+        <div className="col-span-12 lg:col-span-8">
+          {selected ? (
+            <motion.div
+              key={selected.id}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2 }}
+              className="h-full rounded-2xl border border-sky-500/20 bg-slate-900/40 overflow-y-auto custom-scrollbar"
+              style={{ maxHeight: '672px' }}
+            >
+              {/* Detail Header */}
+              <div className="p-6 border-b border-sky-500/20 bg-sky-500/5">
+                <div className="flex items-start justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">{selected.name}</h2>
+                  {selected.isCustom && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => openEdit(selected)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-colors"
+                      ><Edit2 size={12} /> Edit</button>
+                      <button
+                        onClick={() => setConfirmDeleteId(selected.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-400 text-xs font-bold border border-white/10 transition-colors"
+                      ><Trash2 size={12} /> Delete</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Description</h4>
+                  <p className="text-slate-300 text-sm leading-relaxed">{selected.description}</p>
+                </div>
+
+                {selected.diagramUrl && (() => {
+                  const type = getMediaType(selected.diagramUrl);
+                  if (type === 'image') return (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Media</h4>
+                      <img
+                        src={selected.diagramUrl}
+                        alt="Diagram"
+                        className="w-full max-h-80 object-cover rounded-xl border border-white/10 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setViewMedia(selected.diagramUrl!)}
+                      />
+                    </div>
+                  );
+                  if (type === 'video') return (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Media</h4>
+                      <div
+                        className="w-full h-40 bg-black rounded-xl border border-white/10 flex items-center justify-center group cursor-pointer hover:border-white/20 transition-colors"
+                        onClick={() => setViewMedia(selected.diagramUrl!)}
+                      >
+                        <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-white transition-colors">
+                          <VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  if (type === 'pdf') return (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Media</h4>
+                      <div
+                        className="w-full h-40 bg-slate-800 rounded-xl border border-white/10 flex items-center justify-center group cursor-pointer hover:border-white/20 transition-colors"
+                        onClick={() => setViewMedia(selected.diagramUrl!)}
+                      >
+                        <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-white transition-colors">
+                          <FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">Open PDF</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  return null;
+                })()}
+              </div>
+            </motion.div>
+          ) : (
+            <div className="h-full min-h-[400px] rounded-2xl border border-white/5 bg-slate-900/20 flex flex-col items-center justify-center text-slate-600">
+              <BookOpen size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Select a basic to view details</p>
             </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Basic' : 'Create Basic'}
