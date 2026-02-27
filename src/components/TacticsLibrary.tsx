@@ -161,7 +161,7 @@ export default function TacticsLibrary() {
         footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button><Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/20">Save</Button></div>}>
         <div className="space-y-6">
             <Input label="Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Counter Attack" />
-            <Select label="Formation" value={formData.formation} onChange={val => setFormData({...formData, formation: val as string})} options={['4-3-3', '4-4-2', '3-5-2', '4-2-3-1'].map(f => ({label: f, value: f}))} />
+            <Select label="Formation" value={formData.formation} onChange={val => setFormData({...formData, formation: val as string})} options={['4-4-2', '4-3-3', '4-2-3-1', '4-3-2-1', '4-1-4-1', '4-1-2-1-2', '4-4-2 DM', '3-5-2', '3-4-3', '3-4-1-2', '5-3-2', '5-4-1'].map(f => ({label: f, value: f}))} />
             <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Description</label>
             <textarea className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 focus:bg-slate-900 focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 hover:border-white/10 resize-none h-24 custom-scrollbar" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
             <div className="space-y-2"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 text-orange-400">Suggested Drills (Line Separated)</label>
