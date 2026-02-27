@@ -68,6 +68,7 @@ export default function TrainingManager() {
     });
 
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+    const [activeIntensity, setActiveIntensity] = useState<string>('All');
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
 
@@ -277,7 +278,26 @@ export default function TrainingManager() {
     const pastSessions = sessions
         .filter(s => s.date < today)
         .sort((a, b) => b.date.localeCompare(a.date));
-    const displaySessions = activeTab === 'upcoming' ? upcomingSessions : pastSessions;
+    const displaySessions = (activeTab === 'upcoming' ? upcomingSessions : pastSessions)
+        .filter(s => activeIntensity === 'All' || s.intensity === activeIntensity);
+
+    const INTENSITY_STYLES: Record<string, string> = {
+        Low:    'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        Medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        High:   'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    };
+
+    const todayDate = new Date(today);
+    const weekLater = new Date(todayDate); weekLater.setDate(todayDate.getDate() + 7);
+    const twoWeeksLater = new Date(todayDate); twoWeeksLater.setDate(todayDate.getDate() + 14);
+    const weekStr = weekLater.toISOString().split('T')[0];
+    const twoWeeksStr = twoWeeksLater.toISOString().split('T')[0];
+    const groupedUpcoming = [
+        { label: 'This Week', items: displaySessions.filter(s => s.date <= weekStr) },
+        { label: 'Next Week', items: displaySessions.filter(s => s.date > weekStr && s.date <= twoWeeksStr) },
+        { label: 'Later',     items: displaySessions.filter(s => s.date > twoWeeksStr) },
+    ];
+    const nextSessionId = upcomingSessions[0]?.id;
 
     return (
         <div className="p-6 sm:p-8 max-w-7xl mx-auto space-y-6">
@@ -286,7 +306,7 @@ export default function TrainingManager() {
                     <div className="w-1 h-10 rounded-full bg-cyan-500 flex-shrink-0" />
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-white">Training Sessions</h1>
-                        <p className="text-sm text-slate-400 mt-0.5">Plan, Execute, Analyze</p>
+                        <p className="text-sm text-slate-400 mt-0.5">{upcomingSessions.length} upcoming · {pastSessions.length} past</p>
                     </div>
                 </div>
                 <Button onClick={openCreate} icon={<Plus size={18} />} className="shadow-lg shadow-blue-500/20">
@@ -317,56 +337,139 @@ export default function TrainingManager() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-                <AnimatePresence>
-                    {displaySessions.map((s, idx) => (
-                        <Card
-                            key={s.id}
-                            animate
-                            delay={idx * 0.05}
-                            onClick={() => setSelectedSession(s)}
-                            className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden cursor-pointer hover:border-white/10"
+            {/* Intensity Filter Tabs */}
+            <div className="flex flex-wrap gap-2">
+                {(['All', 'Low', 'Medium', 'High'] as const).map(level => {
+                    const base = activeTab === 'upcoming' ? upcomingSessions : pastSessions;
+                    const count = level === 'All' ? base.length : base.filter(s => s.intensity === level).length;
+                    const dotColor = level === 'Low' ? 'bg-emerald-500' : level === 'Medium' ? 'bg-amber-500' : level === 'High' ? 'bg-rose-500' : '';
+                    return (
+                        <button
+                            key={level}
+                            onClick={() => setActiveIntensity(level)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                                activeIntensity === level
+                                    ? 'bg-white/10 text-white border-white/20'
+                                    : 'text-slate-400 border-white/5 hover:text-white hover:bg-white/5'
+                            }`}
                         >
-                            {/* Decorative left accent */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${
-                                activeTab === 'past'
-                                    ? 'from-slate-500 to-slate-600'
-                                    : 'from-blue-500 to-indigo-600'
-                            }`}></div>
+                            {level !== 'All' && <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />}
+                            {level}
+                            <span className="text-[10px] px-1 bg-slate-800 text-slate-500 rounded border border-slate-700/50">{count}</span>
+                        </button>
+                    );
+                })}
+            </div>
 
-                            <div className="flex-1 pl-2">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700/50`}>
-                                        {s.intensity}
-                                    </span>
-                                    <h3 className="text-lg font-bold text-white">{s.focus}</h3>
-                                </div>
-                                <div className="flex flex-wrap gap-4 text-sm text-slate-400 mt-2">
-                                    <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500" /> {formatDate(s.date)}</span>
-                                    <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500" /> {s.startTime} - {s.endTime}</span>
-                                    <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {s.selectedExercises.length} Drills</span>
-                                    <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {s.selectedPlayers.length} Players</span>
+            <div className="space-y-8">
+                {activeTab === 'upcoming' ? (
+                    <>
+                        {displaySessions.length === 0 ? (
+                            <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">
+                                No upcoming sessions scheduled.
+                            </div>
+                        ) : groupedUpcoming.filter(g => g.items.length > 0).map(group => (
+                            <div key={group.label}>
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1 mb-3 flex items-center gap-2">
+                                    <span className="w-4 h-[1px] bg-slate-700 inline-block" />
+                                    {group.label}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <AnimatePresence>
+                                        {group.items.map((s, idx) => (
+                                            <Card
+                                                key={s.id}
+                                                animate
+                                                delay={idx * 0.05}
+                                                onClick={() => setSelectedSession(s)}
+                                                className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden cursor-pointer hover:border-white/10"
+                                            >
+                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600" />
+                                                <div className="flex-1 pl-2">
+                                                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${INTENSITY_STYLES[s.intensity] ?? 'bg-slate-800 text-slate-400 border-slate-700/50'}`}>
+                                                            {s.intensity}
+                                                        </span>
+                                                        {s.id === nextSessionId && (
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                                Next
+                                                            </span>
+                                                        )}
+                                                        <h3 className="text-lg font-bold text-white">{s.focus}</h3>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-4 text-sm text-slate-400 mt-2">
+                                                        <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500" /> {formatDate(s.date)}</span>
+                                                        <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500" /> {s.startTime} - {s.endTime}</span>
+                                                        <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {s.selectedExercises.length} Drills</span>
+                                                        <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {s.selectedPlayers.length} Players</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 mt-4 md:mt-0 flex-shrink-0">
+                                                    <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title="Export PDF">
+                                                        <Download size={18} />
+                                                    </Button>
+                                                    <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
+                                                        <Edit2 size={18} />
+                                                    </Button>
+                                                    <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
+                                                        <Trash2 size={18} />
+                                                    </Button>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </AnimatePresence>
                                 </div>
                             </div>
-
-                            <div className="flex gap-2 mt-4 md:mt-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title="Export PDF">
-                                    <Download size={18} />
-                                </Button>
-                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
-                                    <Edit2 size={18} />
-                                </Button>
-                                <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
-                                    <Trash2 size={18} />
-                                </Button>
+                        ))}
+                    </>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 gap-4">
+                            <AnimatePresence>
+                                {displaySessions.map((s, idx) => (
+                                    <Card
+                                        key={s.id}
+                                        animate
+                                        delay={idx * 0.05}
+                                        onClick={() => setSelectedSession(s)}
+                                        className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-lg group relative overflow-hidden cursor-pointer hover:border-white/10"
+                                    >
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-slate-500 to-slate-600" />
+                                        <div className="flex-1 pl-2">
+                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${INTENSITY_STYLES[s.intensity] ?? 'bg-slate-800 text-slate-400 border-slate-700/50'}`}>
+                                                    {s.intensity}
+                                                </span>
+                                                <h3 className="text-lg font-bold text-white">{s.focus}</h3>
+                                            </div>
+                                            <div className="flex flex-wrap gap-4 text-sm text-slate-400 mt-2">
+                                                <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500" /> {formatDate(s.date)}</span>
+                                                <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500" /> {s.startTime} - {s.endTime}</span>
+                                                <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {s.selectedExercises.length} Drills</span>
+                                                <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {s.selectedPlayers.length} Players</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 mt-4 md:mt-0 flex-shrink-0">
+                                            <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title="Export PDF">
+                                                <Download size={18} />
+                                            </Button>
+                                            <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
+                                                <Edit2 size={18} />
+                                            </Button>
+                                            <Button variant="danger" onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
+                                                <Trash2 size={18} />
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                        {displaySessions.length === 0 && (
+                            <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">
+                                No past sessions recorded.
                             </div>
-                        </Card>
-                    ))}
-                </AnimatePresence>
-                {displaySessions.length === 0 && (
-                    <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">
-                        {activeTab === 'upcoming' ? 'No upcoming sessions scheduled.' : 'No past sessions recorded.'}
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
 
