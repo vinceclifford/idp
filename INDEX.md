@@ -30,14 +30,16 @@ python -m venv venv
 venv\Scripts\Activate.ps1        # Windows
 # source venv/bin/activate       # macOS / Linux
 pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart pydantic
-uvicorn backend.main:app --reload
+cd backend
+uvicorn main:app --reload
 
-# 3. (Optional) Seed the database
-python -m backend.seed_libraries
-python -m backend.seed_players
-python -m backend.seed_past_matches
+# 3. (Optional) Seed the database — run from inside backend/
+python seed_libraries.py
+python seed_players.py
+python seed_past_matches.py
 
-# 4. Frontend (separate terminal)
+# 4. Frontend (separate terminal, from repo root)
+cd ..
 npm install
 npm run dev
 ```

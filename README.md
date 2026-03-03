@@ -49,8 +49,9 @@ source venv/bin/activate
 # Install dependencies
 pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart pydantic
 
-# Start the API server (run from the repo root)
-uvicorn backend.main:app --reload
+# Start the API server — run from inside the backend/ directory
+cd backend
+uvicorn main:app --reload
 ```
 
 API available at `http://localhost:8000`.
@@ -58,10 +59,13 @@ Interactive docs at `http://localhost:8000/docs`.
 
 ### 3. Seed Data (optional but recommended)
 
+Run these from inside the `backend/` directory (same as uvicorn):
+
 ```bash
-python -m backend.seed_libraries
-python -m backend.seed_players
-python -m backend.seed_past_matches
+cd backend
+python seed_libraries.py
+python seed_players.py
+python seed_past_matches.py
 ```
 
 ### 4. Frontend
