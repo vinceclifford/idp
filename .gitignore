@@ -1,15 +1,52 @@
-DOWNLOAD_INSTRUCTIONS.md
-FILE_STRUCTURE.md
-FIXED_SONNER_IMPORT.md
-FIXED_TAILWIND_CSS.md
-Attributions.md
+﻿# ============================================================
+#  Node / Frontend
+# ============================================================
 node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ============================================================
+#  Python / Backend
+# ============================================================
 venv/
-backend/__pycache__
-backend/seed_libraries.py
-backend/seed_past_matches.py
-backend/seed_players.py
-football.db
-package-lock.json
-.github/copilot-instructions.md
-Changes.md
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ============================================================
+#  Databases
+# ============================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================
+#  Environment / Secrets  <-- IMPORTANT: put DB credentials here
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================
+#  Uploaded media files (folder is kept via .gitkeep)
+# ============================================================
+static/uploads/*
+!static/uploads/.gitkeep
+
+# ============================================================
+#  Editor / OS
+# ============================================================
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# ============================================================
+#  Build / Misc
+# ============================================================
+*.log
+coverage/
+.nyc_output/

@@ -1,139 +1,233 @@
-# CoachHub - Sports Team Management Dashboard
+﻿# CoachHub - Sports Team Management Dashboard
 
-> 🚀 **New to this project?** Check out **[START_HERE.md](./START_HERE.md)** for the fastest way to get running!
-
-A modern, coach-centric web dashboard for managing sports teams, training sessions, and matches. Built with React, TypeScript, and Tailwind CSS.
+A modern, coach-centric web dashboard for managing sports teams, training sessions, and matches. Built with React + TypeScript on the frontend and FastAPI + PostgreSQL on the backend.
 
 ## Features
 
-- 📊 **Dashboard** - Team statistics and quick actions
-- 👥 **Team Management** - Player profiles and team organization
-- 📝 **Exercises Library** - Create and manage reusable training exercises
-- 🎯 **Training Manager** - Build comprehensive training sessions
-- 📚 **Libraries** - Manage Basics, Principles, and Tactics
-- ⚽ **Match & Lineup** - Visual field positioning and lineup builder
-- 🌙 **Dark Mode** - Full dark mode support with localStorage persistence
-- 📱 **Responsive** - Optimized for desktop (1440px width)
+- Dashboard - Team statistics and quick actions
+- Team Management - Player profiles, photos, and roster management
+- Exercises Library - Create and manage reusable training exercises with media
+- Training Manager - Build and schedule training sessions with PDF export
+- Libraries - Manage Basics, Principles (with media upload), and Tactics
+- Match & Lineup - Visual drag-and-drop field positioning and lineup builder
+- Command Palette - Quick navigation with Ctrl+K / Cmd+K
+- Dark Mode - Always-on dark theme
+- Responsive - Optimized for desktop (1440px width)
 
-## Quick Start
+---
 
-### Prerequisites
+## Prerequisites
 
-- Node.js 16 or higher
-- npm or yarn
+- **Node.js** 16 or higher
+- **Python** 3.8 or higher
+- **PostgreSQL** running locally or remotely
 
-### Installation
+---
 
-1. **Clone or download this repository**
+## Setup
 
-2. **Copy component files**
+### 1. Database
 
-   You need to manually copy the component files from `/components` to `/src/components`:
+Create a PostgreSQL database, then update the connection string in `backend/database.py`:
 
-   ```bash
-   # On macOS/Linux
-   mkdir -p src/components
-   cp -r components/* src/components/
+```python
+SQLALCHEMY_DATABASE_URL = "postgresql://<user>:<password>@localhost/<db_name>"
+```
 
-   # On Windows (PowerShell)
-   New-Item -ItemType Directory -Force -Path src/components
-   Copy-Item -Path components/* -Destination src/components/ -Recurse
-   ```
+### 2. Backend
 
-3. **Install dependencies**
+```bash
+# Create and activate virtual environment
+python -m venv venv
 
-   ```bash
-   npm install
-   ```
+# Windows (PowerShell)
+venv\Scripts\Activate.ps1
 
-4. **Start the development server**
+# macOS / Linux
+source venv/bin/activate
 
-   ```bash
-   npm run dev
-   ```
+# Install dependencies
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart pydantic
 
-5. **Open your browser**
+# Start the API server (run from the repo root)
+uvicorn backend.main:app --reload
+```
 
-   Navigate to `http://localhost:5173`
+API available at `http://localhost:8000`.
+Interactive docs at `http://localhost:8000/docs`.
 
-## Default Login Credentials
+### 3. Seed Data (optional but recommended)
 
-- **Email:** coach@example.com
-- **Password:** password123
+```bash
+python -m backend.seed_libraries
+python -m backend.seed_players
+python -m backend.seed_past_matches
+```
+
+### 4. Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+### 5. Create an Account
+
+Open the app, go to the Login page, and use the **Register** option to create your first user.
+Alternatively call `POST /register` via the interactive API docs at `/docs`.
+
+---
 
 ## Tech Stack
 
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **Lucide React** - Icons
-- **Recharts** - Charts and graphs
-- **React DnD** - Drag and drop functionality
-- **Sonner** - Toast notifications
-- **React Hook Form** - Form handling
+### Frontend
+
+| Package | Purpose |
+|---------|---------|
+| React 18 | UI library |
+| TypeScript | Type safety |
+| Vite | Build tool and dev server |
+| Tailwind CSS | Styling |
+| Framer Motion | Animations |
+| Lucide React | Icons |
+| Recharts | Charts |
+| React DnD | Drag-and-drop lineup builder |
+| Sonner | Toast notifications |
+| React Hook Form | Form handling |
+| jsPDF + jspdf-autotable | PDF export of training plans |
+
+### Backend
+
+| Package | Purpose |
+|---------|---------|
+| FastAPI | REST API framework |
+| SQLAlchemy | ORM |
+| PostgreSQL | Relational database |
+| Pydantic | Request / response validation |
+| python-multipart | File upload support |
+
+---
 
 ## Project Structure
 
 ```
-coach-dashboard/
-├── src/
-│   ├── components/
-│   │   ├── BasicsLibrary.tsx
-│   │   ├── Dashboard.tsx
-│   │   ├── ExercisesLibrary.tsx
-│   │   ├── LoginPage.tsx
-│   │   ├── MatchLineup.tsx
-│   │   ├── Navigation.tsx
-│   │   ├── PrinciplesLibrary.tsx
-│   │   ├── TacticsLibrary.tsx
-│   │   ├── TeamManagement.tsx
-│   │   └── TrainingManager.tsx
-│   ├── styles/
-│   │   └── globals.css
-│   ├── App.tsx
-│   └── main.tsx
-├── index.html
-├── package.json
-├── tailwind.config.js
-├── tsconfig.json
-└── vite.config.ts
+IDPDashboard/
+ backend/
+    main.py              # FastAPI app and all route definitions
+    models.py            # SQLAlchemy ORM models
+    schemas.py           # Pydantic request / response schemas
+    database.py          # DB engine and session config (update credentials here)
+    seed_libraries.py    # Seed Basics, Principles, Tactics
+    seed_players.py      # Seed player data
+    seed_past_matches.py # Seed past match data
+ src/
+    components/
+       Dashboard.tsx
+       TeamManagement.tsx
+       PlayerSlideOver.tsx
+       TrainingManager.tsx
+       ExercisesLibrary.tsx
+       ExerciseSlideOver.tsx
+       BasicsLibrary.tsx
+       PrinciplesLibrary.tsx
+       TacticsLibrary.tsx
+       MatchLineup.tsx
+       Navigation.tsx
+       LoginPage.tsx
+       CommandPalette.tsx
+       ui/              # Shared UI primitives (Button, Card, Modal, Input, etc.)
+    lib/
+       utils.ts         # snake_case <-> camelCase helpers, misc utilities
+       uploadFile.ts    # File upload helper
+    styles/
+       globals.css
+    App.tsx
+    main.tsx
+ static/
+    uploads/             # Uploaded media files served by FastAPI
+ index.html
+ package.json
+ tailwind.config.js
+ tsconfig.json
+ vite.config.ts
 ```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/login` | Authenticate a user |
+| POST | `/register` | Register a new user |
+| GET / POST | `/players` | List / create players |
+| PUT / DELETE | `/players/{id}` | Update / delete a player |
+| GET / POST | `/exercises` | List / create exercises |
+| PUT / DELETE | `/exercises/{id}` | Update / delete an exercise |
+| GET / POST | `/basics` | List / create basics |
+| PUT / DELETE | `/basics/{id}` | Update / delete a basic |
+| GET / POST | `/principles` | List / create principles |
+| PUT / DELETE | `/principles/{id}` | Update / delete a principle |
+| GET / POST | `/tactics` | List / create tactics |
+| PUT / DELETE | `/tactics/{id}` | Update / delete a tactic |
+| GET / POST | `/training_sessions` | List / create training sessions |
+| PUT / DELETE | `/training_sessions/{id}` | Update / delete a session |
+| GET / POST | `/matches` | List / create matches |
+| GET | `/matches/latest` | Get next upcoming match |
+| PUT | `/matches/{id}` | Update a match |
+| GET | `/match/suggested-formation` | Suggest formation from recent training |
+| POST | `/upload` | Upload a media file |
+
+---
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
+```bash
+npm run dev       # Start frontend dev server (Vite, port 5173)
+npm run build     # Build frontend for production
+npm run preview   # Preview production build
+```
 
-## Features Detail
+---
 
-### Training Sessions Architecture
+## Feature Details
 
-Training sessions are composed of three layers:
-1. **Basics** - Fundamental concepts
-2. **Principles** - Coach-specific philosophy
-3. **Tactics** - Widely known tactical systems
+### Training Sessions
 
-### Dark Mode
+Sessions reference exercises from three library layers:
+1. **Basics** - Fundamental concepts (optional diagram image)
+2. **Principles** - Coaching philosophy (optional media upload)
+3. **Tactics** - Tactical systems (optional diagram, suggested drills)
 
-Toggle dark mode using the moon/sun icon in the navigation bar. Preference is saved to localStorage.
+### Match & Lineup
 
-### Data Persistence
+- Create upcoming fixtures with opponent, date, time, and location.
+- Drag and drop players onto a visual pitch using React DnD.
+- Formation is auto-suggested from tactics used in training sessions within the last 7 days; defaults to 4-4-2 if none found.
 
-All data is stored in localStorage, allowing you to maintain your work across sessions.
+### Authentication
+
+Login and registration are handled by the FastAPI backend (`/login`, `/register`). On success the frontend stores an `isAuthenticated` flag in `localStorage` for session persistence across page reloads.
+
+> **Security note:** Passwords are currently stored in plain text. Integrate a hashing library (e.g. `passlib[bcrypt]`) before any production deployment.
+
+### Media Uploads
+
+Images and videos can be attached to Basics, Principles, and Exercises. Files are uploaded via `POST /upload`, saved to `static/uploads/`, and served as static assets by FastAPI at `/static/uploads/<filename>`.
+
+### Data Conventions
+
+- Backend uses `snake_case`; frontend uses `camelCase`. Conversion helpers are in `src/lib/utils.ts`.
+- Several fields (e.g. `selected_players`, `linked_tactics`) are stored as comma-separated strings in PostgreSQL and parsed on both sides.
+
+---
 
 ## Browser Support
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+Chrome, Firefox, Safari, and Edge (latest versions).
 
 ## License
 
 MIT
-
-## Support
-
-For issues or questions, please open an issue on the repository.

@@ -119,7 +119,6 @@ class Match(Base):
     location = Column(String)
     formation = Column(String, default="4-4-2")
     
-    # Ensure this is Text if you added it earlier
     lineup = Column(Text, nullable=True)
 
 

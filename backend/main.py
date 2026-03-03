@@ -64,12 +64,12 @@ def update_exercise(exercise_id: str, item: schemas.ExerciseCreate, db: Session 
     db_ex.setup = item.setup
     db_ex.variations = item.variations
     db_ex.coaching_points = item.coaching_points
-    db_ex.goalkeepers = item.goalkeepers # This line matches schemas.py now
+    db_ex.goalkeepers = item.goalkeepers
     db_ex.equipment = item.equipment
     db_ex.linked_basics = item.linked_basics
     db_ex.linked_principles = item.linked_principles
     db_ex.linked_tactics = item.linked_tactics
-    db_ex.media_url = item.media_url  # <--- ENSURE THIS LINE EXISTS
+    db_ex.media_url = item.media_url
 
     db.commit()
     db.refresh(db_ex)
@@ -234,7 +234,6 @@ def get_sessions(db: Session = Depends(database.get_db)):
 @app.post("/training_sessions")
 def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(database.get_db)):
     # Convert string date to Python Date object if needed, or keep as string/date in model
-    # For simplicity with SQLite, we rely on the Pydantic validation
     import datetime
     date_obj = datetime.datetime.strptime(item.date, "%Y-%m-%d").date()
     
@@ -421,7 +420,7 @@ def update_match(match_id: str, item: schemas.MatchCreate, db: Session = Depends
     db_match.time = item.time
     db_match.location = item.location
     db_match.formation = item.formation
-    db_match.lineup = item.lineup # <--- Add this
+    db_match.lineup = item.lineup
     
     db.commit()
     db.refresh(db_match)
