@@ -233,5 +233,4 @@ Images and videos can be attached to Basics, Principles, and Exercises. Files ar
 Chrome, Firefox, Safari, and Edge (latest versions).
 
 ## License
-
 MIT
