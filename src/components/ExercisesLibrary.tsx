@@ -36,13 +36,17 @@ interface SelectorItem { id: string; name: string; }
 // --- Helpers ---
 const getMediaType = (url?: string) => {
     if (!url) return null;
-    if (url.startsWith('data:image') || url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) return 'image';
-    if (url.startsWith('data:video') || url.match(/\.(mp4|webm|ogg)$/i)) return 'video';
-    if (url.startsWith('data:application/pdf') || url.endsWith('.pdf')) return 'pdf';
+    const normalized = url.toLowerCase();
+    // Strip query params/fragments before extension checks.
+    const cleanUrl = normalized.split('#')[0].split('?')[0];
+
+    if (normalized.startsWith('data:image') || cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i)) return 'image';
+    if (normalized.startsWith('data:video') || cleanUrl.match(/\.(mp4|webm|ogg|ogv|mov|m4v|mkv)$/i)) return 'video';
+    if (normalized.startsWith('data:application/pdf') || cleanUrl.endsWith('.pdf')) return 'pdf';
     if (url.startsWith('/static/')) {
-        const ext = url.split('.').pop()?.toLowerCase();
+        const ext = cleanUrl.split('.').pop()?.toLowerCase();
         if (['jpg','jpeg','png','gif','webp'].includes(ext||'')) return 'image';
-        if (['mp4','webm'].includes(ext||'')) return 'video';
+        if (['mp4','webm','ogg','ogv','mov','m4v','mkv'].includes(ext||'')) return 'video';
         if (ext === 'pdf') return 'pdf';
     }
     return 'unknown';
@@ -201,9 +205,18 @@ export default function ExercisesLibrary() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        const isPdf = file.type === 'application/pdf';
+
+        if (!isImage && !isVideo && !isPdf) {
+            toast.error('Unsupported media type. Please upload an image, video, or PDF.');
+            return;
+        }
+
         if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB");
         // Show a local object-URL preview immediately while the upload runs
-        if (file.type.startsWith('image/')) {
+        if (isImage) {
             setMediaPreview(URL.createObjectURL(file));
         }
         try {

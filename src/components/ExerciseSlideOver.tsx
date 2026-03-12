@@ -35,11 +35,15 @@ const getIntensityStyles = (intensity: string) => {
 
 const getMediaType = (url?: string) => {
     if (!url) return null;
-    if (url.startsWith('data:image')) return 'image';
-    if (url.startsWith('data:video')) return 'video';
-    if (url.startsWith('data:application/pdf')) return 'pdf';
-    if (url.match(/\.(jpeg|jpg|gif|png)$/i)) return 'image';
-    if (url.match(/\.(mp4|webm)$/i)) return 'video';
+    const normalized = url.toLowerCase();
+    const cleanUrl = normalized.split('#')[0].split('?')[0];
+
+    if (normalized.startsWith('data:image')) return 'image';
+    if (normalized.startsWith('data:video')) return 'video';
+    if (normalized.startsWith('data:application/pdf')) return 'pdf';
+    if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i)) return 'image';
+    if (cleanUrl.match(/\.(mp4|webm|ogg|ogv|mov|m4v|mkv)$/i)) return 'video';
+    if (cleanUrl.endsWith('.pdf')) return 'pdf';
     return 'unknown';
 };
 
