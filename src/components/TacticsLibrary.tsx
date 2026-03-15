@@ -10,7 +10,7 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 import { Tactic } from '../types/models';
-import { mapTacticFromApi, mapTacticToApi } from '../lib/data-mappers';
+import { LibraryService } from '../services';
 
 const ALL_FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','4-3-2-1','4-1-4-1','4-1-2-1-2','4-4-2 DM','3-5-2','3-4-3','3-4-1-2','5-3-2','5-4-1'];
 
@@ -25,10 +25,8 @@ export default function TacticsLibrary() {
   const [formData, setFormData] = useState({ id: '', name: '', formation: '4-3-3', description: '', suggestedDrills: '' });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/tactics')
-        .then(res => res.json())
-        .then(data => {
-            const dbItems: Tactic[] = data.map(mapTacticFromApi);
+    LibraryService.getTactics()
+        .then(dbItems => {
             setTactics(dbItems);
             if (dbItems.length > 0) setSelectedId(dbItems[0].id);
         })
@@ -47,29 +45,17 @@ export default function TacticsLibrary() {
         isCustom: true
       };
       
-      const payload = mapTacticToApi(tacticToSave);
-      
-      let response;
+      let saved: Tactic;
       if (isEditing && formData.id) {
-        response = await fetch(`http://127.0.0.1:8000/tactics/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        saved = await LibraryService.updateTactic(formData.id, tacticToSave);
+        setTactics(prev => prev.map(t => t.id === saved.id ? saved : t));
       } else {
-        response = await fetch('http://127.0.0.1:8000/tactics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        saved = await LibraryService.createTactic(tacticToSave);
+        setTactics(prev => [...prev, saved]);
+        setSelectedId(saved.id);
       }
-
-      if (response.ok) {
-        const saved = await response.json();
-        const newItem = mapTacticFromApi(saved);
-        if (isEditing) {
-          setTactics(prev => prev.map(t => t.id === newItem.id ? newItem : t));
-        } else {
-          setTactics(prev => [...prev, newItem]);
-          setSelectedId(newItem.id);
-        }
-        toast.success(isEditing ? 'Updated!' : 'Created!');
-        closeModal();
-      } else {
-        toast.error('Server Error');
-      }
+      toast.success(isEditing ? 'Updated!' : 'Created!');
+      closeModal();
     } catch { 
       toast.error('Failed to save'); 
     }
@@ -77,7 +63,7 @@ export default function TacticsLibrary() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/tactics/${id}`, { method: 'DELETE' });
+      await LibraryService.deleteTactic(id);
       setTactics(prev => {
         const next = prev.filter(t => t.id !== id);
         if (selectedId === id) setSelectedId(next[0]?.id ?? null);

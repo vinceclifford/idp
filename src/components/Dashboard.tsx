@@ -11,7 +11,7 @@ import { Button } from "./ui/Button";
 import { CountUp } from "./ui/CountUp";
 import { Player, TrainingSession, Match } from "../types/models";
 import { Page } from "../types/ui";
-import { mapPlayerFromApi, mapSessionFromApi, mapMatchFromApi } from '../lib/data-mappers';
+import { PlayerService, TrainingService, MatchService } from '../services';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -54,31 +54,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [playersRes, sessionsRes, matchesRes] = await Promise.all([
-          fetch('http://127.0.0.1:8000/players'),
-          fetch('http://127.0.0.1:8000/training_sessions'),
-          fetch('http://127.0.0.1:8000/matches')
+        const [playersData, sessionsData, matchesData] = await Promise.all([
+          PlayerService.getAll(),
+          TrainingService.getAll(),
+          MatchService.getAll()
         ]);
 
-        let playersData: Player[] = [];
-        let sessionsData: TrainingSession[] = [];
-
-        if (playersRes.ok) {
-          const rawPlayers = await playersRes.json();
-          playersData = rawPlayers.map(mapPlayerFromApi);
-          setPlayers(playersData);
-        }
-
-        if (sessionsRes.ok) {
-          const rawSessions = await sessionsRes.json();
-          sessionsData = rawSessions.map(mapSessionFromApi);
-          setSessions(sessionsData);
-        }
-
-        if (matchesRes.ok) {
-          const rawMatches = await matchesRes.json();
-          setMatches(rawMatches.map(mapMatchFromApi));
-        }
+        setPlayers(playersData);
+        setSessions(sessionsData);
+        setMatches(matchesData);
 
         // Calculate attendance from training session participation
         if (playersData.length > 0 && sessionsData.length > 0) {

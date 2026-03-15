@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { AuthService } from '../services';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -38,23 +39,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     try {
-      const endpoint = isRegister ? 'http://127.0.0.1:8000/register' : 'http://127.0.0.1:8000/login';
-
       const payload = isRegister
         ? { email, password, full_name: fullName }
         : { email, password };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Authentication failed');
-      }
+      const data = isRegister
+        ? await AuthService.register(payload)
+        : await AuthService.login(payload);
 
       // Success Action
       if (isRegister) {

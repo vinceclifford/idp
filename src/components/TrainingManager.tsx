@@ -5,8 +5,8 @@ import { AnimatePresence } from 'framer-motion';
 import { formatDate } from '../lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { mapSessionFromApi, mapPlayerFromApi, mapExerciseFromApi, mapSessionToApi } from '../lib/data-mappers';
 import { Player, TrainingSession, Exercise } from '../types/models';
+import { TrainingService, PlayerService, ExerciseService } from '../services';
 
 // UI Components
 import { Card } from "./ui/Card";
@@ -47,23 +47,14 @@ export default function TrainingManager() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const sRes = await fetch('http://127.0.0.1:8000/training_sessions');
-                if (sRes.ok) {
-                    const data = await sRes.json();
-                    setSessions(data.map(mapSessionFromApi));
-                }
-
-                const pRes = await fetch('http://127.0.0.1:8000/players');
-                if (pRes.ok) {
-                    const dbPlayers = await pRes.json();
-                    setAllPlayers(dbPlayers.map(mapPlayerFromApi));
-                }
-
-                const eRes = await fetch('http://127.0.0.1:8000/exercises');
-                if (eRes.ok) {
-                    const dbExercises = await eRes.json();
-                    setAllExercises(dbExercises.map(mapExerciseFromApi));
-                }
+                const [sessionsData, playersData, exercisesData] = await Promise.all([
+                    TrainingService.getAll(),
+                    PlayerService.getAll(),
+                    ExerciseService.getAll()
+                ]);
+                setSessions(sessionsData);
+                setAllPlayers(playersData);
+                setAllExercises(exercisesData);
             } catch (e) { toast.error("Failed to connect to server"); }
         };
         fetchData();
@@ -79,7 +70,6 @@ export default function TrainingManager() {
     const handleSave = async () => {
         if (!formData.focus) return toast.error("Focus is required");
         
-        // Prepare TrainingSession object for mapper
         const sessionToSave: TrainingSession = {
             id: editingId || '',
             date: formData.date,
@@ -91,38 +81,24 @@ export default function TrainingManager() {
             selectedExercises: formData.selectedExerciseIds.join(',')
         };
 
-        const payload = mapSessionToApi(sessionToSave);
-
         try {
-            let res;
+            let saved: TrainingSession;
             if (isEditing && editingId) {
-                res = await fetch(`http://127.0.0.1:8000/training_sessions/${editingId}`, {
-                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                });
+                saved = await TrainingService.update(editingId, sessionToSave);
+                setSessions(prev => prev.map(s => s.id === saved.id ? saved : s));
+                toast.success("Session Updated");
             } else {
-                res = await fetch('http://127.0.0.1:8000/training_sessions', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                });
+                saved = await TrainingService.create(sessionToSave);
+                setSessions(prev => [...prev, saved]);
+                toast.success("Session Created");
             }
-
-            if (res.ok) {
-                const saved = await res.json();
-                const newItem = mapSessionFromApi(saved);
-                if (isEditing) {
-                    setSessions(prev => prev.map(s => s.id === newItem.id ? newItem : s));
-                    toast.success("Session Updated");
-                } else {
-                    setSessions(prev => [...prev, newItem]);
-                    toast.success("Session Created");
-                }
-                closeModal();
-            }
+            closeModal();
         } catch { toast.error("Connection failed"); }
     };
 
     const handleDelete = async (id: string) => {
         try {
-            await fetch(`http://127.0.0.1:8000/training_sessions/${id}`, { method: 'DELETE' });
+            await TrainingService.delete(id);
             setSessions(prev => prev.filter(s => s.id !== id));
             toast.success("Deleted");
         } catch (e) { toast.error("Failed to delete"); }

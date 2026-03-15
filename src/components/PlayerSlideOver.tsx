@@ -5,8 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 
 import { formatDate } from '../lib/utils';
 import { TrainingSession } from '../types/models';
 import { PlayerSlideOverProps } from '../types/ui';
-import { mapSessionFromApi } from '../lib/data-mappers';
-
+import { TrainingService } from '../services';
 
 const intensityColor: Record<string, string> = {
     High: '#f43f5e',
@@ -36,11 +35,9 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
     useEffect(() => {
         if (!player) return;
         setLoadingSessions(true);
-        fetch('http://127.0.0.1:8000/training_sessions')
-            .then(r => r.json())
-            .then((data: any[]) => {
+        TrainingService.getAll()
+            .then((data) => {
                 const mapped = data
-                    .map(mapSessionFromApi)
                     .filter(s => {
                         const playerIds = s.selectedPlayers ? s.selectedPlayers.split(',').map(id => id.trim()) : [];
                         return playerIds.includes(player.id);
