@@ -1,12 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { animate } from 'framer-motion';
 
-interface CountUpProps {
-  value: number;
-  suffix?: string;
-  className?: string;
-  duration?: number;
-}
+import { CountUpProps } from "../../types/ui";
 
 export function CountUp({ value, suffix = '', className = '', duration = 1.2 }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null);

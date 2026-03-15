@@ -10,10 +10,8 @@ import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
-interface Principle {
-  id: string; name: string; gamePhase: string; description: string;
-  coachingNotes?: string; implementationTips?: string; mediaUrl?: string; isCustom: boolean;
-}
+import { Principle } from '../types/models';
+import { mapPrincipleFromApi, mapPrincipleToApi } from '../lib/data-mappers';
 
 const GAME_PHASES = [
   "In Possession",
@@ -106,12 +104,7 @@ export default function PrinciplesLibrary() {
     fetch('http://127.0.0.1:8000/principles')
         .then(res => res.json())
         .then(data => {
-            const dbItems: Principle[] = data.map((item: any) => ({
-                id: item.id, name: item.name, gamePhase: item.game_phase,
-                description: item.description, coachingNotes: item.coaching_notes || '',
-                implementationTips: item.implementation_tips || '',
-                mediaUrl: item.media_url, isCustom: true,
-            }));
+            const dbItems: Principle[] = data.map(mapPrincipleFromApi);
             setPrinciples(dbItems);
             if (dbItems.length > 0) setSelectedId(dbItems[0].id);
         })
@@ -120,23 +113,27 @@ export default function PrinciplesLibrary() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error('Fill required fields');
-    const payload = {
-      name: formData.name, game_phase: formData.gamePhase,
-      description: formData.description, coaching_notes: formData.coachingNotes,
-      implementation_tips: formData.implementationTips,
-      media_url: mediaPreview || formData.mediaUrl,
+
+    const principleToSave: Principle = {
+      id: formData.id,
+      name: formData.name,
+      gamePhase: formData.gamePhase,
+      description: formData.description,
+      coachingNotes: formData.coachingNotes,
+      implementationTips: formData.implementationTips,
+      mediaUrl: mediaPreview || formData.mediaUrl,
+      isCustom: true
     };
+
+    const payload = mapPrincipleToApi(principleToSave);
+
     try {
       const url = isEditing ? `http://127.0.0.1:8000/principles/${formData.id}` : 'http://127.0.0.1:8000/principles';
       const method = isEditing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (res.ok) {
         const saved = await res.json();
-        const newItem: Principle = {
-          id: saved.id, name: saved.name, gamePhase: saved.game_phase,
-          description: saved.description, coachingNotes: saved.coaching_notes,
-          implementationTips: saved.implementation_tips, mediaUrl: saved.media_url, isCustom: true,
-        };
+        const newItem = mapPrincipleFromApi(saved);
         if (isEditing) {
           setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
         } else {

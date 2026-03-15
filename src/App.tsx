@@ -16,8 +16,7 @@ import TacticsLibrary from './components/TacticsLibrary';
 import MatchLineup from './components/MatchLineup';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
-
-export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match';
+import { Page } from './types/ui';
 
 export default function App() {
   // 1. Initialize Auth State from LocalStorage

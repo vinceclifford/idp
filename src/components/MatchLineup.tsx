@@ -12,40 +12,8 @@ import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
 import { DatePicker } from "./ui/DatePicker";
 import { TimePicker } from "./ui/TimePicker";
-
-// --- Types ---
-interface Player {
-  id: string;
-  name: string;
-  position: string;
-  number: number;
-  status: string;
-  performance?: number;
-  dateOfBirth?: string;
-  height?: number;
-  weight?: number;
-  playerPhone?: string;
-  imageUrl?: string;
-  motherName?: string;
-  motherPhone?: string;
-  fatherName?: string;
-  fatherPhone?: string;
-  attendance?: number;
-}
-
-interface MatchDetails {
-    id: string;
-    opponent: string;
-    date: string;
-    time: string;
-    location: string;
-    formation?: string; 
-    lineup?: string; // JSON String from backend
-}
-
-interface PositionSlot { id: string; position: string; x: number; y: number; }
-
-interface LineupPlayer extends Player { positionSlot: string; isStarter: boolean; }
+import { Player, MatchDetails, PositionSlot, LineupPlayer } from "../types/models";
+import { mapPlayerFromApi, mapMatchDetailsFromApi, mapPlayerToApi, mapMatchDetailsToApi } from "../lib/data-mappers";
 
 // --- Formation Groups for the picker ---
 const FORMATION_GROUPS: { label: string; formations: string[] }[] = [
@@ -149,9 +117,9 @@ function DraggablePlayer({ player, onClick, isSubstitute = false }: { player: Pl
   
   return (
     <div ref={drag} onClick={onClick} className={`bg-slate-900/50 border border-white/5 rounded-xl p-3 cursor-pointer hover:border-blue-500/50 hover:bg-slate-800 transition-all flex items-center gap-3 ${isDragging ? 'opacity-50' : ''}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${isSubstitute ? 'bg-slate-600' : 'bg-blue-600'}`}>{player.number}</div>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${isSubstitute ? 'bg-slate-600' : 'bg-blue-600'}`}>{player.jerseyNumber}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-200 truncate">{player.name}</p>
+          <p className="text-sm font-bold text-slate-200 truncate">{player.firstName} {player.lastName}</p>
           <p className="text-[10px] text-slate-500 uppercase tracking-wide">{player.position}</p>
         </div>
     </div>
@@ -169,8 +137,8 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatc
     <div ref={drop} style={{ left: `${slot.x}%`, top: `${slot.y}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110">
       {player ? (
         <div onClick={onClick} className="relative group cursor-pointer">
-          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-blue-400"><span className="text-lg font-bold">{player.number}</span></div>
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">{player.name.split(' ')[0]}</p></div>
+          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-blue-400"><span className="text-lg font-bold">{player.jerseyNumber}</span></div>
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">{player.firstName}</p></div>
           {!isMatchPast && <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="w-3 h-3" /></button>}
         </div>
       ) : (
@@ -238,24 +206,7 @@ export default function MatchLineup() {
     fetch('http://127.0.0.1:8000/players')
       .then(res => res.json())
       .then(data => {
-          const mappedPlayers = data.map((p: any) => ({
-              id: p.id,
-              name: `${p.first_name} ${p.last_name}`,
-              position: p.position,
-              number: p.jersey_number,
-              status: p.status,
-              performance: p.performance || 0,
-              dateOfBirth: p.date_of_birth,
-              height: p.height,
-              weight: p.weight,
-              playerPhone: p.player_phone || '',
-              imageUrl: p.image_url || '',
-              motherName: p.mother_name || '',
-              motherPhone: p.mother_phone || '',
-              fatherName: p.father_name || '',
-              fatherPhone: p.father_phone || '',
-              attendance: p.attendance || 0,
-          }));
+          const mappedPlayers = data.map(mapPlayerFromApi);
           setAllPlayers(mappedPlayers);
       });
 
@@ -263,8 +214,9 @@ export default function MatchLineup() {
     fetch('http://127.0.0.1:8000/matches')
         .then(res => res.json())
         .then(data => {
-            setMatches(data);
-            if (data.length > 0) setMatchDetails(data[0]);
+            const mappedMatches = data.map(mapMatchDetailsFromApi);
+            setMatches(mappedMatches);
+            if (mappedMatches.length > 0) setMatchDetails(mappedMatches[0]);
         });
 
     // AI Formation
@@ -360,9 +312,11 @@ useEffect(() => {
         const url = isEditingMatch && matchDetails ? `http://127.0.0.1:8000/matches/${matchDetails.id}` : 'http://127.0.0.1:8000/matches';
         const method = isEditingMatch ? 'PUT' : 'POST';
         
-        const payload = isEditingMatch && matchDetails 
+        const matchToSave: MatchDetails = isEditingMatch && matchDetails 
             ? { ...matchDetails, ...matchForm }
-            : { ...matchForm, formation: currentFormation };
+            : { id: '', ...matchForm, formation: currentFormation };
+
+        const payload = mapMatchDetailsToApi(matchToSave);
 
         const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
@@ -464,7 +418,7 @@ useEffect(() => {
         return newLineup;
     });
     
-    toast.success(`${player.name} set`);
+    toast.success(`${player.firstName} ${player.lastName} set`);
   };
 
   const handleRemoveFromField = (slotId: string) => {
@@ -489,14 +443,16 @@ useEffect(() => {
             player
         }));
 
+        const matchToUpdate: MatchDetails = {
+            ...matchDetails,
+            formation: currentFormation,
+            lineup: JSON.stringify(lineupArray)
+        };
+
         const response = await fetch(`http://127.0.0.1:8000/matches/${matchDetails.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...matchDetails,
-                formation: currentFormation,
-                lineup: JSON.stringify(lineupArray) 
-            })
+            body: JSON.stringify(mapMatchDetailsToApi(matchToUpdate))
         });
 
         if (response.ok) {
@@ -669,8 +625,8 @@ useEffect(() => {
         {selectedPlayer && (
             <div className="text-center space-y-6">
                 <div>
-                  <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.number}</div>
-                  <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.name}</h3>
+                  <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.jerseyNumber}</div>
+                  <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.firstName} {selectedPlayer.lastName}</h3>
                   <p className="text-blue-400 font-medium">{selectedPlayer.position}</p>
                 </div>
                 
@@ -777,37 +733,24 @@ useEffect(() => {
                   onClick={async () => {
                     if (isMatchPast) {
                       try {
-                        // Get full player data from allPlayers to ensure we have dateOfBirth
+                        // Get full player data from allPlayers to ensure we have all fields
                         const fullPlayerData = allPlayers.find(p => p.id === selectedPlayer.id) || selectedPlayer;
                         
-                        // Update player performance in backend (send ALL fields to avoid data loss)
+                        // Update player performance in backend
+                        const playerToUpdate: Player = { ...fullPlayerData, performance: selectedPlayerPerformance };
+                        const payload = mapPlayerToApi(playerToUpdate);
+
                         const response = await fetch(`http://127.0.0.1:8000/players/${selectedPlayer.id}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            first_name: fullPlayerData.name.split(' ')[0],
-                            last_name: fullPlayerData.name.split(' ').slice(1).join(' ') || '',
-                            position: fullPlayerData.position,
-                            jersey_number: fullPlayerData.number,
-                            status: fullPlayerData.status,
-                            performance: selectedPlayerPerformance,
-                            date_of_birth: fullPlayerData.dateOfBirth || '',
-                            height: fullPlayerData.height || 0,
-                            weight: fullPlayerData.weight || 0,
-                            player_phone: fullPlayerData.playerPhone || '',
-                            image_url: fullPlayerData.imageUrl || '',
-                            mother_name: fullPlayerData.motherName || '',
-                            mother_phone: fullPlayerData.motherPhone || '',
-                            father_name: fullPlayerData.fatherName || '',
-                            father_phone: fullPlayerData.fatherPhone || '',
-                            attendance: fullPlayerData.attendance || 0,
-                          })
+                          body: JSON.stringify(payload)
                         });
                         
                         if (response.ok) {
-                          const updatedPlayer = await response.json();
+                          const savedRaw = await response.json();
+                          const updatedPlayer = mapPlayerFromApi(savedRaw);
                           const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id 
-                            ? { ...p, performance: updatedPlayer.performance } 
+                            ? updatedPlayer 
                             : p
                           );
                           setAllPlayers(updatedPlayers);

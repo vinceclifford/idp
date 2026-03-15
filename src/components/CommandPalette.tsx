@@ -2,17 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Users, CalendarDays, Dumbbell, BookOpen, Target, ChevronRight, Command, Layers } from 'lucide-react';
 
-type Page = 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match';
+import {Result, Page, Category} from "../types/ui"
+import { mapPlayerFromApi, mapSessionFromApi, mapExerciseFromApi, mapBasicFromApi, mapPrincipleFromApi, mapTacticFromApi } from '../lib/data-mappers';
 
-interface Result {
-    id: string;
-    label: string;
-    sub: string;
-    page: Page;
-    category: Category;
-}
-
-type Category = 'Players' | 'Sessions' | 'Exercises' | 'Basics' | 'Principles' | 'Tactics';
 
 const CATEGORY_META: Record<Category, { icon: React.ReactNode; color: string; page: Page }> = {
     Players:    { icon: <Users size={14} />,        color: 'text-indigo-400',  page: 'team' },
@@ -68,33 +60,33 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandP
             const all: Result[] = [];
 
             if (players.status === 'fulfilled') {
-                (players.value as any[]).forEach(p =>
-                    all.push({ id: `player-${p.id}`, label: `${p.first_name} ${p.last_name}`, sub: `${p.position} · #${p.jersey_number}`, page: 'team', category: 'Players' })
+                (players.value as any[]).map(mapPlayerFromApi).forEach(p =>
+                    all.push({ id: `player-${p.id}`, label: `${p.firstName} ${p.lastName}`, sub: `${p.position} · #${p.jerseyNumber}`, page: 'team', category: 'Players' })
                 );
             }
             if (sessions.status === 'fulfilled') {
-                (sessions.value as any[]).forEach(s =>
+                (sessions.value as any[]).map(mapSessionFromApi).forEach(s =>
                     all.push({ id: `session-${s.id}`, label: s.focus || 'Training Session', sub: s.date, page: 'session-planner', category: 'Sessions' })
                 );
             }
             if (exercises.status === 'fulfilled') {
-                (exercises.value as any[]).forEach(e =>
-                    all.push({ id: `ex-${e.id}`, label: e.name || e.title, sub: e.category || 'Exercise', page: 'training', category: 'Exercises' })
+                (exercises.value as any[]).map(mapExerciseFromApi).forEach(e =>
+                    all.push({ id: `ex-${e.id}`, label: e.name, sub: 'Exercise', page: 'training', category: 'Exercises' })
                 );
             }
             if (basics.status === 'fulfilled') {
-                (basics.value as any[]).forEach(b =>
-                    all.push({ id: `basic-${b.id}`, label: b.name || b.title, sub: 'Basics', page: 'basics', category: 'Basics' })
+                (basics.value as any[]).map(mapBasicFromApi).forEach(b =>
+                    all.push({ id: `basic-${b.id}`, label: b.name, sub: 'Basics', page: 'basics', category: 'Basics' })
                 );
             }
             if (principles.status === 'fulfilled') {
-                (principles.value as any[]).forEach(p =>
-                    all.push({ id: `prin-${p.id}`, label: p.name || p.title, sub: 'Principles', page: 'principles', category: 'Principles' })
+                (principles.value as any[]).map(mapPrincipleFromApi).forEach(p =>
+                    all.push({ id: `prin-${p.id}`, label: p.name, sub: 'Principles', page: 'principles', category: 'Principles' })
                 );
             }
             if (tactics.status === 'fulfilled') {
-                (tactics.value as any[]).forEach(t =>
-                    all.push({ id: `tact-${t.id}`, label: t.name || t.title, sub: 'Tactics', page: 'tactics', category: 'Tactics' })
+                (tactics.value as any[]).map(mapTacticFromApi).forEach(t =>
+                    all.push({ id: `tact-${t.id}`, label: t.name, sub: 'Tactics', page: 'tactics', category: 'Tactics' })
                 );
             }
             allDataRef.current = all;

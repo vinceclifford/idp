@@ -14,24 +14,9 @@ import { ConfirmDialog } from "./ui/ConfirmDialog";
 import ExerciseSlideOver from "./ExerciseSlideOver"
 
 // --- Types ---
-interface Exercise {
-    id: string;
-    name: string;
-    intensity: 'Low' | 'Medium' | 'High';
-    description: string;
-    setup: string;
-    variations: string;
-    coachingPoints: string;
-    goalkeepers: number;
-    equipment: string[];
-    linkedBasics: string[];
-    linkedPrinciples: string[];
-    linkedTactics: string[];
-    mediaUrl?: string;
-    isCustom: boolean;
-}
+import { Exercise, SelectorItem } from '../types/models';
+import { mapExerciseFromApi, mapSelectorItemFromApi, mapExerciseToApi } from '../lib/data-mappers';
 
-interface SelectorItem { id: string; name: string; }
 
 // --- Helpers ---
 const getMediaType = (url?: string) => {
@@ -99,16 +84,7 @@ export default function ExercisesLibrary() {
         fetch('http://127.0.0.1:8000/exercises')
             .then(res => res.json())
             .then(data => {
-                const formatted = data.map((item: any) => ({
-                    id: item.id, name: item.name, description: item.description, intensity: item.intensity,
-                    setup: item.setup || '', variations: item.variations || '', coachingPoints: item.coaching_points || '',
-                    goalkeepers: item.goalkeepers || 0,
-                    equipment: item.equipment ? item.equipment.split(',') : [],
-                    linkedBasics: item.linked_basics ? item.linked_basics.split(',') : [],
-                    linkedPrinciples: item.linked_principles ? item.linked_principles.split(',') : [],
-                    linkedTactics: item.linked_tactics ? item.linked_tactics.split(',') : [],
-                    isCustom: true, mediaUrl: item.media_url
-                }));
+                const formatted = data.map(mapExerciseFromApi);
                 setExercises(formatted); // Set fetched data
             })
             .catch(() => { toast.error("Backend offline"); });
@@ -121,9 +97,18 @@ export default function ExercisesLibrary() {
                     fetch('http://127.0.0.1:8000/principles'),
                     fetch('http://127.0.0.1:8000/tactics')
                 ]);
-                if (bRes.ok) setAllBasics(await bRes.json());
-                if (pRes.ok) setAllPrinciples(await pRes.json());
-                if (tRes.ok) setAllTactics(await tRes.json());
+                if (bRes.ok) {
+                    const data = await bRes.json();
+                    setAllBasics(data.map(mapSelectorItemFromApi));
+                }
+                if (pRes.ok) {
+                    const data = await pRes.json();
+                    setAllPrinciples(data.map(mapSelectorItemFromApi));
+                }
+                if (tRes.ok) {
+                    const data = await tRes.json();
+                    setAllTactics(data.map(mapSelectorItemFromApi));
+                }
             } catch (e) { console.error("Failed to load selector lists", e); }
         };
         fetchSelectors();
@@ -133,13 +118,10 @@ export default function ExercisesLibrary() {
     const handleSave = async () => {
         if (!formData.name || !formData.description) return toast.error('Name and Description are required');
 
-        const payload = {
-            name: formData.name, description: formData.description, intensity: formData.intensity,
-            setup: formData.setup, variations: formData.variations, coaching_points: formData.coachingPoints,
-            goalkeepers: formData.goalkeepers, equipment: formData.equipment.join(','),
-            linked_basics: formData.linkedBasics.join(','), linked_principles: formData.linkedPrinciples.join(','),
-            linked_tactics: formData.linkedTactics.join(','), media_url: mediaPreview || formData.mediaUrl
-        };
+        const payload = mapExerciseToApi({
+            ...formData,
+            mediaUrl: mediaPreview || formData.mediaUrl
+        });
 
         try {
             let response;
@@ -153,17 +135,7 @@ export default function ExercisesLibrary() {
             const savedRaw = await response.json();
             
             // Format new/updated item to match Frontend Type
-            const savedFormatted: Exercise = { 
-                ...formData, 
-                id: savedRaw.id, 
-                isCustom: true, 
-                mediaUrl: savedRaw.media_url,
-                // Ensure array fields are updated properly
-                equipment: savedRaw.equipment ? savedRaw.equipment.split(',') : [],
-                linkedBasics: savedRaw.linked_basics ? savedRaw.linked_basics.split(',') : [],
-                linkedPrinciples: savedRaw.linked_principles ? savedRaw.linked_principles.split(',') : [],
-                linkedTactics: savedRaw.linked_tactics ? savedRaw.linked_tactics.split(',') : []
-            };
+            const savedFormatted = mapExerciseFromApi(savedRaw);
 
             if (isEditing) {
                 setExercises(prev => prev.map(ex => ex.id === savedFormatted.id ? savedFormatted : ex));

@@ -1,14 +1,8 @@
 import { forwardRef } from "react";
 import { cn } from "../../lib/utils";
 import { Loader2 } from "lucide-react";
-import { motion, HTMLMotionProps } from "framer-motion";
-
-interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref" | "children"> {
-  variant?: "primary" | "secondary" | "danger" | "ghost";
-  isLoading?: boolean;
-  icon?: React.ReactNode;
-  children?: React.ReactNode;
-}
+import { motion } from "framer-motion";
+import { ButtonProps } from "../../types/ui";
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", isLoading, icon, children, disabled, ...props }, ref) => {

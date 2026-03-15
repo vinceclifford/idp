@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Page } from '../App';
+import { Page, NavigationProps } from '../types/ui';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface NavigationProps {
-  currentPage: Page;
-  onNavigate: (page: Page) => void;
-  onLogout: () => void;
-}
 
 const NAV_ITEMS: { id: Page; label: string; icon: React.ElementType; color: string; activeBar: string; activeBg: string }[] = [
   { id: 'dashboard',       label: 'Dashboard',    icon: Home,      color: 'text-blue-400',    activeBar: 'bg-blue-500',    activeBg: 'bg-blue-500/10' },
@@ -77,7 +71,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
               {isActive && (
                 <motion.div
                   layoutId="sidebar-bar"
-                  className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full ${item.activeBar}`}
+                  className={`absolute left-0 top-0 bottom-0 my-auto w-1 h-5 rounded-r-full ${item.activeBar}`}
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}

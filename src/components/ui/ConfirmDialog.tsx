@@ -2,14 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
 
-interface ConfirmDialogProps {
-  isOpen: boolean;
-  title?: string;
-  message?: string;
-  confirmLabel?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
+import { ConfirmDialogProps } from "../../types/ui";
 
 export function ConfirmDialog({
   isOpen,
