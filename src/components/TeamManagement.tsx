@@ -55,7 +55,7 @@ export default function TeamManagement() {
                     setPlayers(data);
                 }
             })
-            .catch(() => console.log("Backend offline"))
+            .catch(() => {})
             .finally(() => setLoading(false));
 
         // Compute real attendance from training sessions
