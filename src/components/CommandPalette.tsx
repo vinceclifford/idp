@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Users, CalendarDays, Dumbbell, BookOpen, Target, ChevronRight, Command, Layers } from 'lucide-react';
 
 import {Result, Page, Category} from "../types/ui"
-import { mapPlayerFromApi, mapSessionFromApi, mapExerciseFromApi, mapBasicFromApi, mapPrincipleFromApi, mapTacticFromApi } from '../lib/data-mappers';
+import { PlayerService, TrainingService, ExerciseService, LibraryService } from '../services';
 
 
 const CATEGORY_META: Record<Category, { icon: React.ReactNode; color: string; page: Page }> = {
@@ -50,42 +50,42 @@ export default function CommandPalette({ isOpen, onClose, onNavigate }: CommandP
 
         setLoading(true);
         Promise.allSettled([
-            fetch('http://127.0.0.1:8000/players').then(r => r.json()),
-            fetch('http://127.0.0.1:8000/training_sessions').then(r => r.json()),
-            fetch('http://127.0.0.1:8000/exercises').then(r => r.json()),
-            fetch('http://127.0.0.1:8000/basics').then(r => r.json()),
-            fetch('http://127.0.0.1:8000/principles').then(r => r.json()),
-            fetch('http://127.0.0.1:8000/tactics').then(r => r.json()),
+            PlayerService.getAll(),
+            TrainingService.getAll(),
+            ExerciseService.getAll(),
+            LibraryService.getBasics(),
+            LibraryService.getPrinciples(),
+            LibraryService.getTactics(),
         ]).then(([players, sessions, exercises, basics, principles, tactics]) => {
             const all: Result[] = [];
 
             if (players.status === 'fulfilled') {
-                (players.value as any[]).map(mapPlayerFromApi).forEach(p =>
+                players.value.forEach(p =>
                     all.push({ id: `player-${p.id}`, label: `${p.firstName} ${p.lastName}`, sub: `${p.position} · #${p.jerseyNumber}`, page: 'team', category: 'Players' })
                 );
             }
             if (sessions.status === 'fulfilled') {
-                (sessions.value as any[]).map(mapSessionFromApi).forEach(s =>
+                sessions.value.forEach(s =>
                     all.push({ id: `session-${s.id}`, label: s.focus || 'Training Session', sub: s.date, page: 'session-planner', category: 'Sessions' })
                 );
             }
             if (exercises.status === 'fulfilled') {
-                (exercises.value as any[]).map(mapExerciseFromApi).forEach(e =>
+                exercises.value.forEach(e =>
                     all.push({ id: `ex-${e.id}`, label: e.name, sub: 'Exercise', page: 'training', category: 'Exercises' })
                 );
             }
             if (basics.status === 'fulfilled') {
-                (basics.value as any[]).map(mapBasicFromApi).forEach(b =>
+                basics.value.forEach(b =>
                     all.push({ id: `basic-${b.id}`, label: b.name, sub: 'Basics', page: 'basics', category: 'Basics' })
                 );
             }
             if (principles.status === 'fulfilled') {
-                (principles.value as any[]).map(mapPrincipleFromApi).forEach(p =>
+                principles.value.forEach(p =>
                     all.push({ id: `prin-${p.id}`, label: p.name, sub: 'Principles', page: 'principles', category: 'Principles' })
                 );
             }
             if (tactics.status === 'fulfilled') {
-                (tactics.value as any[]).map(mapTacticFromApi).forEach(t =>
+                tactics.value.forEach(t =>
                     all.push({ id: `tact-${t.id}`, label: t.name, sub: 'Tactics', page: 'tactics', category: 'Tactics' })
                 );
             }

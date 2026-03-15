@@ -11,7 +11,7 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 import { Principle } from '../types/models';
-import { mapPrincipleFromApi, mapPrincipleToApi } from '../lib/data-mappers';
+import { LibraryService } from '../services';
 
 const GAME_PHASES = [
   "In Possession",
@@ -101,10 +101,8 @@ export default function PrinciplesLibrary() {
 
   // --- Load Data ---
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/principles')
-        .then(res => res.json())
-        .then(data => {
-            const dbItems: Principle[] = data.map(mapPrincipleFromApi);
+    LibraryService.getPrinciples()
+        .then(dbItems => {
             setPrinciples(dbItems);
             if (dbItems.length > 0) setSelectedId(dbItems[0].id);
         })
@@ -125,30 +123,24 @@ export default function PrinciplesLibrary() {
       isCustom: true
     };
 
-    const payload = mapPrincipleToApi(principleToSave);
-
     try {
-      const url = isEditing ? `http://127.0.0.1:8000/principles/${formData.id}` : 'http://127.0.0.1:8000/principles';
-      const method = isEditing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) {
-        const saved = await res.json();
-        const newItem = mapPrincipleFromApi(saved);
-        if (isEditing) {
-          setPrinciples(prev => prev.map(p => p.id === newItem.id ? newItem : p));
-        } else {
-          setPrinciples(prev => [...prev, newItem]);
-          setSelectedId(newItem.id);
-        }
-        toast.success(isEditing ? 'Updated!' : 'Created!');
-        closeModal();
+      let saved: Principle;
+      if (isEditing && formData.id) {
+        saved = await LibraryService.updatePrinciple(formData.id, principleToSave);
+        setPrinciples(prev => prev.map(p => p.id === saved.id ? saved : p));
+      } else {
+        saved = await LibraryService.createPrinciple(principleToSave);
+        setPrinciples(prev => [...prev, saved]);
+        setSelectedId(saved.id);
       }
+      toast.success(isEditing ? 'Updated!' : 'Created!');
+      closeModal();
     } catch { toast.error('Connection failed'); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/principles/${id}`, { method: 'DELETE' });
+      await LibraryService.deletePrinciple(id);
       setPrinciples(prev => {
         const next = prev.filter(p => p.id !== id);
         if (selectedId === id) setSelectedId(next[0]?.id ?? null);

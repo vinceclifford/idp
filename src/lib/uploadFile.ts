@@ -1,4 +1,4 @@
-const API = 'http://127.0.0.1:8000';
+import { API_BASE_URL } from './api-config';
 
 /**
  * Upload a file to the backend and return a fully-qualified URL to the saved file.
@@ -12,7 +12,7 @@ export async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
   form.append('file', file);
 
-  const res = await fetch(`${API}/upload`, {
+  const res = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     body: form,
   });
@@ -24,5 +24,5 @@ export async function uploadFile(file: File): Promise<string> {
 
   const { url } = await res.json() as { url: string };
   // url is a root-relative path like "/static/uploads/abc.jpg"
-  return `${API}${url}`;
+  return `${API_BASE_URL}${url}`;
 }
