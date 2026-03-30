@@ -1,10 +1,11 @@
 from datetime import datetime
 from datetime import timedelta
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-import models, schemas, database
+import models, schemas, database, security
 import uuid, os, shutil
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -17,7 +18,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,8 +27,91 @@ app.add_middleware(
 # Serve uploaded files as static assets
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static")), name="static")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# --- AUTH HELPER (Reading from Cookie) ---
+def get_current_user(request: Request, db: Session = Depends(database.get_db)):
+    # Look for 'access_token' in cookies instead of headers
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
+    payload = security.decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
+    email: str = payload.get("sub")
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+# --- PUBLIC AUTH ROUTES ---
+
+@app.post("/register", response_model=schemas.User)
+def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_password = security.get_password_hash(user.password)
+    new_user = models.User(
+        email=user.email,
+        password=hashed_password,
+        full_name=user.full_name
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.post("/login")
+def login(user: schemas.UserLogin, response: Response, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    
+    if not db_user or not security.verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Create JWT Token
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": db_user.email}, expires_delta=access_token_expires
+    )
+    
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax", # Important for local development between ports
+        secure=False,   # Set to True in production with HTTPS
+    )
+    
+    return {
+        "message": "Login successful",
+        "user": {
+            "email": db_user.email,
+            "full_name": db_user.full_name
+        }
+    }
+
+@app.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("access_token")
+    return {"message": "Logged out"}
+
+@app.get("/me")
+def get_me(current_user: models.User = Depends(get_current_user)):
+    """Return the current user's profile based on the JWT cookie."""
+    return {
+        "email": current_user.email,
+        "full_name": current_user.full_name
+    }
+
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), current_user: models.User = Depends(get_current_user)):
     """Save an uploaded file to disk and return its public URL path."""
     ext = os.path.splitext(file.filename or "")[1].lower()
     filename = f"{uuid.uuid4()}{ext}"
@@ -38,12 +122,12 @@ async def upload_file(file: UploadFile = File(...)):
 
 # --- GET ALL ---
 @app.get("/exercises")
-def get_exercises(db: Session = Depends(database.get_db)):
+def get_exercises(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Exercise).all()
 
 # --- CREATE ---
 @app.post("/exercises", response_model=schemas.Exercise)
-def create_exercise(item: schemas.ExerciseCreate, db: Session = Depends(database.get_db)):
+def create_exercise(item: schemas.ExerciseCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Exercise(**item.dict())
     db.add(db_item)
     db.commit()
@@ -52,7 +136,7 @@ def create_exercise(item: schemas.ExerciseCreate, db: Session = Depends(database
 
 # --- UPDATE (Fixing the 500 Error here) ---
 @app.put("/exercises/{exercise_id}", response_model=schemas.Exercise)
-def update_exercise(exercise_id: str, item: schemas.ExerciseCreate, db: Session = Depends(database.get_db)):
+def update_exercise(exercise_id: str, item: schemas.ExerciseCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_ex = db.query(models.Exercise).filter(models.Exercise.id == exercise_id).first()
     if not db_ex:
         raise HTTPException(status_code=404, detail="Exercise not found")
@@ -77,7 +161,7 @@ def update_exercise(exercise_id: str, item: schemas.ExerciseCreate, db: Session 
 
 # --- DELETE ---
 @app.delete("/exercises/{exercise_id}")
-def delete_exercise(exercise_id: str, db: Session = Depends(database.get_db)):
+def delete_exercise(exercise_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_ex = db.query(models.Exercise).filter(models.Exercise.id == exercise_id).first()
     if not db_ex:
         raise HTTPException(status_code=404, detail="Exercise not found")
@@ -90,11 +174,11 @@ def delete_exercise(exercise_id: str, db: Session = Depends(database.get_db)):
 #      BASICS LIBRARY
 # ==========================
 @app.get("/basics")
-def get_basics(db: Session = Depends(database.get_db)):
+def get_basics(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Basic).all()
 
 @app.post("/basics")
-def create_basic(item: schemas.BasicCreate, db: Session = Depends(database.get_db)):
+def create_basic(item: schemas.BasicCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Basic(
         name=item.name, 
         description=item.description,
@@ -106,7 +190,7 @@ def create_basic(item: schemas.BasicCreate, db: Session = Depends(database.get_d
     return db_item
 
 @app.put("/basics/{id}")
-def update_basic(id: str, item: schemas.BasicCreate, db: Session = Depends(database.get_db)):
+def update_basic(id: str, item: schemas.BasicCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Basic).filter(models.Basic.id == id).first()
     if not db_item: raise HTTPException(status_code=404, detail="Item not found")
     
@@ -119,7 +203,7 @@ def update_basic(id: str, item: schemas.BasicCreate, db: Session = Depends(datab
     return db_item
 
 @app.delete("/basics/{id}")
-def delete_basic(id: str, db: Session = Depends(database.get_db)):
+def delete_basic(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Basic).filter(models.Basic.id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -132,11 +216,11 @@ def delete_basic(id: str, db: Session = Depends(database.get_db)):
 #    PRINCIPLES LIBRARY
 # ==========================
 @app.get("/principles")
-def get_principles(db: Session = Depends(database.get_db)):
+def get_principles(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Principle).all()
 
 @app.post("/principles")
-def create_principle(item: schemas.PrincipleCreate, db: Session = Depends(database.get_db)):
+def create_principle(item: schemas.PrincipleCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Principle(
         name=item.name, 
         game_phase=item.game_phase, 
@@ -151,7 +235,7 @@ def create_principle(item: schemas.PrincipleCreate, db: Session = Depends(databa
     return db_item
 
 @app.put("/principles/{id}")
-def update_principle(id: str, item: schemas.PrincipleCreate, db: Session = Depends(database.get_db)):
+def update_principle(id: str, item: schemas.PrincipleCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Principle).filter(models.Principle.id == id).first()
     if not db_item: raise HTTPException(status_code=404)
     
@@ -167,7 +251,7 @@ def update_principle(id: str, item: schemas.PrincipleCreate, db: Session = Depen
     return db_item
 
 @app.delete("/principles/{id}")
-def delete_principle(id: str, db: Session = Depends(database.get_db)):
+def delete_principle(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Principle).filter(models.Principle.id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -180,11 +264,11 @@ def delete_principle(id: str, db: Session = Depends(database.get_db)):
 #     TACTICS LIBRARY
 # ==========================
 @app.get("/tactics")
-def get_tactics(db: Session = Depends(database.get_db)):
+def get_tactics(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Tactic).all()
 
 @app.post("/tactics")
-def create_tactic(item: schemas.TacticCreate, db: Session = Depends(database.get_db)):
+def create_tactic(item: schemas.TacticCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Tactic(
         name=item.name, 
         formation=item.formation, 
@@ -199,7 +283,7 @@ def create_tactic(item: schemas.TacticCreate, db: Session = Depends(database.get
 
 # --- TACTICS UPDATE ---
 @app.put("/tactics/{id}")
-def update_tactic(id: str, item: schemas.TacticCreate, db: Session = Depends(database.get_db)):
+def update_tactic(id: str, item: schemas.TacticCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Tactic).filter(models.Tactic.id == id).first()
     if not db_item: raise HTTPException(status_code=404, detail="Item not found")
     
@@ -214,7 +298,7 @@ def update_tactic(id: str, item: schemas.TacticCreate, db: Session = Depends(dat
     return db_item
 
 @app.delete("/tactics/{id}")
-def delete_tactic(id: str, db: Session = Depends(database.get_db)):
+def delete_tactic(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Tactic).filter(models.Tactic.id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -228,11 +312,11 @@ def delete_tactic(id: str, db: Session = Depends(database.get_db)):
 #    TRAINING SESSIONS
 # ==========================
 @app.get("/training_sessions")
-def get_sessions(db: Session = Depends(database.get_db)):
+def get_sessions(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.TrainingSession).all()
 
 @app.post("/training_sessions")
-def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(database.get_db)):
+def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     # Convert string date to Python Date object if needed, or keep as string/date in model
     import datetime
     date_obj = datetime.datetime.strptime(item.date, "%Y-%m-%d").date()
@@ -252,7 +336,7 @@ def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(da
     return db_item
 
 @app.put("/training_sessions/{id}")
-def update_session(id: str, item: schemas.TrainingSessionCreate, db: Session = Depends(database.get_db)):
+def update_session(id: str, item: schemas.TrainingSessionCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.TrainingSession).filter(models.TrainingSession.id == id).first()
     if not db_item: raise HTTPException(status_code=404, detail="Session not found")
     
@@ -273,7 +357,7 @@ def update_session(id: str, item: schemas.TrainingSessionCreate, db: Session = D
     return db_item
 
 @app.delete("/training_sessions/{id}")
-def delete_session(id: str, db: Session = Depends(database.get_db)):
+def delete_session(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.TrainingSession).filter(models.TrainingSession.id == id).first()
     if not db_item: raise HTTPException(status_code=404)
     db.delete(db_item)
@@ -288,11 +372,11 @@ def delete_session(id: str, db: Session = Depends(database.get_db)):
 #    PLAYERS
 # ==========================
 @app.get("/players")
-def get_players(db: Session = Depends(database.get_db)):
+def get_players(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Player).all()
 
 @app.post("/players")
-def create_player(item: schemas.PlayerCreate, db: Session = Depends(database.get_db)):
+def create_player(item: schemas.PlayerCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Player(**item.dict())
     db.add(db_item)
     db.commit()
@@ -300,7 +384,7 @@ def create_player(item: schemas.PlayerCreate, db: Session = Depends(database.get
     return db_item
 
 @app.put("/players/{id}")
-def update_player(id: str, item: schemas.PlayerCreate, db: Session = Depends(database.get_db)):
+def update_player(id: str, item: schemas.PlayerCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Player).filter(models.Player.id == id).first()
     if not db_item: raise HTTPException(status_code=404)
     
@@ -312,7 +396,7 @@ def update_player(id: str, item: schemas.PlayerCreate, db: Session = Depends(dat
     return db_item
 
 @app.delete("/players/{id}")
-def delete_player(id: str, db: Session = Depends(database.get_db)):
+def delete_player(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Player).filter(models.Player.id == id).first()
     if not db_item: raise HTTPException(status_code=404)
     db.delete(db_item)
@@ -321,7 +405,7 @@ def delete_player(id: str, db: Session = Depends(database.get_db)):
 
 
 @app.get("/match/suggested-formation")
-def get_suggested_formation(db: Session = Depends(database.get_db)):
+def get_suggested_formation(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     # 1. Calculate date for 7 days ago
     seven_days_ago = datetime.now().date() - timedelta(days=7)
     
@@ -364,7 +448,7 @@ def get_suggested_formation(db: Session = Depends(database.get_db)):
 #      MATCH MANAGEMENT
 # ==========================
 @app.post("/matches", response_model=schemas.Match)
-def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_db)):
+def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     import datetime
     date_obj = datetime.datetime.strptime(item.date, "%Y-%m-%d").date()
     
@@ -382,14 +466,14 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
     return db_item
 
 @app.get("/matches")
-def get_all_matches(db: Session = Depends(database.get_db)):
+def get_all_matches(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     # Return all matches (both past and upcoming), sorted by date descending (newest first)
     return db.query(models.Match)\
         .order_by(models.Match.date.desc())\
         .all()
 
 @app.get("/matches/latest")
-def get_latest_match(db: Session = Depends(database.get_db)):
+def get_latest_match(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     # Get the upcoming match (closest to today or just the last created)
     # For simplicity, we get the most recently created match
     import datetime
@@ -407,7 +491,7 @@ def get_latest_match(db: Session = Depends(database.get_db)):
     return match
 
 @app.put("/matches/{match_id}")
-def update_match(match_id: str, item: schemas.MatchCreate, db: Session = Depends(database.get_db)):
+def update_match(match_id: str, item: schemas.MatchCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_match = db.query(models.Match).filter(models.Match.id == match_id).first()
     if not db_match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -425,31 +509,3 @@ def update_match(match_id: str, item: schemas.MatchCreate, db: Session = Depends
     db.commit()
     db.refresh(db_match)
     return db_match
-
-
-# 1. REGISTER
-@app.post("/register", response_model=schemas.User)
-def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    new_user = models.User(
-        email=user.email,
-        password=user.password,
-        full_name=user.full_name
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-# 2. LOGIN
-@app.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    
-    if not db_user or db_user.password != user.password:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    return {"message": "Login successful", "user_id": db_user.id, "email": db_user.email}
