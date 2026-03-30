@@ -13,10 +13,11 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import ExerciseSlideOver from "./ExerciseSlideOver"
 
-// --- Types ---
-import { Exercise, SelectorItem } from '../types/models';
+// --- Services ---
 import { ExerciseService, LibraryService } from '../services';
 
+// --- Types ---
+import { Exercise, SelectorItem } from '../types/models';
 
 // --- Helpers ---
 const getMediaType = (url?: string) => {
@@ -82,8 +83,8 @@ export default function ExercisesLibrary() {
     useEffect(() => {
         // Fetch Exercises
         ExerciseService.getAll()
-            .then(formatted => {
-                setExercises(formatted);
+            .then(data => {
+                setExercises(data); // Set fetched data
             })
             .catch(() => { toast.error("Backend offline"); });
 
@@ -95,6 +96,7 @@ export default function ExercisesLibrary() {
                     LibraryService.getPrinciples(),
                     LibraryService.getTactics()
                 ]);
+                
                 setAllBasics(basics.map(b => ({ id: b.id, name: b.name })));
                 setAllPrinciples(principles.map(p => ({ id: p.id, name: p.name })));
                 setAllTactics(tactics.map(t => ({ id: t.id, name: t.name })));
@@ -107,6 +109,7 @@ export default function ExercisesLibrary() {
     const handleSave = async () => {
         if (!formData.name || !formData.description) return toast.error('Name and Description are required');
 
+        // Ensure we use the latest media preview if it exists
         const exerciseToSave: Exercise = {
             ...formData,
             mediaUrl: mediaPreview || formData.mediaUrl
