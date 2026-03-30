@@ -1,6 +1,6 @@
 // src/services/match-service.ts
 import { Match, MatchDetails } from '../types/models';
-import { mapMatchFromApi, mapMatchToApi, mapMatchDetailsFromApi, mapMatchDetailsToApi } from '../lib/data-mappers';
+import { mapMatchFromApi, mapMatchDetailsFromApi, mapMatchDetailsToApi } from '../lib/data-mappers';
 import { apiClient } from './api-client';
 
 export interface SuggestedFormation {

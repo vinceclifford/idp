@@ -206,14 +206,14 @@ export default function MatchLineup() {
       .then(mappedPlayers => {
           setAllPlayers(mappedPlayers);
       })
-      .catch(e => toast.error("Failed to load players"));
+      .catch(() => toast.error("Failed to load players"));
 
     MatchService.getAll()
         .then(mappedMatches => {
             setMatches(mappedMatches);
             if (mappedMatches.length > 0) setMatchDetails(mappedMatches[0]);
         })
-        .catch(e => toast.error("Failed to load matches"));
+        .catch(() => toast.error("Failed to load matches"));
 
     MatchService.getSuggestedFormation()
       .then(data => {

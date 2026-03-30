@@ -46,7 +46,7 @@ export interface MatchDetails {
   date: string;
   time: string;
   location: string;
-  formation?: string; 
+  formation: string; 
   lineup?: string; // JSON String from backend
 }
 

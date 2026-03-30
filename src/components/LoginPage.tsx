@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { AuthService } from '../services';
+import { AuthService, AuthResponse } from '../services';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -54,10 +54,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         setFullName('');
         setPassword('');
       } else {
-        toast.success(`Welcome back!`);
+        const response = data as AuthResponse;
+        toast.success(`Welcome back, ${response.user.full_name || 'Coach'}!`);
 
         localStorage.setItem('isAuthenticated', 'true');
-        // localStorage.setItem('user', JSON.stringify(data)); 
+        localStorage.setItem('user', JSON.stringify(response.user));
 
         onLogin();
       }
