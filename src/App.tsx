@@ -18,6 +18,9 @@ import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import { Page } from './types/ui';
 
+// Services
+import { AuthService } from './services';
+
 export default function App() {
   // 1. Initialize Auth State from LocalStorage
   // If 'isAuthenticated' exists in browser memory, start as true.
@@ -36,19 +39,41 @@ export default function App() {
     document.documentElement.classList.add('dark');
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+    } catch (e) {
+      console.error("Backend logout failed, clearing local state anyway");
+    }
+    // Clear from browser memory
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('user'); 
+    setIsAuthenticated(false);
+    setCurrentPage('login');
+  };
+
+  // 3. Check Session on Mount
+  // Verify if the JWT cookie is still valid even if LocalStorage says we are authenticated.
+  useEffect(() => {
+    const checkSession = async () => {
+      if (isAuthenticated) {
+        try {
+          await AuthService.getCurrentUser();
+        } catch (error) {
+          // If the cookie is invalid or expired, the API will return 401
+          // and our api-client will handle the reload/logout, but we can also do it here.
+          handleLogout();
+        }
+      }
+    };
+    checkSession();
+  }, [isAuthenticated]);
+
   const handleLogin = () => {
     // Save to browser memory
     localStorage.setItem('isAuthenticated', 'true');
     setIsAuthenticated(true);
     setCurrentPage('dashboard');
-  };
-
-  const handleLogout = () => {
-    // Clear from browser memory
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user'); // Clean up user data if any
-    setIsAuthenticated(false);
-    setCurrentPage('login');
   };
 
   const navigateToPage = (page: Page) => {

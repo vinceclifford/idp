@@ -15,6 +15,7 @@ export async function uploadFile(file: File): Promise<string> {
   const res = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     body: form,
+    credentials: 'include',
   });
 
   if (!res.ok) {
