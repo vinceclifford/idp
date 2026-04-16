@@ -1,6 +1,4 @@
-interface SkeletonProps {
-  className?: string;
-}
+import { SkeletonProps } from "../../types/ui";
 
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (

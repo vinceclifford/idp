@@ -2,11 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface TimePickerProps {
-  value: string;       // "HH:MM" 24-hour format
-  onChange: (time: string) => void;
-  label?: string;
-}
+import { TimePickerProps } from "../../types/ui";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);  // 0 – 23
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];

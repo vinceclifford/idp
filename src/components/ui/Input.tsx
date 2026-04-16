@@ -1,13 +1,8 @@
-import { InputHTMLAttributes, forwardRef, useState } from "react";
+import { forwardRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import { motion } from "framer-motion";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  icon?: React.ReactNode;
-  label?: string;
-  error?: string;
-  rightElement?: React.ReactNode;
-}
+import { InputProps } from "../../types/ui";
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, icon, label, error, rightElement, type, onFocus, onBlur, ...props }, ref) => {

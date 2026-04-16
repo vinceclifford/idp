@@ -1,10 +1,7 @@
 import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  animate?: boolean;
-  delay?: number;
-}
+import { CardProps } from "../../types/ui";
 
 export function Card({ className, children, animate = false, delay = 0, ...props }: CardProps) {
   const baseClass = "bg-surface backdrop-blur-xl border border-border rounded-xl shadow-lg relative overflow-hidden";

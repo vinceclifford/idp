@@ -14,14 +14,8 @@ import { uploadFile } from "../lib/uploadFile";
 import { PlayerRowSkeleton } from "./ui/Skeleton";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import PlayerSlideOver from "./PlayerSlideOver";
-
-// --- Types ---
-interface Player {
-    id: string; firstName: string; lastName: string; dateOfBirth: string; position: string;
-    jerseyNumber: number; status: string; playerPhone: string; height: number; weight: number;
-    motherName: string; motherPhone: string; fatherName: string; fatherPhone: string;
-    imageUrl: string; attendance: number; performance: number;
-}
+import { Player } from '../types/models';
+import { mapPlayerFromApi, mapSessionFromApi, mapPlayerToApi } from '../lib/data-mappers';
 
 export default function TeamManagement() {
     const [players, setPlayers] = useState<Player[]>([]); // Initialize empty (No Mock Data)
@@ -59,25 +53,7 @@ export default function TeamManagement() {
             .then(res => res.json())
             .then(data => {
                 if (data.length > 0) {
-                    setPlayers(data.map((p: any) => ({
-                        id: p.id,
-                        firstName: p.first_name,
-                        lastName: p.last_name,
-                        dateOfBirth: p.date_of_birth,
-                        position: p.position,
-                        jerseyNumber: p.jersey_number,
-                        status: p.status,
-                        playerPhone: p.player_phone || '',
-                        height: p.height,
-                        weight: p.weight,
-                        motherName: p.mother_name || '',
-                        motherPhone: p.mother_phone || '',
-                        fatherName: p.father_name || '',
-                        fatherPhone: p.father_phone || '',
-                        imageUrl: p.image_url || '',
-                        attendance: p.attendance,
-                        performance: p.performance
-                    })));
+                    setPlayers(data.map(mapPlayerFromApi));
                 }
             })
             .catch(() => console.log("Backend offline"))
@@ -86,11 +62,12 @@ export default function TeamManagement() {
         // Compute real attendance from training sessions
         fetch('http://127.0.0.1:8000/training_sessions')
             .then(res => res.json())
-            .then((sessions: any[]) => {
+            .then((rawSessions: any[]) => {
+                const sessions = rawSessions.map(mapSessionFromApi);
                 if (sessions.length === 0) return;
                 const countMap: Record<string, number> = {};
                 sessions.forEach(s => {
-                    (s.selected_players || '').split(',').forEach((id: string) => {
+                    (s.selectedPlayers || '').split(',').forEach((id: string) => {
                         const trimmed = id.trim();
                         if (trimmed) countMap[trimmed] = (countMap[trimmed] || 0) + 1;
                     });
@@ -114,24 +91,7 @@ export default function TeamManagement() {
         const isEditMode = !!editingId && !!formData.id;
 
         try {
-            const payload = {
-                first_name: formData.firstName,
-                last_name: formData.lastName,
-                date_of_birth: formData.dateOfBirth,
-                position: formData.position,
-                status: formData.status,
-                jersey_number: parseInt(String(formData.jerseyNumber || 0)),
-                height: parseInt(String(formData.height || 0)),
-                weight: parseInt(String(formData.weight || 0)),
-                player_phone: formData.playerPhone || "",
-                image_url: formData.imageUrl || "",
-                mother_name: formData.motherName || "",
-                mother_phone: formData.motherPhone || "",
-                father_name: formData.fatherName || "",
-                father_phone: formData.fatherPhone || "",
-                attendance: 0,
-                performance: formData.performance ?? 0
-            };
+            const payload = mapPlayerToApi(formData);
 
             const url = isEditMode
                 ? `http://127.0.0.1:8000/players/${formData.id}`
@@ -146,26 +106,8 @@ export default function TeamManagement() {
             });
 
             if (response.ok) {
-                const savedPlayer = await response.json();
-                const formattedPlayer = {
-                    id: savedPlayer.id,
-                    firstName: savedPlayer.first_name,
-                    lastName: savedPlayer.last_name,
-                    dateOfBirth: savedPlayer.date_of_birth,
-                    position: savedPlayer.position,
-                    jerseyNumber: savedPlayer.jersey_number,
-                    status: savedPlayer.status,
-                    playerPhone: savedPlayer.player_phone || '',
-                    height: savedPlayer.height,
-                    weight: savedPlayer.weight,
-                    motherName: savedPlayer.mother_name || '',
-                    motherPhone: savedPlayer.mother_phone || '',
-                    fatherName: savedPlayer.father_name || '',
-                    fatherPhone: savedPlayer.father_phone || '',
-                    imageUrl: savedPlayer.image_url || '',
-                    attendance: savedPlayer.attendance,
-                    performance: savedPlayer.performance
-                };
+                const savedPlayerRaw = await response.json();
+                const formattedPlayer = mapPlayerFromApi(savedPlayerRaw);
 
                 if (isEditMode) {
                     setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
@@ -227,16 +169,7 @@ export default function TeamManagement() {
     const savePerformance = async (player: Player, value: number) => {
         const clamped = Math.max(0, Math.min(10, value));
         try {
-            const payload = {
-                first_name: player.firstName, last_name: player.lastName,
-                date_of_birth: player.dateOfBirth, position: player.position,
-                status: player.status, jersey_number: player.jerseyNumber,
-                height: player.height, weight: player.weight,
-                player_phone: player.playerPhone, image_url: player.imageUrl,
-                mother_name: player.motherName, mother_phone: player.motherPhone,
-                father_name: player.fatherName, father_phone: player.fatherPhone,
-                attendance: player.attendance, performance: clamped
-            };
+            const payload = mapPlayerToApi({ ...player, performance: clamped });
             const res = await fetch(`http://127.0.0.1:8000/players/${player.id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });

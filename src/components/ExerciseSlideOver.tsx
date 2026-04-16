@@ -1,29 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, FileText, Video as VideoIcon, Dumbbell, Users, Layers, BookOpen, Target, Zap } from 'lucide-react';
-
-interface Exercise {
-    id: string;
-    name: string;
-    intensity: 'Low' | 'Medium' | 'High';
-    description: string;
-    setup: string;
-    variations: string;
-    coachingPoints: string;
-    goalkeepers: number;
-    equipment: string[];
-    linkedBasics: string[];
-    linkedPrinciples: string[];
-    linkedTactics: string[];
-    mediaUrl?: string;
-    isCustom: boolean;
-}
-
-interface ExerciseSlideOverProps {
-    exercise: Exercise | null;
-    onClose: () => void;
-    onEdit: (exercise: Exercise) => void;
-    onDelete: (id: string) => void;
-}
+import {ExerciseSlideOverProps} from "../types/ui"
 
 const getIntensityStyles = (intensity: string) => {
     switch (intensity) {

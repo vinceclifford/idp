@@ -2,11 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface DatePickerProps {
-  value: string;
-  onChange: (date: string) => void;
-  label?: string;
-}
+import { DatePickerProps } from "../../types/ui";
 
 type ViewMode = 'calendar' | 'month' | 'year';
 

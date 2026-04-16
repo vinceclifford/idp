@@ -9,41 +9,12 @@ import { toast } from 'sonner';
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { CountUp } from "./ui/CountUp";
-
-// Assuming Page type matches your App's routing
-type Page = 'dashboard' | 'session-planner' | 'team' | 'match'; 
+import { Player, TrainingSession, Match } from "../types/models";
+import { Page } from "../types/ui";
+import { mapPlayerFromApi, mapSessionFromApi, mapMatchFromApi } from '../lib/data-mappers';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
-}
-
-interface Player {
-  id: string;
-  first_name: string;
-  last_name: string;
-  status: string;
-  attendance: number;
-  position: string;
-}
-
-interface TrainingSession {
-  id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  focus: string;
-  intensity: string;
-  selected_players: string;
-  selected_exercises: string;
-}
-
-interface Match {
-  id: string;
-  opponent: string;
-  date: string;
-  time: string;
-  location: string;
-  formation: string;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
@@ -61,7 +32,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     
     // Count how many sessions each player was selected for
     sessionList.forEach(session => {
-      const playerIds = session.selected_players
+      const playerIds = session.selectedPlayers
         .split(',')
         .map(id => id.trim())
         .filter(id => id.length > 0);
@@ -93,18 +64,20 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         let sessionsData: TrainingSession[] = [];
 
         if (playersRes.ok) {
-          playersData = await playersRes.json();
+          const rawPlayers = await playersRes.json();
+          playersData = rawPlayers.map(mapPlayerFromApi);
           setPlayers(playersData);
         }
 
         if (sessionsRes.ok) {
-          sessionsData = await sessionsRes.json();
+          const rawSessions = await sessionsRes.json();
+          sessionsData = rawSessions.map(mapSessionFromApi);
           setSessions(sessionsData);
         }
 
         if (matchesRes.ok) {
-          const matchesData = await matchesRes.json();
-          setMatches(matchesData);
+          const rawMatches = await matchesRes.json();
+          setMatches(rawMatches.map(mapMatchFromApi));
         }
 
         // Calculate attendance from training session participation
@@ -127,7 +100,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             }
 
             // Count selected players for this session
-            const playerIds = session.selected_players
+            const playerIds = session.selectedPlayers
               .split(',')
               .map(id => id.trim())
               .filter(id => id.length > 0);
@@ -145,7 +118,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               attendance: Math.round(monthMap[month].total / monthMap[month].count)
             }));
 
-        return chartData;
+          return chartData;
         };
 
         setAttendanceData(calculateMonthlyAttendance());
@@ -186,7 +159,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const avgAttendanceForGroup = (group: TrainingSession[]) => {
     if (group.length === 0 || players.length === 0) return 0;
     const total = group.reduce((sum, s) => {
-      const count = s.selected_players.split(',').filter(id => id.trim()).length;
+      const count = s.selectedPlayers.split(',').filter(id => id.trim()).length;
       return sum + (count / players.length) * 100;
     }, 0);
     return total / group.length;
@@ -258,7 +231,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {nextSession && (
                 <>
                   <span className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {nextSession.start_time} - {nextSession.end_time}
+                    <Clock className="w-3.5 h-3.5 text-slate-500" /> {nextSession.startTime} - {nextSession.endTime}
                   </span>
                   <span className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-slate-500" /> {formatDate(nextSession.date)}
@@ -478,9 +451,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate group-hover:text-blue-400 transition-colors">{s.focus}</p>
                     <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                      <Clock size={11} /> {s.start_time} – {s.end_time}
+                      <Clock size={11} /> {s.startTime} – {s.endTime}
                       <span className="text-slate-700">·</span>
-                      <Shield size={11} /> {s.selected_players.split(',').filter(id => id.trim()).length} players
+                      <Shield size={11} /> {s.selectedPlayers.split(',').filter(id => id.trim()).length} players
                     </p>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider shrink-0 ${

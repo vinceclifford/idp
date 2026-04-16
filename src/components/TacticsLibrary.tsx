@@ -9,12 +9,10 @@ import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
-const ALL_FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','4-3-2-1','4-1-4-1','4-1-2-1-2','4-4-2 DM','3-5-2','3-4-3','3-4-1-2','5-3-2','5-4-1'];
+import { Tactic } from '../types/models';
+import { mapTacticFromApi, mapTacticToApi } from '../lib/data-mappers';
 
-interface Tactic {
-  id: string; name: string; formation: string; description: string;
-  suggestedDrills?: string; isCustom: boolean;
-}
+const ALL_FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','4-3-2-1','4-1-4-1','4-1-2-1-2','4-4-2 DM','3-5-2','3-4-3','3-4-1-2','5-3-2','5-4-1'];
 
 export default function TacticsLibrary() {
   const [tactics, setTactics] = useState<Tactic[]>([]);
@@ -30,10 +28,7 @@ export default function TacticsLibrary() {
     fetch('http://127.0.0.1:8000/tactics')
         .then(res => res.json())
         .then(data => {
-            const dbItems: Tactic[] = data.map((item: any) => ({
-                id: item.id, name: item.name, formation: item.formation,
-                description: item.description, suggestedDrills: item.suggested_drills || '', isCustom: true,
-            }));
+            const dbItems: Tactic[] = data.map(mapTacticFromApi);
             setTactics(dbItems);
             if (dbItems.length > 0) setSelectedId(dbItems[0].id);
         })
@@ -43,9 +38,18 @@ export default function TacticsLibrary() {
   const handleSave = async () => {
     if (!formData.name) return toast.error('Name required');
     try {
-      let response;
-      const payload = { name: formData.name, formation: formData.formation, description: formData.description, suggested_drills: formData.suggestedDrills };
+      const tacticToSave: Tactic = {
+        id: formData.id,
+        name: formData.name,
+        formation: formData.formation,
+        description: formData.description,
+        suggestedDrills: formData.suggestedDrills,
+        isCustom: true
+      };
       
+      const payload = mapTacticToApi(tacticToSave);
+      
+      let response;
       if (isEditing && formData.id) {
         response = await fetch(`http://127.0.0.1:8000/tactics/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       } else {
@@ -54,7 +58,7 @@ export default function TacticsLibrary() {
 
       if (response.ok) {
         const saved = await response.json();
-        const newItem: Tactic = { id: saved.id, name: saved.name, formation: saved.formation, description: saved.description, suggestedDrills: saved.suggested_drills || '', isCustom: true };
+        const newItem = mapTacticFromApi(saved);
         if (isEditing) {
           setTactics(prev => prev.map(t => t.id === newItem.id ? newItem : t));
         } else {
@@ -63,8 +67,12 @@ export default function TacticsLibrary() {
         }
         toast.success(isEditing ? 'Updated!' : 'Created!');
         closeModal();
+      } else {
+        toast.error('Server Error');
       }
-    } catch { toast.error('Failed to save'); }
+    } catch { 
+      toast.error('Failed to save'); 
+    }
   };
 
   const handleDelete = async (id: string) => {

@@ -1,47 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, Download, Calendar, Clock, Users, Activity, Dumbbell, Zap, BookOpen, Layers, Target, Image as ImageIcon } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
+import { Exercise } from '../../types/models';
 
-interface Exercise {
-    id: string;
-    name: string;
-    description?: string;
-    setup?: string;
-    coaching_points?: string;
-    intensity?: string;
-    equipment?: string[];
-    linkedBasics?: string[];
-    linkedPrinciples?: string[];
-    linkedTactics?: string[];
-    mediaUrl?: string;
-}
-
-interface Player {
-    id: string;
-    name: string;
-}
-
-interface TrainingSession {
-    id: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    focus: string;
-    intensity: string;
-    selectedPlayers: string[];
-    selectedExercises: string[];
-}
-
-interface SessionSlideOverProps {
-    session: TrainingSession | null;
-    allPlayers: Player[];
-    allExercises: Exercise[];
-    isPast: boolean;
-    onClose: () => void;
-    onEdit: (session: TrainingSession) => void;
-    onDelete: (id: string) => void;
-    onExportPDF: (session: TrainingSession) => void;
-}
+import { SessionSlideOverProps } from "../../types/ui";
 
 const intensityStyles: Record<string, { badge: string; bar: string; width: string }> = {
     Low:    { badge: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', bar: 'bg-emerald-500', width: '33%' },
@@ -62,8 +24,11 @@ export default function SessionSlideOver({
     if (!session) return null;
 
     const style = intensityStyles[session.intensity] ?? intensityStyles.Medium;
-    const players = allPlayers.filter(p => session.selectedPlayers.includes(p.id));
-    const exercises = session.selectedExercises
+    const playerIds = session.selectedPlayers.split(',').map(id => id.trim()).filter(Boolean);
+    const exerciseIds = session.selectedExercises.split(',').map(id => id.trim()).filter(Boolean);
+
+    const players = allPlayers.filter(p => playerIds.includes(p.id));
+    const exercises = exerciseIds
         .map(id => allExercises.find(e => e.id === id))
         .filter((e): e is Exercise => !!e);
 
@@ -242,7 +207,7 @@ export default function SessionSlideOver({
                                     <div className="flex flex-wrap gap-2">
                                         {players.map(p => (
                                             <span key={p.id} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/[0.03] border border-white/5 text-slate-300">
-                                                {p.name}
+                                                {p.firstName} {p.lastName}
                                             </span>
                                         ))}
                                     </div>

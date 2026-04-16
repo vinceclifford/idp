@@ -3,31 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, Phone, Calendar, Ruler, Weight, Shield, Hash, User, TrendingUp, Clock, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { formatDate } from '../lib/utils';
+import { TrainingSession } from '../types/models';
+import { PlayerSlideOverProps } from '../types/ui';
+import { mapSessionFromApi } from '../lib/data-mappers';
 
-interface Player {
-    id: string; firstName: string; lastName: string; dateOfBirth: string; position: string;
-    jerseyNumber: number; status: string; playerPhone: string; height: number; weight: number;
-    motherName: string; motherPhone: string; fatherName: string; fatherPhone: string;
-    imageUrl: string; attendance: number; performance: number;
-}
-
-interface TrainingSession {
-    id: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    focus: string;
-    intensity: string;
-    selectedPlayers: string[];
-}
-
-interface PlayerSlideOverProps {
-    player: Player | null;
-    computedAttendance: Record<string, number>;
-    onClose: () => void;
-    onEdit: (player: Player) => void;
-    onDelete: (id: string) => void;
-}
 
 const intensityColor: Record<string, string> = {
     High: '#f43f5e',
@@ -61,16 +40,11 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
             .then(r => r.json())
             .then((data: any[]) => {
                 const mapped = data
-                    .map(s => ({
-                        id: s.id,
-                        date: s.date,
-                        startTime: s.start_time,
-                        endTime: s.end_time,
-                        focus: s.focus,
-                        intensity: s.intensity,
-                        selectedPlayers: s.selected_players ? s.selected_players.split(',').map((x: string) => x.trim()) : [],
-                    }))
-                    .filter(s => s.selectedPlayers.includes(player.id))
+                    .map(mapSessionFromApi)
+                    .filter(s => {
+                        const playerIds = s.selectedPlayers ? s.selectedPlayers.split(',').map(id => id.trim()) : [];
+                        return playerIds.includes(player.id);
+                    })
                     .sort((a, b) => b.date.localeCompare(a.date));
                 setSessions(mapped);
             })

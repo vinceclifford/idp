@@ -3,15 +3,7 @@ import { cn } from "../../lib/utils";
 import { ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface SelectProps {
-  label?: string;
-  error?: string;
-  options: { label: string; value: string | number }[];
-  value?: string | number;
-  onChange: (value: string | number) => void; // CHANGED API: Returns value directly
-  className?: string;
-  placeholder?: string;
-}
+import { SelectProps } from "../../types/ui";
 
 export function Select({ label, error, options, value, onChange, className, placeholder = "Select..." }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Image as ImageIcon, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
@@ -9,9 +9,9 @@ import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
-interface Basic {
-  id: string; name: string; description: string; diagramUrl?: string; isCustom: boolean;
-}
+import {Basic} from "../types/models"
+import { mapBasicFromApi, mapBasicToApi } from '../lib/data-mappers';
+
 
 const getMediaType = (url?: string) => {
   if (!url) return null;
@@ -46,10 +46,7 @@ export default function BasicsLibrary() {
     fetch('http://127.0.0.1:8000/basics')
       .then(res => res.json())
       .then(data => {
-        const dbItems: Basic[] = data.map((item: any) => ({
-          id: item.id, name: item.name, description: item.description,
-          diagramUrl: item.diagram_url, isCustom: true,
-        }));
+        const dbItems: Basic[] = data.map(mapBasicFromApi);
         setBasics(dbItems);
         if (dbItems.length > 0) setSelectedId(dbItems[0].id);
       })
@@ -60,11 +57,15 @@ export default function BasicsLibrary() {
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error('Fill required fields');
 
-    const payload = {
+    const basicToSave: Basic = {
+      id: formData.id,
       name: formData.name,
       description: formData.description,
-      diagram_url: mediaPreview || formData.diagramUrl
+      diagramUrl: mediaPreview || formData.diagramUrl,
+      isCustom: true // Default for UI-created basics
     };
+
+    const payload = mapBasicToApi(basicToSave);
 
     try {
       let response;
@@ -76,7 +77,7 @@ export default function BasicsLibrary() {
 
       if (response.ok) {
         const saved = await response.json();
-        const newItem = { id: saved.id, name: saved.name, description: saved.description, diagramUrl: saved.diagram_url, isCustom: true };
+        const newItem = mapBasicFromApi(saved);
 
         if (isEditing) {
           setBasics(prev => prev.map(b => b.id === newItem.id ? newItem : b));

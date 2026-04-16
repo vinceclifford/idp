@@ -1,15 +1,7 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-  maxWidth?: string;
-}
+import { ModalProps } from "../../types/ui";
 
 export function Modal({ isOpen, onClose, title, icon, children, footer, maxWidth = "max-w-2xl" }: ModalProps) {
   return (
