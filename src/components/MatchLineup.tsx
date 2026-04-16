@@ -13,7 +13,7 @@ import { Input } from "./ui/Input";
 import { DatePicker } from "./ui/DatePicker";
 import { TimePicker } from "./ui/TimePicker";
 import { Player, MatchDetails, PositionSlot, LineupPlayer } from "../types/models";
-import { mapPlayerFromApi, mapMatchDetailsFromApi, mapPlayerToApi, mapMatchDetailsToApi } from "../lib/data-mappers";
+import { PlayerService, MatchService } from "../services";
 
 // --- Formation Groups for the picker ---
 const FORMATION_GROUPS: { label: string; formations: string[] }[] = [
@@ -202,30 +202,22 @@ export default function MatchLineup() {
 
   // --- 1. Load Data ---
   useEffect(() => {
-    // Players
-    fetch('http://127.0.0.1:8000/players')
-      .then(res => res.json())
-      .then(data => {
-          const mappedPlayers = data.map(mapPlayerFromApi);
+    PlayerService.getAll()
+      .then(mappedPlayers => {
           setAllPlayers(mappedPlayers);
-      });
+      })
+      .catch(() => toast.error("Failed to load players"));
 
-    // Matches
-    fetch('http://127.0.0.1:8000/matches')
-        .then(res => res.json())
-        .then(data => {
-            const mappedMatches = data.map(mapMatchDetailsFromApi);
+    MatchService.getAll()
+        .then(mappedMatches => {
             setMatches(mappedMatches);
             if (mappedMatches.length > 0) setMatchDetails(mappedMatches[0]);
-        });
+        })
+        .catch(() => toast.error("Failed to load matches"));
 
-    // AI Formation
-    fetch('http://127.0.0.1:8000/match/suggested-formation')
-      .then(res => res.json())
+    MatchService.getSuggestedFormation()
       .then(data => {
         if (data.formation && FORMATIONS[data.formation]) {
-            // FIX: Just store the data, do NOT force set currentFormation here.
-            // The useEffect below will handle the UI update based on this data.
             setAiSuggestedFormation(data.formation);
             setAiSourceLabel(data.source);
         }
@@ -309,28 +301,22 @@ useEffect(() => {
   const handleSaveMatch = async () => {
     if (!matchForm.opponent || !matchForm.date) return toast.error("Opponent and Date required");
     try {
-        const url = isEditingMatch && matchDetails ? `http://127.0.0.1:8000/matches/${matchDetails.id}` : 'http://127.0.0.1:8000/matches';
-        const method = isEditingMatch ? 'PUT' : 'POST';
-        
         const matchToSave: MatchDetails = isEditingMatch && matchDetails 
             ? { ...matchDetails, ...matchForm }
             : { id: '', ...matchForm, formation: currentFormation };
 
-        const payload = mapMatchDetailsToApi(matchToSave);
+        const savedMatch = isEditingMatch && matchDetails
+            ? await MatchService.update(matchDetails.id, matchToSave)
+            : await MatchService.create(matchToSave);
 
-        const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-
-        if (response.ok) {
-            const savedMatch = await response.json();
-            if (isEditingMatch) { 
-                setMatches(prev => prev.map(m => m.id === savedMatch.id ? savedMatch : m)); 
-            } else { 
-                setMatches(prev => [...prev, savedMatch].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())); 
-            }
-            setMatchDetails(savedMatch);
-            setShowCreateMatchModal(false);
-            toast.success(isEditingMatch ? "Match updated!" : "Match created!");
+        if (isEditingMatch) { 
+            setMatches(prev => prev.map(m => m.id === savedMatch.id ? savedMatch : m)); 
+        } else { 
+            setMatches(prev => [...prev, savedMatch].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())); 
         }
+        setMatchDetails(savedMatch);
+        setShowCreateMatchModal(false);
+        toast.success(isEditingMatch ? "Match updated!" : "Match created!");
     } catch (e) { toast.error("Failed to save match"); }
   };
 
@@ -449,20 +435,13 @@ useEffect(() => {
             lineup: JSON.stringify(lineupArray)
         };
 
-        const response = await fetch(`http://127.0.0.1:8000/matches/${matchDetails.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(mapMatchDetailsToApi(matchToUpdate))
-        });
+        const updatedMatch = await MatchService.update(matchDetails.id, matchToUpdate);
 
-        if (response.ok) {
-            const updatedMatch = await response.json();
-            setMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
-            setMatchDetails(updatedMatch);
-            setFormationSource('Saved Strategy');
-            toast.success(`Lineup saved for ${updatedMatch.opponent}`);
-            setShowSaveModal(false);
-        }
+        setMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+        setMatchDetails(updatedMatch);
+        setFormationSource('Saved Strategy');
+        toast.success(`Lineup saved for ${updatedMatch.opponent}`);
+        setShowSaveModal(false);
     } catch (e) {
         toast.error("Failed to save lineup");
     }
@@ -733,29 +712,12 @@ useEffect(() => {
                   onClick={async () => {
                     if (isMatchPast) {
                       try {
-                        // Get full player data from allPlayers to ensure we have all fields
                         const fullPlayerData = allPlayers.find(p => p.id === selectedPlayer.id) || selectedPlayer;
+                        const updatedPlayer = await PlayerService.update(selectedPlayer.id, { ...fullPlayerData, performance: selectedPlayerPerformance });
                         
-                        // Update player performance in backend
-                        const playerToUpdate: Player = { ...fullPlayerData, performance: selectedPlayerPerformance };
-                        const payload = mapPlayerToApi(playerToUpdate);
-
-                        const response = await fetch(`http://127.0.0.1:8000/players/${selectedPlayer.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(payload)
-                        });
-                        
-                        if (response.ok) {
-                          const savedRaw = await response.json();
-                          const updatedPlayer = mapPlayerFromApi(savedRaw);
-                          const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id 
-                            ? updatedPlayer 
-                            : p
-                          );
-                          setAllPlayers(updatedPlayers);
-                          toast.success('Performance updated');
-                        }
+                        const updatedPlayers = allPlayers.map(p => p.id === selectedPlayer.id ? updatedPlayer : p);
+                        setAllPlayers(updatedPlayers);
+                        toast.success('Performance updated');
                       } catch (e) {
                         toast.error('Failed to save performance');
                       }

@@ -15,7 +15,7 @@ import { PlayerRowSkeleton } from "./ui/Skeleton";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import PlayerSlideOver from "./PlayerSlideOver";
 import { Player } from '../types/models';
-import { mapPlayerFromApi, mapSessionFromApi, mapPlayerToApi } from '../lib/data-mappers';
+import { PlayerService, TrainingService } from '../services';
 
 export default function TeamManagement() {
     const [players, setPlayers] = useState<Player[]>([]); // Initialize empty (No Mock Data)
@@ -49,21 +49,18 @@ export default function TeamManagement() {
 
     // --- Load Data ---
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/players')
-            .then(res => res.json())
+        PlayerService.getAll()
             .then(data => {
                 if (data.length > 0) {
-                    setPlayers(data.map(mapPlayerFromApi));
+                    setPlayers(data);
                 }
             })
-            .catch(() => console.log("Backend offline"))
+            .catch(() => {})
             .finally(() => setLoading(false));
 
         // Compute real attendance from training sessions
-        fetch('http://127.0.0.1:8000/training_sessions')
-            .then(res => res.json())
-            .then((rawSessions: any[]) => {
-                const sessions = rawSessions.map(mapSessionFromApi);
+        TrainingService.getAll()
+            .then((sessions) => {
                 if (sessions.length === 0) return;
                 const countMap: Record<string, number> = {};
                 sessions.forEach(s => {
@@ -91,35 +88,18 @@ export default function TeamManagement() {
         const isEditMode = !!editingId && !!formData.id;
 
         try {
-            const payload = mapPlayerToApi(formData);
+            const formattedPlayer = isEditMode
+                ? await PlayerService.update(formData.id, formData)
+                : await PlayerService.create(formData);
 
-            const url = isEditMode
-                ? `http://127.0.0.1:8000/players/${formData.id}`
-                : 'http://127.0.0.1:8000/players';
-
-            const method = isEditMode ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const savedPlayerRaw = await response.json();
-                const formattedPlayer = mapPlayerFromApi(savedPlayerRaw);
-
-                if (isEditMode) {
-                    setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
-                } else {
-                    setPlayers(prev => [...prev, formattedPlayer]);
-                }
-
-                toast.success("Player saved!");
-                setShowPlayerModal(false);
+            if (isEditMode) {
+                setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
             } else {
-                toast.error("Server rejected the data");
+                setPlayers(prev => [...prev, formattedPlayer]);
             }
+
+            toast.success("Player saved!");
+            setShowPlayerModal(false);
         } catch (error) {
             toast.error('Connection failed');
         }
@@ -127,7 +107,7 @@ export default function TeamManagement() {
 
     const handleDelete = async (id: string) => {
         try {
-            await fetch(`http://127.0.0.1:8000/players/${id}`, { method: 'DELETE' });
+            await PlayerService.delete(id);
             setPlayers(prev => prev.filter(p => p.id !== id));
             toast.success('Player deleted');
         } catch (e) {
@@ -169,15 +149,12 @@ export default function TeamManagement() {
     const savePerformance = async (player: Player, value: number) => {
         const clamped = Math.max(0, Math.min(10, value));
         try {
-            const payload = mapPlayerToApi({ ...player, performance: clamped });
-            const res = await fetch(`http://127.0.0.1:8000/players/${player.id}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, performance: clamped } : p));
-                toast.success('Performance updated');
-            }
-        } catch { toast.error('Failed to save'); }
+            await PlayerService.update(player.id, { ...player, performance: clamped });
+            setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, performance: clamped } : p));
+            toast.success('Performance updated');
+        } catch { 
+            toast.error('Failed to save'); 
+        }
         setEditingPerf(null);
     };
 

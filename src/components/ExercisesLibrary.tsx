@@ -13,10 +13,11 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import ExerciseSlideOver from "./ExerciseSlideOver"
 
+// --- Services ---
+import { ExerciseService, LibraryService } from '../services';
+
 // --- Types ---
 import { Exercise, SelectorItem } from '../types/models';
-import { mapExerciseFromApi, mapSelectorItemFromApi, mapExerciseToApi } from '../lib/data-mappers';
-
 
 // --- Helpers ---
 const getMediaType = (url?: string) => {
@@ -81,34 +82,24 @@ export default function ExercisesLibrary() {
     // --- 1. LOAD DATA ---
     useEffect(() => {
         // Fetch Exercises
-        fetch('http://127.0.0.1:8000/exercises')
-            .then(res => res.json())
+        ExerciseService.getAll()
             .then(data => {
-                const formatted = data.map(mapExerciseFromApi);
-                setExercises(formatted); // Set fetched data
+                setExercises(data); // Set fetched data
             })
             .catch(() => { toast.error("Backend offline"); });
 
         // Fetch Selectors (Basics, Principles, Tactics)
         const fetchSelectors = async () => {
             try {
-                const [bRes, pRes, tRes] = await Promise.all([
-                    fetch('http://127.0.0.1:8000/basics'),
-                    fetch('http://127.0.0.1:8000/principles'),
-                    fetch('http://127.0.0.1:8000/tactics')
+                const [basics, principles, tactics] = await Promise.all([
+                    LibraryService.getBasics(),
+                    LibraryService.getPrinciples(),
+                    LibraryService.getTactics()
                 ]);
-                if (bRes.ok) {
-                    const data = await bRes.json();
-                    setAllBasics(data.map(mapSelectorItemFromApi));
-                }
-                if (pRes.ok) {
-                    const data = await pRes.json();
-                    setAllPrinciples(data.map(mapSelectorItemFromApi));
-                }
-                if (tRes.ok) {
-                    const data = await tRes.json();
-                    setAllTactics(data.map(mapSelectorItemFromApi));
-                }
+                
+                setAllBasics(basics.map(b => ({ id: b.id, name: b.name })));
+                setAllPrinciples(principles.map(p => ({ id: p.id, name: p.name })));
+                setAllTactics(tactics.map(t => ({ id: t.id, name: t.name })));
             } catch (e) { console.error("Failed to load selector lists", e); }
         };
         fetchSelectors();
@@ -118,30 +109,21 @@ export default function ExercisesLibrary() {
     const handleSave = async () => {
         if (!formData.name || !formData.description) return toast.error('Name and Description are required');
 
-        const payload = mapExerciseToApi({
+        // Ensure we use the latest media preview if it exists
+        const exerciseToSave: Exercise = {
             ...formData,
             mediaUrl: mediaPreview || formData.mediaUrl
-        });
+        };
 
         try {
-            let response;
+            let saved: Exercise;
             if (isEditing && formData.id) {
-                response = await fetch(`http://127.0.0.1:8000/exercises/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            } else {
-                response = await fetch('http://127.0.0.1:8000/exercises', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            }
-
-            if (!response.ok) throw new Error('Server Error');
-            const savedRaw = await response.json();
-            
-            // Format new/updated item to match Frontend Type
-            const savedFormatted = mapExerciseFromApi(savedRaw);
-
-            if (isEditing) {
-                setExercises(prev => prev.map(ex => ex.id === savedFormatted.id ? savedFormatted : ex));
+                saved = await ExerciseService.update(formData.id, exerciseToSave);
+                setExercises(prev => prev.map(ex => ex.id === saved.id ? saved : ex));
                 toast.success('Exercise Updated!');
             } else {
-                setExercises(prev => [...prev, savedFormatted]);
+                saved = await ExerciseService.create(exerciseToSave);
+                setExercises(prev => [...prev, saved]);
                 toast.success('Exercise Created!');
             }
             closeModal();
@@ -150,12 +132,10 @@ export default function ExercisesLibrary() {
 
     const handleDeleteExercise = async (id: string) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/exercises/${id}`, { method: 'DELETE' });
-            if (response.ok) { 
-                setExercises(prev => prev.filter(ex => ex.id !== id)); 
-                toast.success('Deleted'); 
-                setSelectedExercise(null); 
-            }
+            await ExerciseService.delete(id);
+            setExercises(prev => prev.filter(ex => ex.id !== id)); 
+            toast.success('Deleted'); 
+            setSelectedExercise(null); 
         } catch (e) { toast.error('Connection failed'); }
     };
 

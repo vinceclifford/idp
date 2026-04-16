@@ -10,7 +10,7 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 import {Basic} from "../types/models"
-import { mapBasicFromApi, mapBasicToApi } from '../lib/data-mappers';
+import { LibraryService } from '../services';
 
 
 const getMediaType = (url?: string) => {
@@ -43,10 +43,8 @@ export default function BasicsLibrary() {
 
   // --- Load Data ---
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/basics')
-      .then(res => res.json())
-      .then(data => {
-        const dbItems: Basic[] = data.map(mapBasicFromApi);
+    LibraryService.getBasics()
+      .then(dbItems => {
         setBasics(dbItems);
         if (dbItems.length > 0) setSelectedId(dbItems[0].id);
       })
@@ -65,36 +63,25 @@ export default function BasicsLibrary() {
       isCustom: true // Default for UI-created basics
     };
 
-    const payload = mapBasicToApi(basicToSave);
-
     try {
-      let response;
+      let saved: Basic;
       if (isEditing && formData.id) {
-        response = await fetch(`http://127.0.0.1:8000/basics/${formData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        saved = await LibraryService.updateBasic(formData.id, basicToSave);
+        setBasics(prev => prev.map(b => b.id === saved.id ? saved : b));
+        toast.success('Updated!');
       } else {
-        response = await fetch('http://127.0.0.1:8000/basics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        saved = await LibraryService.createBasic(basicToSave);
+        setBasics(prev => [...prev, saved]);
+        setSelectedId(saved.id);
+        toast.success('Created!');
       }
-
-      if (response.ok) {
-        const saved = await response.json();
-        const newItem = mapBasicFromApi(saved);
-
-        if (isEditing) {
-          setBasics(prev => prev.map(b => b.id === newItem.id ? newItem : b));
-          toast.success('Updated!');
-        } else {
-          setBasics(prev => [...prev, newItem]);
-          setSelectedId(newItem.id);
-          toast.success('Created!');
-        }
-        closeModal();
-      } else { toast.error('Server Error'); }
+      closeModal();
     } catch { toast.error('Connection failed'); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://127.0.0.1:8000/basics/${id}`, { method: 'DELETE' });
+      await LibraryService.deleteBasic(id);
       setBasics(prev => {
         const next = prev.filter(b => b.id !== id);
         if (selectedId === id) setSelectedId(next[0]?.id ?? null);
