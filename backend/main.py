@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -464,6 +464,82 @@ def delete_session(id: str, db: Session = Depends(database.get_db), current_user
 # ==========================
 #    PLAYERS
 # ==========================
+# --- VISION ---
+@app.get("/visions", response_model=list[schemas.Vision])
+def get_visions(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.Vision).filter(models.Vision.coach_id == current_user.id).order_by(models.Vision.uploaded_at.desc()).all()
+
+@app.post("/visions", response_model=schemas.Vision)
+def create_vision(vision: schemas.VisionCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    new_vision = models.Vision(**vision.dict(), coach_id=current_user.id)
+    db.add(new_vision)
+    db.commit()
+    db.refresh(new_vision)
+    return new_vision
+
+@app.delete("/visions/{id}")
+def delete_vision(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    vision = db.query(models.Vision).filter(models.Vision.id == id, models.Vision.coach_id == current_user.id).first()
+    if not vision:
+        raise HTTPException(status_code=404, detail="Vision not found")
+    
+    # Optional: Delete file from disk
+    try:
+        file_path = os.path.join(UPLOAD_DIR, vision.filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except:
+        pass
+
+    db.delete(vision)
+    db.commit()
+    return {"message": "Vision deleted"}
+
+# --- PLAYBOOK IMPORT/EXPORT ---
+@app.get("/playbook/export", response_model=schemas.PlaybookExport)
+def export_playbook(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    basics = db.query(models.Basic).filter(models.Basic.coach_id == current_user.id).all()
+    principles = db.query(models.Principle).filter(models.Principle.coach_id == current_user.id).all()
+    tactics = db.query(models.Tactic).filter(models.Tactic.coach_id == current_user.id).all()
+    exercises = db.query(models.Exercise).filter(models.Exercise.coach_id == current_user.id).all()
+    
+    return {
+        "basics": basics,
+        "principles": principles,
+        "tactics": tactics,
+        "exercises": exercises
+    }
+
+@app.post("/playbook/import")
+def import_playbook(data: schemas.PlaybookImport, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    count = 0
+    # Basics
+    for b in data.basics:
+        exists = db.query(models.Basic).filter(models.Basic.coach_id == current_user.id, models.Basic.name == b.name).first()
+        if not exists:
+            db.add(models.Basic(**b.dict(), coach_id=current_user.id))
+            count += 1
+    # Principles
+    for p in data.principles:
+        exists = db.query(models.Principle).filter(models.Principle.coach_id == current_user.id, models.Principle.name == p.name).first()
+        if not exists:
+            db.add(models.Principle(**p.dict(), coach_id=current_user.id))
+            count += 1
+    # Tactics
+    for t in data.tactics:
+        exists = db.query(models.Tactic).filter(models.Tactic.coach_id == current_user.id, models.Tactic.name == t.name).first()
+        if not exists:
+            db.add(models.Tactic(**t.dict(), coach_id=current_user.id))
+            count += 1
+    # Exercises
+    for e in data.exercises:
+        exists = db.query(models.Exercise).filter(models.Exercise.coach_id == current_user.id, models.Exercise.name == e.name).first()
+        if not exists:
+            db.add(models.Exercise(**e.dict(), coach_id=current_user.id))
+            count += 1
+    db.commit()
+    return {"message": f"Successfully imported {count} items. Duplicately named items were skipped."}
+
 @app.get("/players")
 def get_players(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     if team_id:

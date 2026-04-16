@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Upload, Video as VideoIcon, FileText, X, BookOpen, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, Video as VideoIcon, FileText, X, BookOpen, ChevronRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
@@ -9,6 +9,7 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { PlaybookManagementModal } from "./PlaybookManagementModal";
 
 import { Principle } from '../types/models';
 import { LibraryService } from '../services';
@@ -93,6 +94,7 @@ export default function PrinciplesLibrary() {
   const [activePhase, setActivePhase] = useState<string>('All');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPlaybookModal, setShowPlaybookModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [viewMedia, setViewMedia] = useState<string | null>(null);
@@ -100,13 +102,17 @@ export default function PrinciplesLibrary() {
   const [formData, setFormData] = useState({ id: '', name: '', gamePhase: 'In Possession', description: '', coachingNotes: '', implementationTips: '', mediaUrl: '' });
 
   // --- Load Data ---
-  useEffect(() => {
+  const fetchPrinciples = () => {
     LibraryService.getPrinciples()
         .then(dbItems => {
             setPrinciples(dbItems);
-            if (dbItems.length > 0) setSelectedId(dbItems[0].id);
+            if (dbItems.length > 0 && !selectedId) setSelectedId(dbItems[0].id);
         })
         .catch(() => toast.error('Backend offline'));
+  };
+
+  useEffect(() => {
+    fetchPrinciples();
   }, []);
 
   const handleSave = async () => {
@@ -213,7 +219,10 @@ export default function PrinciplesLibrary() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Add Principle</Button>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
+          <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Add Principle</Button>
+        </div>
       </div>
 
       {/* Phase Filter Tabs */}
@@ -497,6 +506,12 @@ export default function PrinciplesLibrary() {
         confirmLabel="Delete"
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
         onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      <PlaybookManagementModal 
+          isOpen={showPlaybookModal} 
+          onClose={() => setShowPlaybookModal(false)}
+          onImportSuccess={fetchPrinciples}
       />
     </div>
   );

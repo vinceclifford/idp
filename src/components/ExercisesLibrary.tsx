@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Search, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import { Plus, X, Search, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, ChevronDown, ChevronRight, Maximize2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
@@ -12,6 +12,7 @@ import { Select } from "./ui/Select";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import ExerciseSlideOver from "./ExerciseSlideOver"
+import { PlaybookManagementModal } from "./PlaybookManagementModal";
 
 // --- Services ---
 import { ExerciseService, LibraryService } from '../services';
@@ -54,6 +55,7 @@ export default function ExercisesLibrary() {
     const [activeIntensity, setActiveIntensity] = useState<string>('All');
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showPlaybookModal, setShowPlaybookModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [mediaPreview, setMediaPreview] = useState<string | null>(null);
 
@@ -80,13 +82,17 @@ export default function ExercisesLibrary() {
     });
 
     // --- 1. LOAD DATA ---
-    useEffect(() => {
-        // Fetch Exercises
+    const fetchExercises = () => {
         ExerciseService.getAll()
             .then(data => {
                 setExercises(data); // Set fetched data
             })
             .catch(() => { toast.error("Backend offline"); });
+    };
+
+    useEffect(() => {
+        // Fetch Exercises
+        fetchExercises();
 
         // Fetch Selectors (Basics, Principles, Tactics)
         const fetchSelectors = async () => {
@@ -248,7 +254,10 @@ export default function ExercisesLibrary() {
                         </p>
                     </div>
                 </div>
-                <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>Add Exercise</Button>
+                <div className="flex items-center gap-3">
+                    <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
+                    <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>Add Exercise</Button>
+                </div>
             </div>
 
             {/* Intensity Filter Tabs */}
@@ -489,6 +498,12 @@ export default function ExercisesLibrary() {
                 confirmLabel="Delete"
                 onConfirm={() => { if (confirmDeleteId) handleDeleteExercise(confirmDeleteId); setConfirmDeleteId(null); }}
                 onCancel={() => setConfirmDeleteId(null)}
+            />
+
+            <PlaybookManagementModal 
+                isOpen={showPlaybookModal} 
+                onClose={() => setShowPlaybookModal(false)}
+                onImportSuccess={fetchExercises}
             />
         </div>
     );

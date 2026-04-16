@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import { uploadFile } from '../lib/uploadFile';
@@ -8,6 +8,7 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { PlaybookManagementModal } from "./PlaybookManagementModal";
 
 import {Basic} from "../types/models"
 import { LibraryService } from '../services';
@@ -35,6 +36,7 @@ export default function BasicsLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPlaybookModal, setShowPlaybookModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [viewMedia, setViewMedia] = useState<string | null>(null);
@@ -42,13 +44,17 @@ export default function BasicsLibrary() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // --- Load Data ---
-  useEffect(() => {
+  const fetchBasics = () => {
     LibraryService.getBasics()
       .then(dbItems => {
         setBasics(dbItems);
-        if (dbItems.length > 0) setSelectedId(dbItems[0].id);
+        if (dbItems.length > 0 && !selectedId) setSelectedId(dbItems[0].id);
       })
       .catch(() => toast.error('Backend offline'));
+  };
+
+  useEffect(() => {
+    fetchBasics();
   }, []);
 
   // --- Handlers ---
@@ -144,7 +150,10 @@ export default function BasicsLibrary() {
             </p>
           </div>
         </div>
-        <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>Add Basic</Button>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
+          <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>Add Basic</Button>
+        </div>
       </div>
 
       {/* Master / Detail */}
@@ -398,6 +407,12 @@ export default function BasicsLibrary() {
         confirmLabel="Delete"
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
         onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      <PlaybookManagementModal 
+          isOpen={showPlaybookModal} 
+          onClose={() => setShowPlaybookModal(false)}
+          onImportSuccess={fetchBasics}
       />
     </div>
   );

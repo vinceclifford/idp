@@ -3,7 +3,7 @@ import { InputHTMLAttributes, ReactNode } from "react";
 import { HTMLMotionProps } from "framer-motion";
 import { Exercise, TrainingSession, Player } from "./models";
 
-export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match';
+export type Page = 'login' | 'dashboard' | 'team' | 'session-planner' | 'training' | 'basics' | 'principles' | 'tactics' | 'match' | 'vision';
 
 export type Category = 'Players' | 'Sessions' | 'Exercises' | 'Basics' | 'Principles' | 'Tactics';
 

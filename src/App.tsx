@@ -18,6 +18,7 @@ import MatchLineup from './components/MatchLineup';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import TeamFormModal from './components/TeamFormModal';
+import VisionLibrary from './components/VisionLibrary';
 import { Page } from './types/ui';
 
 // Services
@@ -120,6 +121,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     principles:     <PrinciplesLibrary />,
     tactics:        <TacticsLibrary />,
     match:          <MatchLineup />,
+    vision:         <VisionLibrary />,
   };
 
   return (
