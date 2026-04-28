@@ -328,10 +328,10 @@ export default function TeamManagement() {
                 <Input icon={<Search size={18} />} placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
 
-            <Card className="border-border bg-surface/40 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <Card className="border-border bg-surface flex-1 min-h-0 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-auto custom-scrollbar relative">
                     <table className="w-full text-left border-collapse min-w-max">
-                        <thead className="sticky top-0 z-10 backdrop-blur-sm bg-surface/80">
+                        <thead className="sticky top-0 z-10 backdrop-blur-sm bg-surface">
                             <tr className="border-b border-border text-xs uppercase tracking-wider text-muted font-semibold">
                                 {([
                                     { key: 'jerseyNumber', label: '#' },

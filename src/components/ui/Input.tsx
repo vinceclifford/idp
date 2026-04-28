@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all",
               "placeholder:text-muted/60",
               "focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
-              "hover:border-border/80",
+              "hover:border-border",
               type === 'number' && "no-spinner", 
               icon && "pl-10",
               rightElement && "pr-12",

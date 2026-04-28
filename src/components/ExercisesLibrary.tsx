@@ -230,7 +230,7 @@ export default function ExercisesLibrary() {
 
         if (type === 'pdf') return (
             <div
-                className={`flex flex-col items-center justify-center h-full text-muted bg-surface/50 rounded-lg border border-border ${isPreview ? 'cursor-zoom-in hover:bg-surface transition-colors group' : ''}`}
+                className={`flex flex-col items-center justify-center h-full text-muted bg-surface rounded-lg border border-border ${isPreview ? 'cursor-zoom-in hover:bg-surface transition-colors group' : ''}`}
                 onClick={openLightbox}
             >
                 <FileText size={48} className="mb-2 group-hover:text-primary transition-colors" />
@@ -267,7 +267,7 @@ export default function ExercisesLibrary() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                         activeIntensity === 'All'
                             ? 'bg-surface-raised border-border text-foreground'
-                            : 'bg-transparent border-border/50 text-muted hover:text-foreground hover:border-border'
+                            : 'bg-transparent border-border text-muted hover:text-foreground hover:border-border'
                     }`}
                 >
                     All <span className="ml-1 opacity-60">{exercises.length}</span>
@@ -285,7 +285,7 @@ export default function ExercisesLibrary() {
                             key={level}
                             onClick={() => setActiveIntensity(level)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                isActive ? styles.active : `bg-transparent border-border/50 text-muted ${styles.hover}`
+                                isActive ? styles.active : `bg-transparent border-border text-muted ${styles.hover}`
                             }`}
                         >
                             <span className="flex items-center gap-1.5">

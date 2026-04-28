@@ -117,7 +117,7 @@ function DraggablePlayer({ player, onClick, isSubstitute = false }: { player: Pl
   }));
   
   return (
-    <div ref={drag} onClick={onClick} className={`bg-surface/50 border border-border rounded-xl p-3 cursor-pointer hover:border-blue-500/50 hover:bg-surface-hover transition-all flex items-center gap-3 ${isDragging ? 'opacity-50' : ''}`}>
+    <div ref={drag} onClick={onClick} className={`bg-surface border border-border rounded-xl p-3 cursor-pointer hover:border-blue-500/50 hover:bg-surface-hover transition-all flex items-center gap-3 ${isDragging ? 'opacity-50' : ''}`}>
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${isSubstitute ? 'bg-slate-600' : 'bg-blue-600'}`}>{player.jerseyNumber}</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{player.firstName} {player.lastName}</p>
@@ -511,7 +511,7 @@ useEffect(() => {
                     className={`p-1.5 rounded-lg border transition-colors ${
                       showFormationPicker
                         ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                        : 'border-border text-muted hover:text-foreground hover:border-border/80'
+                        : 'border-border text-muted hover:text-foreground hover:border-border'
                     }`}
                   >
                     <ChevronDown size={14} className={`transition-transform duration-200 ${showFormationPicker ? 'rotate-180' : ''}`} />
@@ -532,7 +532,7 @@ useEffect(() => {
                   className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
                     !showPastMatches
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50'
-                      : 'bg-surface/50 text-muted border border-border'
+                      : 'bg-surface text-muted border border-border'
                   }`}
                 >
                   Upcoming ({upcomingMatches.length})
@@ -542,7 +542,7 @@ useEffect(() => {
                   className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
                     showPastMatches
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50'
-                      : 'bg-surface/50 text-muted border border-border'
+                      : 'bg-surface text-muted border border-border'
                   }`}
                 >
                   Past ({pastMatches.length})
@@ -551,7 +551,7 @@ useEffect(() => {
               <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
                   {(!showPastMatches ? upcomingMatches : pastMatches).length > 0 ? (
                     (!showPastMatches ? upcomingMatches : pastMatches).map(match => (
-                      <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-surface/50 border-border hover:border-border/80'}`}>
+                      <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-surface border-border hover:border-border'}`}>
                           <div>
                             <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-foreground'}`}>vs {match.opponent}</p>
                             <p className="text-[10px] text-muted">{formatDate(match.date)}</p>

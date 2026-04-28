@@ -151,7 +151,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       <div className="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Glass Card Container */}
-      <Card animate delay={0.1} className="w-full max-w-md p-8 sm:p-10 z-10 border-border bg-surface/80">
+      <Card animate delay={0.1} className="w-full max-w-md p-8 sm:p-10 z-10 border-border bg-surface">
 
         {/* Logo & Header */}
         <div className="flex flex-col items-center mb-8">
@@ -298,7 +298,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
         {/* Toggle Register/Login */}
         {!isForgotPassword && !isResetPassword && (
-          <div className="mt-8 text-center border-t border-border/50 pt-6">
+          <div className="mt-8 text-center border-t border-border pt-6">
             <p className="text-muted text-sm mb-3">
               {isRegister ? "Already have an account?" : "Don't have an account?"}
             </p>

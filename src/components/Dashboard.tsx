@@ -405,7 +405,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               </div>
 
-              <div className="pt-6 mt-2 border-t border-border/50">
+              <div className="pt-6 mt-2 border-t border-border">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="p-3 rounded-xl bg-surface-hover/50 border border-border hover:bg-surface-hover transition-colors">
                     <p className="text-2xl font-bold text-emerald-500"><CountUp value={players.filter(p => p.status === 'Active').length} /></p>

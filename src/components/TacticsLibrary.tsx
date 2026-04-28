@@ -119,7 +119,7 @@ export default function TacticsLibrary() {
           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
             activeFormation === 'All'
               ? 'bg-surface-hover border-border text-foreground shadow-sm'
-              : 'bg-transparent border-border/50 text-muted hover:text-foreground hover:bg-surface-hover'
+              : 'bg-transparent border-border text-muted hover:text-foreground hover:bg-surface-hover'
           }`}
         >
           All <span className="ml-1 opacity-60">{tactics.length}</span>
@@ -177,7 +177,7 @@ export default function TacticsLibrary() {
                     className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
                       isSelected
                         ? 'bg-emerald-500/10 border-emerald-500/30'
-                        : 'bg-surface-hover/40 border-border hover:border-border/80 hover:bg-surface-hover/70'
+                        : 'bg-surface-hover/40 border-border hover:border-border hover:bg-surface-hover/70'
                     }`}
                   >
                     <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-emerald-500 ${

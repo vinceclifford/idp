@@ -22,11 +22,11 @@ export function Modal({ isOpen, onClose, title, icon, children, footer, maxWidth
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative w-full ${maxWidth} bg-surface/80 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}
+            className={`relative w-full ${maxWidth} bg-surface border border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}
             style={{ boxShadow: '0 0 50px -12px rgba(0, 0, 0, 0.5)' }} // Deep shadow
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border/50">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
                 {icon && <div className="p-2 bg-primary/10 rounded-lg text-primary">{icon}</div>}
                 {title}
@@ -46,7 +46,7 @@ export function Modal({ isOpen, onClose, title, icon, children, footer, maxWidth
 
             {/* Footer */}
             {footer && (
-              <div className="p-6 border-t border-border/50 bg-surface-hover/30">
+              <div className="p-6 border-t border-border bg-surface-hover">
                 {footer}
               </div>
             )}

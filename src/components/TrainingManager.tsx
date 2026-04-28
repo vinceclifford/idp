@@ -307,12 +307,12 @@ export default function TrainingManager() {
                             onClick={() => setActiveIntensity(level)}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${activeIntensity === level
                                     ? 'bg-surface-hover border-border text-foreground shadow-sm'
-                                    : 'text-muted border-border/50 hover:text-foreground hover:bg-surface-hover'
+                                    : 'text-muted border-border hover:text-foreground hover:bg-surface-hover'
                                 }`}
                         >
                             {level !== 'All' && <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />}
                             {level}
-                            <span className="text-[10px] px-1 bg-surface text-muted rounded border border-border/50">{count}</span>
+                            <span className="text-[10px] px-1 bg-surface text-muted rounded border border-border">{count}</span>
                         </button>
                     );
                 })}
@@ -396,7 +396,7 @@ export default function TrainingManager() {
                                             animate
                                             delay={idx * 0.05}
                                             onClick={() => setSelectedSession(s)}
-                                            className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm dark:shadow-lg group relative overflow-hidden cursor-pointer hover:border-border/80 transition-colors"
+                                            className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm dark:shadow-lg group relative overflow-hidden cursor-pointer hover:border-border transition-colors"
                                         >
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-muted to-muted/40" />
                                             <div className="flex-1 pl-2">
@@ -505,7 +505,7 @@ export default function TrainingManager() {
                                         onClick={() => togglePlayer(p.id)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${isSelected
                                             ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                                            : 'bg-surface-hover text-muted border-border hover:border-border/80'
+                                            : 'bg-surface-hover text-muted border-border hover:border-border'
                                             }`}
                                     >
                                         {p.firstName} {p.lastName}

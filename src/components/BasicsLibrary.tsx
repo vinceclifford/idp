@@ -186,7 +186,7 @@ export default function BasicsLibrary() {
                     className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
                       isSelected
                         ? 'bg-sky-500/10 border-sky-500/30'
-                        : 'bg-surface-hover/40 border-border hover:border-border/80 hover:bg-surface-hover/70'
+                        : 'bg-surface-hover/40 border-border hover:border-border hover:bg-surface-hover/70'
                     }`}
                   >
                     <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-sky-500 ${
@@ -226,7 +226,7 @@ export default function BasicsLibrary() {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
-              className="h-full rounded-2xl border border-sky-500/20 bg-surface/40 overflow-y-auto custom-scrollbar"
+              className="h-full rounded-2xl border border-sky-500/20 bg-surface overflow-y-auto custom-scrollbar"
             >
               {/* Detail Header */}
               <div className="p-6 border-b border-sky-500/20 bg-sky-500/5">
@@ -270,7 +270,7 @@ export default function BasicsLibrary() {
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
                       <div
-                        className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border/80 transition-colors"
+                        className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors"
                         onClick={() => setViewMedia(selected.diagramUrl!)}
                       >
                         <div className="flex flex-col items-center gap-2 text-white/60 group-hover:text-white transition-colors">
@@ -283,7 +283,7 @@ export default function BasicsLibrary() {
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
                       <div
-                        className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border/80 transition-colors"
+                        className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors"
                         onClick={() => setViewMedia(selected.diagramUrl!)}
                       >
                         <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors">
@@ -297,7 +297,7 @@ export default function BasicsLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="h-full min-h-[400px] rounded-2xl border border-border bg-surface/20 flex flex-col items-center justify-center text-muted">
+            <div className="h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a basic to view details</p>
             </div>
@@ -346,7 +346,7 @@ export default function BasicsLibrary() {
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">Description</label>
             <textarea
-              className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted/60 focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 hover:border-border/80 resize-none h-32 custom-scrollbar"
+              className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted/60 focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 hover:border-border resize-none h-32 custom-scrollbar"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe the concept..."

@@ -37,7 +37,7 @@ export function Select({ label, error, options, value, onChange, className, plac
           className={cn(
             "w-full bg-surface-hover border border-border text-left text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all flex items-center justify-between",
             "focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
-            "hover:border-border/80",
+            "hover:border-border",
             isOpen && "border-primary/50 bg-surface",
             error && "border-red-500/50",
             className

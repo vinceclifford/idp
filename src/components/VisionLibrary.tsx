@@ -134,7 +134,7 @@ export default function VisionLibrary() {
                                         className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
                                             isSelected
                                                 ? 'bg-pink-500/10 border-pink-500/30'
-                                                : 'bg-surface-hover/40 border-border hover:border-border/80 hover:bg-surface-hover/70'
+                                                : 'bg-surface-hover/40 border-border hover:border-border hover:bg-surface-hover/70'
                                         }`}
                                     >
                                         <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-pink-500 ${isSelected ? 'opacity-100' : 'opacity-20 group-hover:opacity-50'} transition-opacity`} />
@@ -175,7 +175,7 @@ export default function VisionLibrary() {
                             initial={{ opacity: 0, x: 12 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="h-full rounded-2xl border border-pink-500/20 bg-surface/40 flex flex-col overflow-hidden"
+                            className="h-full rounded-2xl border border-pink-500/20 bg-surface flex flex-col overflow-hidden"
                         >
                             <div className="p-6 border-b border-pink-500/20 bg-pink-500/5">
                                 <div className="flex items-start justify-between gap-4">
@@ -228,7 +228,7 @@ export default function VisionLibrary() {
                             </div>
                         </motion.div>
                     ) : (
-                        <Card className="h-full flex flex-col items-center justify-center py-20 text-center border-dashed border-border bg-surface/50">
+                        <Card className="h-full flex flex-col items-center justify-center py-20 text-center border-dashed border-border bg-surface">
                             <div className="w-20 h-20 rounded-full bg-surface-hover flex items-center justify-center text-muted mb-6 shadow-none">
                                 <FileText size={40} />
                             </div>

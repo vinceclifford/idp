@@ -232,7 +232,7 @@ export default function PrinciplesLibrary() {
           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
             activePhase === 'All'
               ? 'bg-surface-hover border-border text-foreground shadow-sm'
-              : 'bg-transparent border-border/50 text-muted hover:text-foreground hover:bg-surface-hover'
+              : 'bg-transparent border-border text-muted hover:text-foreground hover:bg-surface-hover'
           }`}
         >
           All <span className="ml-1 opacity-60">{principles.length}</span>
@@ -246,7 +246,7 @@ export default function PrinciplesLibrary() {
               key={phase}
               onClick={() => setActivePhase(phase)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                isActive ? c.tabActive : `bg-transparent border-border/50 text-muted ${c.tabHover}`
+                isActive ? c.tabActive : `bg-transparent border-border text-muted ${c.tabHover}`
               }`}
             >
               <span className="flex items-center gap-1.5">
@@ -290,7 +290,7 @@ export default function PrinciplesLibrary() {
                     className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
                       isSelected
                         ? `${c.bg} ${c.border}`
-                        : 'bg-surface-hover/40 border-border hover:border-border/80 hover:bg-surface-hover/70'
+                        : 'bg-surface-hover/40 border-border hover:border-border hover:bg-surface-hover/70'
                     }`}
                   >
                     <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full ${c.dot} ${isSelected ? 'opacity-100' : 'opacity-20 group-hover:opacity-50'} transition-opacity`} />
@@ -329,7 +329,7 @@ export default function PrinciplesLibrary() {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
-              className={`h-full rounded-2xl border bg-surface/40 overflow-y-auto custom-scrollbar flex flex-col ${colors.border}`}
+              className={`h-full rounded-2xl border bg-surface overflow-y-auto custom-scrollbar flex flex-col ${colors.border}`}
             >
               {/* Detail Header */}
               <div className={`p-6 border-b ${colors.border} ${colors.bg}`}>
@@ -396,7 +396,7 @@ export default function PrinciplesLibrary() {
                   if (type === 'video') return (
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                      <div className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border/80 transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
+                      <div className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
                         <div className="flex flex-col items-center gap-2 text-white/60 group-hover:text-white transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span></div>
                       </div>
                     </div>
@@ -404,7 +404,7 @@ export default function PrinciplesLibrary() {
                   if (type === 'pdf') return (
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                      <div className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border/80 transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
+                      <div className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
                         <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors"><FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">Open PDF</span></div>
                       </div>
                     </div>
@@ -414,7 +414,7 @@ export default function PrinciplesLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="h-full min-h-[400px] rounded-2xl border border-border bg-surface/20 flex flex-col items-center justify-center text-muted">
+            <div className="h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a principle to view details</p>
             </div>
