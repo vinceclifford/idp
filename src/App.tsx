@@ -147,7 +147,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
   };
 
   return (
-      <div className="flex h-screen bg-background text-foreground selection:bg-blue-500/30 overflow-hidden">
+      <div className="flex h-[100dvh] bg-background text-foreground selection:bg-blue-500/30 overflow-hidden">
         <Navigation 
           currentPage={currentPage} 
           onNavigate={navigateToPage}

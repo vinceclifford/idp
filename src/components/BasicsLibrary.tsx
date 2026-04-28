@@ -137,7 +137,7 @@ export default function BasicsLibrary() {
   const selected = basics.find(b => b.id === selectedId) ?? filtered[0] ?? null;
 
   return (
-    <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto gap-6 overflow-hidden">
+    <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto gap-6 overflow-y-auto lg:overflow-hidden">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">

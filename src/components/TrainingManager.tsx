@@ -342,7 +342,7 @@ export default function TrainingManager() {
                                                     animate
                                                     delay={idx * 0.05}
                                                     onClick={() => setSelectedSession(s)}
-                                                    className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm dark:shadow-lg group relative overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
+                                                    className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm dark:shadow-lg group relative overflow-y-auto lg:overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
                                                 >
                                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-indigo-600" />
                                                     <div className="flex-1 pl-2">

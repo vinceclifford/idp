@@ -591,7 +591,7 @@ useEffect(() => {
         </div>
 
         <div className="col-span-12 lg:col-span-9">
-          <Card className="p-8 bg-gradient-to-br from-emerald-900 to-emerald-950 border-emerald-900/50 relative overflow-hidden" style={{ minHeight: '848px' }}>
+          <Card className="p-8 bg-gradient-to-br from-emerald-900 to-emerald-950 border-emerald-900/50 relative overflow-y-auto lg:overflow-hidden" style={{ minHeight: '848px' }}>
             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 49px, #fff 50px)' }}></div>
             <div className="absolute inset-8 border-2 border-emerald-400/20 rounded-lg pointer-events-none">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-emerald-400/20 border-t-0 rounded-b-lg"></div>
