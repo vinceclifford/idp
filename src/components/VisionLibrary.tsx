@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, History, Plus } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Plus, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,15 +21,14 @@ interface Vision {
 
 export default function VisionLibrary() {
     const [visions, setVisions] = useState<Vision[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [, setIsLoading] = useState(true);
     const [viewingVision, setViewingVision] = useState<Vision | null>(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    // Filter sessions or just use the log
-    const [showHistory, setShowHistory] = useState(false);
+    const [selectedVisionId, setSelectedVisionId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchVisions();
@@ -85,149 +84,160 @@ export default function VisionLibrary() {
         }
     };
 
-    const activeVision = visions[0]; // Latest one is active
-    const historyVisions = visions.slice(1);
+    const selectedVision = visions.find(v => v.id === selectedVisionId) || visions[0] || null;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full">
+        <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto gap-6 overflow-hidden">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Coaching Vision</h1>
-                    <p className="text-slate-400">Manage and present your team's tactical philosophy and long-term goals.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-1 h-10 rounded-full bg-pink-500 flex-shrink-0" />
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Coaching Vision</h1>
+                        <p className="text-sm text-muted mt-0.5">Manage and present your tactical philosophy</p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button 
-                        variant="secondary" 
-                        onClick={() => setShowHistory(!showHistory)}
-                        icon={<History size={18} />}
-                    >
-                        {showHistory ? "Hide History" : "View History"}
-                    </Button>
-                    <Button 
                         onClick={() => setShowUploadModal(true)}
                         icon={<Plus size={18} />}
+                        className="shadow-lg shadow-pink-500/20"
                     >
                         New Version
                     </Button>
                 </div>
             </div>
 
-            <div className={`grid grid-cols-1 ${showHistory ? 'lg:grid-cols-3' : ''} gap-8`}>
-                {/* Main: Current Vision */}
-                <div className={`${showHistory ? 'lg:col-span-2' : ''} space-y-6`}>
-                    {activeVision ? (
-                        <Card className="overflow-hidden border-blue-500/20 bg-blue-500/[0.02]">
-                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                        <FileText size={24} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-white uppercase tracking-wider">{activeVision.title}</h2>
-                                        <p className="text-sm text-slate-500">
-                                            Active since {new Date(activeVision.uploaded_at).toLocaleDateString()}
-                                        </p>
-                                    </div>
+            {/* Master / Detail */}
+            <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+                {/* LEFT: List */}
+                <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
+                    <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
+                        <AnimatePresence>
+                            {visions.length === 0 && (
+                                <div className="text-center py-16 text-muted">
+                                    <FileText size={32} className="mx-auto mb-3 opacity-30" />
+                                    <p className="text-sm">No visions found</p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                     <Button 
-                                        variant="primary" 
-                                        onClick={() => setViewingVision(activeVision)}
-                                        icon={<Eye size={16} />}
+                            )}
+                            {visions.map((v, idx) => {
+                                const isSelected = selectedVision?.id === v.id;
+                                const isLatest = idx === 0;
+                                return (
+                                    <motion.div
+                                        key={v.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.97 }}
+                                        onClick={() => setSelectedVisionId(v.id)}
+                                        className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
+                                            isSelected
+                                                ? 'bg-pink-500/10 border-pink-500/30'
+                                                : 'bg-surface-hover/40 border-border hover:border-border/80 hover:bg-surface-hover/70'
+                                        }`}
                                     >
-                                        Present
-                                    </Button>
-                                    <a 
-                                        href={`/static/uploads/${activeVision.filename}`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-colors border border-transparent hover:border-white/10"
-                                    >
-                                        <Download size={18} />
-                                    </a>
+                                        <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-pink-500 ${isSelected ? 'opacity-100' : 'opacity-20 group-hover:opacity-50'} transition-opacity`} />
+                                        <div className="pl-3 flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-bold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>{v.title}</p>
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${isLatest ? 'text-pink-500' : 'text-muted'}`}>
+                                                    {isLatest ? 'Active Version' : 'Archived'}
+                                                </span>
+                                                <p className="text-xs text-muted mt-1 shadow-sm">
+                                                    {new Date(v.uploaded_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                {isSelected && <ChevronRight size={14} className="text-pink-500 mt-0.5" />}
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                                                    {!isLatest && (
+                                                        <button
+                                                            onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
+                                                            className="p-1.5 rounded-lg bg-surface-hover hover:bg-rose-500/10 text-muted hover:text-rose-500 border border-border transition-colors"
+                                                        ><Trash2 size={11} /></button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* RIGHT: Detail View */}
+                <div className="col-span-12 lg:col-span-8 h-full overflow-hidden">
+                    {selectedVision ? (
+                        <motion.div
+                            key={selectedVision.id}
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="h-full rounded-2xl border border-pink-500/20 bg-surface/40 flex flex-col overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-pink-500/20 bg-pink-500/5">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border mb-3 border-pink-500/20 bg-pink-500/10 text-pink-500`}>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+                                            {selectedVision.id === visions[0]?.id ? 'Current Phase' : 'Archived Phase'}
+                                        </span>
+                                        <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedVision.title}</h2>
+                                    </div>
+                                    <div className="flex gap-2 shrink-0">
+                                        <Button 
+                                            variant="primary" 
+                                            onClick={() => setViewingVision(selectedVision)}
+                                            icon={<Eye size={16} />}
+                                        >
+                                            Present
+                                        </Button>
+                                        <a 
+                                            href={`/static/uploads/${selectedVision.filename}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
+                                        >
+                                            <Download size={14} /> Download
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                             
-                            {/* Preview Window (Compact) */}
-                            <div className="aspect-[16/9] bg-slate-900/50 relative group">
+                            {/* Preview Window inside panel */}
+                            <div className="flex-1 relative bg-slate-900 overflow-hidden isolate">
                                 <iframe 
-                                    src={`/static/uploads/${activeVision.filename}#toolbar=0`}
+                                    src={`/static/uploads/${selectedVision.filename}#toolbar=0`}
                                     className="w-full h-full border-none pointer-events-none opacity-60"
                                     title="Active Vision Preview"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
+                                    <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-4 border border-white/20">
+                                        <Eye size={24} />
+                                    </div>
                                     <Button 
                                         variant="secondary"
-                                        onClick={() => setViewingVision(activeVision)}
-                                        icon={<Maximize2 size={18} />}
+                                        onClick={() => setViewingVision(selectedVision)}
+                                        className="shadow-xl"
                                     >
-                                        Click to Present
+                                        Click to Present Fullscreen
                                     </Button>
                                 </div>
                             </div>
-                        </Card>
+                        </motion.div>
                     ) : (
-                        <Card className="flex flex-col items-center justify-center py-20 text-center border-dashed border-white/10">
-                            <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-600 mb-6">
+                        <Card className="h-full flex flex-col items-center justify-center py-20 text-center border-dashed border-border bg-surface/50">
+                            <div className="w-20 h-20 rounded-full bg-surface-hover flex items-center justify-center text-muted mb-6 shadow-none">
                                 <FileText size={40} />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">No Vision Found</h3>
-                            <p className="text-slate-500 max-w-xs mb-8">Upload your tactical vision PDF to share it with your staff and present it in meetings.</p>
+                            <h3 className="text-xl font-bold text-foreground mb-2">No Vision Found</h3>
+                            <p className="text-muted max-w-xs mb-8">Upload your tactical vision PDF to share it with your staff.</p>
                             <Button onClick={() => setShowUploadModal(true)}>Upload Your First Vision</Button>
                         </Card>
                     )}
                 </div>
-
-                {/* Sidebar: History/Log */}
-                {showHistory && (
-                <div className="space-y-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 px-1">
-                        <History size={18} className="text-slate-500" />
-                        Vision Archive
-                    </h3>
-                    
-                    <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {visions.length > 0 ? visions.map((v, idx) => (
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                key={v.id}
-                            >
-                                <Card 
-                                    className={`p-4 border-white/5 hover:border-white/10 transition-all cursor-pointer group ${idx === 0 ? 'bg-blue-500/5' : 'bg-white/[0.02]'}`}
-                                    onClick={() => setViewingVision(v)}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex gap-3">
-                                            <div className={`p-2 rounded-lg ${idx === 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800/50 text-slate-500'}`}>
-                                                <FileText size={16} />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-1">{v.title}</h4>
-                                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                                    {new Date(v.uploaded_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {idx !== 0 && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(v.id); }}
-                                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-rose-500/10 hover:text-rose-400 text-slate-600 transition-all"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        )) : (
-                            <p className="text-sm text-slate-600 text-center py-8">Log is empty</p>
-                        )}
-                    </div>
-                </div>
-                )}
             </div>
 
             {/* Upload Modal */}
@@ -320,25 +330,3 @@ export default function VisionLibrary() {
     );
 }
 
-// Missing Lucide icons
-function Maximize2(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <polyline points="15 3 21 3 21 9" />
-      <polyline points="9 21 3 21 3 15" />
-      <line x1="21" y1="3" x2="14" y2="10" />
-      <line x1="3" y1="21" x2="10" y2="14" />
-    </svg>
-  )
-}
