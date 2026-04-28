@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTeam } from '../contexts/TeamContext';
 import { Users } from 'lucide-react';
 import { Select } from './ui/Select';
