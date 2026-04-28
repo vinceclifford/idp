@@ -90,6 +90,26 @@ export default function App() {
     setCurrentPage(page);
   };
 
+// If authenticated, show the Main App
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginPage onLogin={handleLogin} />
+        <Toaster position="top-right" theme={toasterTheme} />
+      </>
+    );
+  }
+
+  return (
+    <TeamProvider isAuthenticated={isAuthenticated}>
+      <DndProvider backend={HTML5Backend}>
+        <AppLayout currentPage={currentPage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
+        <Toaster position="top-right" theme={toasterTheme} />
+      </DndProvider>
+    </TeamProvider>
+  );
+}
+
 function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage: Page, navigateToPage: (page: Page) => void, handleLogout: () => void }) {
   const { loading } = useTeam();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -165,25 +185,5 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
           onNavigate={(page) => { navigateToPage(page as Page); }}
         />
       </div>
-  );
-}
-
-// If authenticated, show the Main App
-  if (!isAuthenticated) {
-    return (
-      <>
-        <LoginPage onLogin={handleLogin} />
-        <Toaster position="top-right" theme={toasterTheme} />
-      </>
-    );
-  }
-
-  return (
-    <TeamProvider isAuthenticated={isAuthenticated}>
-      <DndProvider backend={HTML5Backend}>
-        <AppLayout currentPage={currentPage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-        <Toaster position="top-right" theme={toasterTheme} />
-      </DndProvider>
-    </TeamProvider>
   );
 }
