@@ -148,7 +148,7 @@ export default function TacticsLibrary() {
       </div>
 
       {/* Master / Detail */}
-      <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
 
         {/* LEFT: List */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
@@ -156,7 +156,7 @@ export default function TacticsLibrary() {
             <Input icon={<Search size={15} />} placeholder="Search tactics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
-          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
+          <div className="space-y-2 lg:overflow-y-auto custom-scrollbar pr-1 lg:flex-1 lg:min-h-0">
             <AnimatePresence>
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
@@ -211,7 +211,7 @@ export default function TacticsLibrary() {
         </div>
 
         {/* RIGHT: Detail Panel */}
-        <div className="col-span-12 lg:col-span-8 h-full overflow-hidden">
+        <div className="col-span-12 lg:col-span-8 lg:h-full lg:overflow-hidden">
           {selected ? (
             <motion.div
               key={selected.id}
@@ -282,7 +282,7 @@ export default function TacticsLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="h-full min-h-[400px] rounded-2xl border border-white/5 bg-slate-900/20 flex flex-col items-center justify-center text-slate-600">
+            <div className="lg:h-full min-h-[400px] rounded-2xl border border-white/5 bg-slate-900/20 flex flex-col items-center justify-center text-slate-600">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a tactic to view details</p>
             </div>

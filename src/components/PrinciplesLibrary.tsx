@@ -260,7 +260,7 @@ export default function PrinciplesLibrary() {
       </div>
 
       {/* Master / Detail */}
-      <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
 
         {/* LEFT: List */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
@@ -268,7 +268,7 @@ export default function PrinciplesLibrary() {
             <Input icon={<Search size={15} />} placeholder="Search principles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
-          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
+          <div className="space-y-2 lg:overflow-y-auto custom-scrollbar pr-1 lg:flex-1 lg:min-h-0">
             <AnimatePresence>
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
@@ -322,14 +322,14 @@ export default function PrinciplesLibrary() {
         </div>
 
         {/* RIGHT: Detail Panel */}
-        <div className="col-span-12 lg:col-span-8 h-full overflow-hidden">
+        <div className="col-span-12 lg:col-span-8 lg:h-full lg:overflow-hidden">
           {selected && colors ? (
             <motion.div
               key={selected.id}
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
-              className={`h-full rounded-2xl border bg-surface overflow-y-auto custom-scrollbar flex flex-col ${colors.border}`}
+              className={`lg:h-full rounded-2xl border bg-surface lg:overflow-y-auto custom-scrollbar flex flex-col ${colors.border}`}
             >
               {/* Detail Header */}
               <div className={`p-6 border-b ${colors.border} ${colors.bg}`}>
@@ -414,7 +414,7 @@ export default function PrinciplesLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
+            <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a principle to view details</p>
             </div>

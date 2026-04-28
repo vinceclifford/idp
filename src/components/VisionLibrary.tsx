@@ -109,10 +109,10 @@ export default function VisionLibrary() {
             </div>
 
             {/* Master / Detail */}
-            <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
                 {/* LEFT: List */}
                 <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
-                    <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
+                    <div className="space-y-2 lg:overflow-y-auto custom-scrollbar pr-1 lg:flex-1 lg:min-h-0">
                         <AnimatePresence>
                             {visions.length === 0 && (
                                 <div className="text-center py-16 text-muted">
@@ -168,7 +168,7 @@ export default function VisionLibrary() {
                 </div>
 
                 {/* RIGHT: Detail View */}
-                <div className="col-span-12 lg:col-span-8 h-full overflow-hidden">
+                <div className="col-span-12 lg:col-span-8 lg:h-full lg:overflow-hidden">
                     {selectedVision ? (
                         <motion.div
                             key={selectedVision.id}
