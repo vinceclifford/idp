@@ -24,6 +24,7 @@ import { Page } from './types/ui';
 // Services
 import { AuthService } from './services';
 import { useTeam } from './contexts/TeamContext';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function App() {
   console.log("[App] Rendering component...");
@@ -39,15 +40,14 @@ export default function App() {
     return localStorage.getItem('isAuthenticated') === 'true' ? 'dashboard' : 'login';
   });
 
-  // Force Dark Mode 
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+  const { theme } = useTheme();
+  const toasterTheme = theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme;
 
   const handleLogout = () => {
     // 1. Instant local logout for snappy UX
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user'); 
+    localStorage.removeItem('access_token');
     setIsAuthenticated(false);
     setCurrentPage('login');
     toast.success("Logged out successfully");
@@ -125,14 +125,14 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
   };
 
   return (
-      <div className="flex h-screen bg-[#0b0f19] text-slate-200 selection:bg-blue-500/30 overflow-hidden">
+      <div className="flex h-screen bg-background text-foreground selection:bg-blue-500/30 overflow-hidden">
         <Navigation 
           currentPage={currentPage} 
           onNavigate={navigateToPage}
           onLogout={handleLogout}
         />
         
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 overflow-hidden h-full flex flex-col min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
@@ -140,7 +140,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.18, ease: 'easeInOut' }}
-              className="min-h-full flex flex-col"
+              className="flex-1 flex flex-col min-h-0 overflow-hidden"
             >
               {loading ? (
                 <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-100px)]">
@@ -173,7 +173,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     return (
       <>
         <LoginPage onLogin={handleLogin} />
-        <Toaster position="top-right" theme="dark" />
+        <Toaster position="top-right" theme={toasterTheme} />
       </>
     );
   }
@@ -182,7 +182,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     <TeamProvider isAuthenticated={isAuthenticated}>
       <DndProvider backend={HTML5Backend}>
         <AppLayout currentPage={currentPage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-        <Toaster position="top-right" theme="dark" />
+        <Toaster position="top-right" theme={toasterTheme} />
       </DndProvider>
     </TeamProvider>
   );

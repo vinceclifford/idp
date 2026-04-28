@@ -46,8 +46,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- AUTH HELPER (Reading from Cookie) ---
 def get_current_user(request: Request, db: Session = Depends(database.get_db)):
-    # Look for 'access_token' in cookies instead of headers
+    # Look for 'access_token' in cookies or Authorization header
     token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
         
@@ -108,6 +113,7 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
     
     return {
         "message": "Login successful",
+        "access_token": access_token,
         "user": {
             "email": db_user.email,
             "full_name": db_user.full_name
