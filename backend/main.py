@@ -18,9 +18,19 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
 
+# Allow Railway frontend URL via env variable, plus localhost for dev
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    frontend_url
+]
+# Remove duplicates
+origins = list(set(origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], 
+    allow_origins=origins, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,6 +90,8 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
         data={"sub": db_user.email}, expires_delta=access_token_expires
     )
     
+    is_production = os.environ.get("ENVIRONMENT") == "production"
+    
     # Set HttpOnly Cookie
     response.set_cookie(
         key="access_token",
@@ -87,8 +99,8 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax", # Important for local development between ports
-        secure=False,   # Set to True in production with HTTPS
+        samesite="none" if is_production else "lax", # Cross-site needs "none" in production
+        secure=is_production,   # Must be True if samesite="none"
     )
     
     return {
