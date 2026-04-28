@@ -19,7 +19,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app = FastAPI()
 
 # Allow Railway frontend URL via env variable, plus localhost for dev
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173").strip().rstrip("/")
+if not frontend_url.startswith("http"):
+    frontend_url = "https://" + frontend_url
+
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
