@@ -230,10 +230,10 @@ export default function ExercisesLibrary() {
 
         if (type === 'pdf') return (
             <div
-                className={`flex flex-col items-center justify-center h-full text-slate-400 bg-slate-900 rounded-lg border border-white/5 ${isPreview ? 'cursor-zoom-in hover:bg-slate-800 transition-colors group' : ''}`}
+                className={`flex flex-col items-center justify-center h-full text-muted bg-surface/50 rounded-lg border border-border ${isPreview ? 'cursor-zoom-in hover:bg-surface transition-colors group' : ''}`}
                 onClick={openLightbox}
             >
-                <FileText size={48} className="mb-2 group-hover:text-blue-400 transition-colors" />
+                <FileText size={48} className="mb-2 group-hover:text-primary transition-colors" />
                 <span className="text-sm">PDF Document</span>
                 {!isPreview && <a href={url} download="exercise.pdf" className="mt-2 text-blue-500 text-xs hover:underline">Download</a>}
             </div>
@@ -243,13 +243,13 @@ export default function ExercisesLibrary() {
     };
 
     return (
-        <div className="p-6 sm:p-8 max-w-[1600px] mx-auto space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto gap-6 overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-amber-500 flex-shrink-0" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-white">Exercises Library</h1>
-                        <p className="text-sm text-slate-500 mt-0.5">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Exercises Library</h1>
+                        <p className="text-sm text-muted mt-0.5">
                             {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
                         </p>
                     </div>
@@ -266,8 +266,8 @@ export default function ExercisesLibrary() {
                     onClick={() => setActiveIntensity('All')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                         activeIntensity === 'All'
-                            ? 'bg-white/10 border-white/30 text-white'
-                            : 'bg-transparent border-white/10 text-slate-500 hover:text-white hover:border-white/20'
+                            ? 'bg-surface-raised border-border text-foreground'
+                            : 'bg-transparent border-border/50 text-muted hover:text-foreground hover:border-border'
                     }`}
                 >
                     All <span className="ml-1 opacity-60">{exercises.length}</span>
@@ -285,7 +285,7 @@ export default function ExercisesLibrary() {
                             key={level}
                             onClick={() => setActiveIntensity(level)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                isActive ? styles.active : `bg-transparent border-white/10 text-slate-500 ${styles.hover}`
+                                isActive ? styles.active : `bg-transparent border-border/50 text-muted ${styles.hover}`
                             }`}
                         >
                             <span className="flex items-center gap-1.5">
@@ -299,22 +299,16 @@ export default function ExercisesLibrary() {
             </div>
 
             {/* Search */}
-            <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                <input
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search exercises..."
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-900/60 border border-white/5 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 focus:bg-slate-900 transition-colors"
-                />
+            <div className="flex-shrink-0">
+                <Input icon={<Search size={18} />} placeholder="Search exercises..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-6">
                 <AnimatePresence>
                     {filteredExercises.map((ex, idx) => (
-                        <Card key={ex.id} animate delay={idx * 0.05} onClick={() => setSelectedExercise(ex)} className="p-6 cursor-pointer hover:border-blue-500/50 flex flex-col h-full group">
+                        <Card key={ex.id} animate delay={idx * 0.05} onClick={() => setSelectedExercise(ex)} className="p-6 cursor-pointer hover:border-primary/50 flex flex-col h-full group">
                             <div className="flex justify-between items-start mb-4">
-                                <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{ex.name}</h3>
+                                <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">{ex.name}</h3>
                                 <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${getIntensityStyles(ex.intensity)}`}>{ex.intensity}</span>
                             </div>
 
@@ -329,10 +323,10 @@ export default function ExercisesLibrary() {
                                 )}
                             </div>
 
-                            <p className="text-sm text-slate-400 line-clamp-2 mb-5 leading-relaxed">{ex.description}</p>
+                            <p className="text-sm text-muted line-clamp-2 mb-5 leading-relaxed">{ex.description}</p>
                             <div className="flex flex-wrap gap-2 mt-auto">
-                                {ex.equipment.slice(0, 3).map((e, i) => <span key={i} className="text-[10px] bg-slate-900 text-slate-400 px-2 py-1 rounded border border-white/5">{e}</span>)}
-                                {ex.equipment.length > 3 && <span className="text-[10px] text-slate-500 pt-1">+{ex.equipment.length - 3}</span>}
+                                {ex.equipment.slice(0, 3).map((e, i) => <span key={i} className="text-[10px] bg-surface text-muted px-2 py-1 rounded border border-border">{e}</span>)}
+                                {ex.equipment.length > 3 && <span className="text-[10px] text-muted pt-1">+{ex.equipment.length - 3}</span>}
                             </div>
                         </Card>
                     ))}
@@ -360,8 +354,8 @@ export default function ExercisesLibrary() {
                         </div>
 
                         <div>
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Visuals</label>
-                            <div className="h-32 bg-slate-900/50 border-2 border-dashed border-slate-800 rounded-xl relative group hover:border-blue-500/30 transition-colors flex flex-col items-center justify-center text-slate-500 overflow-hidden cursor-pointer">
+                            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">Visuals</label>
+                            <div className="h-32 bg-surface-hover border-2 border-dashed border-border rounded-xl relative group hover:border-primary/30 transition-colors flex flex-col items-center justify-center text-muted overflow-hidden cursor-pointer">
                                 {mediaPreview ? (
                                     <>
                                         {getMediaType(mediaPreview) === 'image' && <img src={mediaPreview} className="w-full h-full object-cover" />}
@@ -383,9 +377,9 @@ export default function ExercisesLibrary() {
                     <div className="space-y-4">
                         {['Description', 'Setup', 'Variations', 'Coaching Points'].map(field => (
                             <div key={field}>
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">{field}</label>
+                                <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-1 block">{field}</label>
                                 <textarea
-                                    className="w-full bg-slate-900/50 border border-white/5 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all focus:bg-slate-900 focus:border-blue-500/50 hover:border-white/10 resize-none h-20 custom-scrollbar placeholder:text-slate-600"
+                                    className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3 text-sm outline-none transition-all focus:bg-surface focus:border-primary/50 hover:border-border resize-none h-20 custom-scrollbar placeholder:text-dimmed"
                                     value={(formData as any)[field === 'Coaching Points' ? 'coachingPoints' : field.toLowerCase()]}
                                     onChange={e => setFormData({ ...formData, [field === 'Coaching Points' ? 'coachingPoints' : field.toLowerCase()]: e.target.value })}
                                     placeholder={`Enter ${field.toLowerCase()}...`}
