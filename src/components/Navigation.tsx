@@ -35,7 +35,7 @@ const NAV_GROUPS: {
   }
 ];
 
-export default function Navigation({ currentPage, onNavigate, onLogout }: NavigationProps) {
+export default function Navigation({ currentPage, onNavigate, onLogout, isMobileOpen, onMobileClose }: NavigationProps) {
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -55,11 +55,27 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
   const ThemeIcon = theme === 'system' ? Monitor : theme === 'light' ? Sun : Moon;
 
   return (
-    <motion.aside
-      animate={{ width: collapsed ? 72 : 240 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="relative flex flex-col h-screen bg-surface border-r border-border z-40 flex-shrink-0 overflow-hidden"
-    >
+    <>
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+            onClick={onMobileClose}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.aside
+        animate={{ width: collapsed && !isMobileOpen ? 72 : 240 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={`fixed md:relative inset-y-0 left-0 flex flex-col h-screen bg-surface border-r border-border z-50 md:z-40 flex-shrink-0 overflow-hidden transition-transform duration-300 ease-in-out ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-border min-h-[72px]">
         <div className="flex-shrink-0 bg-primary p-2 rounded-xl shadow-lg shadow-blue-500/20 text-white">
@@ -100,8 +116,11 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
               return (
                 <button
                   key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  title={collapsed ? item.label : undefined}
+                  onClick={() => {
+                    onNavigate(item.id);
+                    if (onMobileClose) onMobileClose();
+                  }}
+                  title={collapsed && !isMobileOpen ? item.label : undefined}
                   className={`relative flex items-center gap-3 w-full rounded-xl px-3 py-2 transition-all duration-150 group
                     ${isActive
                       ? `${item.activeBg} border border-transparent`
@@ -123,7 +142,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
                   />
 
                   <AnimatePresence>
-                    {!collapsed && (
+                    {(!collapsed || isMobileOpen) && (
                       <motion.span
                         initial={{ opacity: 0, x: -6 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -145,7 +164,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
 
       {/* ⌘K hint */}
       <AnimatePresence>
-        {!collapsed && (
+        {(!collapsed || isMobileOpen) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -170,12 +189,12 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
         <button
           type="button"
           onClick={cycleTheme}
-          title={collapsed ? `Theme: ${theme}` : undefined}
+          title={collapsed && !isMobileOpen ? `Theme: ${theme}` : undefined}
           className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted hover:text-primary hover:bg-primary/10 border border-transparent transition-all duration-150 group"
         >
           <ThemeIcon className="w-[18px] h-[18px] flex-shrink-0" />
           <AnimatePresence>
-            {!collapsed && (
+            {(!collapsed || isMobileOpen) && (
               <motion.span
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -192,12 +211,12 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
         <button
           type="button"
           onClick={onLogout}
-          title={collapsed ? 'Logout' : undefined}
+          title={collapsed && !isMobileOpen ? 'Logout' : undefined}
           className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted hover:text-red-500 hover:bg-red-500/10 border border-transparent transition-all duration-150 group"
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           <AnimatePresence>
-            {!collapsed && (
+            {(!collapsed || isMobileOpen) && (
               <motion.span
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -214,8 +233,8 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted/60 hover:text-muted hover:bg-surface-hover border border-transparent transition-all duration-150"
+          title={collapsed && !isMobileOpen ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="hidden md:flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted/60 hover:text-muted hover:bg-surface-hover border border-transparent transition-all duration-150"
         >
           {collapsed
             ? <ChevronRight className="w-[18px] h-[18px] flex-shrink-0" />
@@ -237,5 +256,6 @@ export default function Navigation({ currentPage, onNavigate, onLogout }: Naviga
         </button>
       </div>
     </motion.aside>
+    </>
   );
 }

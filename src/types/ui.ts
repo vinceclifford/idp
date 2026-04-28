@@ -19,6 +19,8 @@ export interface NavigationProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
   onLogout: () => void;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export interface ExerciseSlideOverProps {

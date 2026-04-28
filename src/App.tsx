@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Menu, Trophy } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -114,6 +115,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
   const { loading } = useTeam();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenTeamModal = () => setIsTeamModalOpen(true);
@@ -150,9 +152,27 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
           currentPage={currentPage} 
           onNavigate={navigateToPage}
           onLogout={handleLogout}
+          isMobileOpen={isMobileMenuOpen}
+          onMobileClose={() => setIsMobileMenuOpen(false)}
         />
         
         <main className="flex-1 overflow-hidden h-full flex flex-col min-h-0">
+          {/* Mobile Header */}
+          <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-surface">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 bg-primary p-1.5 rounded-lg shadow-sm shadow-primary/20 text-white">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-bold text-foreground tracking-tight">CoachHub</span>
+            </div>
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -mr-2 text-muted hover:text-foreground hover:bg-surface-hover rounded-xl transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
