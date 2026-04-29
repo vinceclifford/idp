@@ -138,8 +138,8 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatc
     <div ref={drop} style={{ left: `${slot.x}%`, top: `${slot.y}%` }} className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110">
       {player ? (
         <div onClick={onClick} className="relative group cursor-pointer">
-          <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-blue-400"><span className="text-lg font-bold">{player.jerseyNumber}</span></div>
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">{player.firstName}</p></div>
+          <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-primary/40"><span className="text-lg font-bold">{player.jerseyNumber}</span></div>
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-foreground bg-surface/80 px-2 py-0.5 rounded border border-border">{player.firstName}</p></div>
           {!isMatchPast && <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="w-3 h-3" /></button>}
         </div>
       ) : (
@@ -602,9 +602,9 @@ useEffect(() => {
             <div className="absolute inset-8">
               {activeSlots.map((slot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) { setSelectedPlayer(p); setSelectedPlayerPerformance(p.performance || 0); } }} isMatchPast={isMatchPast} />)}
             </div>
-            <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-md rounded-lg px-4 py-2 border border-white/5">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest">Starters</p>
-              <p className="text-xl font-bold text-white">{lineup.size} / 11</p>
+            <div className="absolute top-6 right-6 bg-surface/40 backdrop-blur-md rounded-lg px-4 py-2 border border-border">
+              <p className="text-[10px] text-muted uppercase tracking-widest">Starters</p>
+              <p className="text-xl font-bold text-foreground">{lineup.size} / 11</p>
             </div>
           </Card>
         </div>
@@ -614,15 +614,15 @@ useEffect(() => {
         {selectedPlayer && (
             <div className="text-center space-y-6">
                 <div>
-                  <div className="w-24 h-24 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 border-4 border-slate-900">{selectedPlayer.jerseyNumber}</div>
-                  <h3 className="text-2xl font-bold text-white mb-1">{selectedPlayer.firstName} {selectedPlayer.lastName}</h3>
-                  <p className="text-blue-400 font-medium">{selectedPlayer.position}</p>
+                  <div className="w-24 h-24 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-primary/30 border-4 border-surface-raised">{selectedPlayer.jerseyNumber}</div>
+                  <h3 className="text-2xl font-bold text-foreground mb-1">{selectedPlayer.firstName} {selectedPlayer.lastName}</h3>
+                  <p className="text-primary font-medium">{selectedPlayer.position}</p>
                 </div>
                 
                 <div className="w-full space-y-4">
                     {isMatchPast ? (
-                      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Match Performance</p>
+                      <div className="bg-surface-raised/50 p-6 rounded-xl border border-border">
+                        <p className="text-xs text-muted uppercase tracking-widest font-bold mb-4">Match Performance</p>
                         <div className="space-y-3">
                           <input
                             type="range"
@@ -704,14 +704,14 @@ useEffect(() => {
                       </div>
                     )}
                     
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
-                      <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">Status</p>
+                    <div className="bg-surface-raised/50 p-6 rounded-xl border border-border">
+                      <p className="text-xs text-muted uppercase tracking-widest font-bold mb-2">Status</p>
                       <p className={`text-lg font-bold mt-2 ${
                         selectedPlayer.status === 'Active' 
                           ? 'text-emerald-400' 
                           : selectedPlayer.status === 'Injured'
                           ? 'text-red-400'
-                          : 'text-slate-400'
+                          : 'text-muted'
                       }`}>
                         {selectedPlayer.status}
                       </p>
@@ -758,9 +758,9 @@ useEffect(() => {
       <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title="Confirm Lineup" maxWidth="max-w-sm" 
         footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowSaveModal(false)} className="flex-1">Cancel</Button><Button onClick={handleSaveLineup} className="flex-1">Confirm</Button></div>}>
         <div className="space-y-4">
-            <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-slate-400">Match</span><span className="text-white font-bold">{matchDetails?.opponent || 'Unscheduled'}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-slate-400">Formation</span><span className="text-emerald-400 font-bold font-mono">{currentFormation}</span></div>
+            <div className="bg-surface-raised/50 p-4 rounded-xl border border-border space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-muted">Match</span><span className="text-foreground font-bold">{matchDetails?.opponent || 'Unscheduled'}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted">Formation</span><span className="text-emerald-400 font-bold font-mono">{currentFormation}</span></div>
             </div>
             <p className="text-sm text-slate-400 text-center">Save this lineup for {matchDetails ? matchDetails.opponent : 'the upcoming match'}?</p>
         </div>
@@ -771,7 +771,7 @@ useEffect(() => {
         <div
           ref={formationPickerRef}
           style={{ position: 'fixed', top: pickerPos.top, right: pickerPos.right, zIndex: 9999 }}
-          className="w-64 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/60 p-3 space-y-3"
+          className="w-64 bg-surface border border-border rounded-2xl shadow-2xl shadow-black/60 p-3 space-y-3"
         >
           {FORMATION_GROUPS.map(group => (
             <div key={group.label}>
@@ -784,7 +784,7 @@ useEffect(() => {
                     className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all border ${
                       currentFormation === f
                         ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400'
-                        : 'border-white/10 text-slate-400 bg-slate-800 hover:border-emerald-500/40 hover:text-emerald-300'
+                        : 'border-border text-muted bg-surface-raised hover:border-emerald-500/40 hover:text-emerald-300'
                     }`}
                   >
                     {f}

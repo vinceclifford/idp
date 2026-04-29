@@ -130,8 +130,8 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
             <div className="space-y-2">
                 <div className="flex items-center gap-2 px-1">
                     {icon}
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</h4>
-                    <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-slate-500">{items.length}</span>
+                    <h4 className="text-xs font-bold text-muted uppercase tracking-widest">{title}</h4>
+                    <span className="text-[10px] bg-surface-raised px-1.5 py-0.5 rounded text-dimmed">{items.length}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {items.map(item => (
@@ -140,11 +140,11 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                             onClick={() => toggleItem(type, item.id)}
                             className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group
                                 ${selectedIds[type].has(item.id) 
-                                    ? 'bg-blue-500/10 border-blue-500/30 text-white' 
-                                    : 'bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/10'}`}
+                                    ? 'bg-primary/10 border-primary/30 text-foreground' 
+                                    : 'bg-surface-hover border-border text-muted hover:border-border-subtle'}`}
                         >
                             <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all
-                                ${selectedIds[type].has(item.id) ? 'bg-blue-500 border-blue-500' : 'border-slate-700'}`}>
+                                ${selectedIds[type].has(item.id) ? 'bg-primary border-primary' : 'border-border'}`}>
                                 {selectedIds[type].has(item.id) && <Check size={12} className="text-white" />}
                             </div>
                             <span className="text-sm font-medium truncate">{item.name}</span>
@@ -165,18 +165,18 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
         >
             <div className="space-y-6">
                 {/* Mode Switcher */}
-                <div className="flex p-1 bg-slate-900/50 rounded-xl border border-white/5">
+                <div className="flex p-1 bg-surface-raised/50 rounded-xl border border-border">
                     <button 
                         onClick={() => setMode('export')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all
-                            ${mode === 'export' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            ${mode === 'export' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-foreground'}`}
                     >
                         <Download size={16} /> Export
                     </button>
                     <button 
                         onClick={() => setMode('import')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all
-                            ${mode === 'import' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            ${mode === 'import' ? 'bg-emerald-600 text-white shadow-lg' : 'text-muted hover:text-foreground'}`}
                     >
                         <Upload size={16} /> Import
                     </button>
@@ -185,7 +185,7 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                 {mode === 'export' ? (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-slate-400">Select the items you want to include in your export file.</p>
+                            <p className="text-sm text-muted">Select the items you want to include in your export file.</p>
                             <div className="flex gap-2">
                                 <Button variant="ghost" onClick={selectNone}>Select None</Button>
                                 <Button variant="secondary" onClick={selectAll}>Select All</Button>
@@ -195,7 +195,7 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                         {isLoading ? (
                             <div className="py-20 flex flex-col items-center justify-center gap-4">
                                 <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                <span className="text-slate-500 text-sm">Loading playbook data...</span>
+                                <span className="text-muted text-sm">Loading playbook data...</span>
                             </div>
                         ) : playbookData ? (
                             <div className="space-y-8 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
@@ -205,12 +205,12 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                                 {renderItemList('exercises', playbookData.exercises, <Clipboard size={14} className="text-amber-400" />, 'Exercises')}
                             </div>
                         ) : (
-                            <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-2xl">
-                                <p className="text-slate-500">No data found to export</p>
+                            <div className="py-20 text-center border-2 border-dashed border-border rounded-2xl">
+                                <p className="text-muted">No data found to export</p>
                             </div>
                         )}
 
-                        <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+                        <div className="pt-4 border-t border-border flex justify-end gap-3">
                             <Button variant="secondary" onClick={onClose}>Cancel</Button>
                             <Button 
                                 onClick={handleExport} 
@@ -222,12 +222,12 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                     </div>
                 ) : (
                     <div className="space-y-8 py-4">
-                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-white/10 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all group">
+                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-2xl bg-surface-hover/50 hover:bg-surface-hover hover:border-emerald-500/30 transition-all group">
                             <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-6 group-hover:scale-110 transition-transform">
                                 <FileJson size={32} />
                             </div>
-                            <h3 className="text-lg font-bold text-white mb-2">Upload Playbook File</h3>
-                            <p className="text-slate-500 text-sm text-center max-w-xs mb-8">
+                            <h3 className="text-lg font-bold text-foreground mb-2">Upload Playbook File</h3>
+                            <p className="text-muted text-sm text-center max-w-xs mb-8">
                                 Select a .json playbook file exported from another CoachHub account to import it into your library.
                             </p>
                             

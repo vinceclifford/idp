@@ -194,11 +194,11 @@ export default function TacticsLibrary() {
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                           <button
                             onClick={e => { e.stopPropagation(); openEdit(t); }}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/5 transition-colors"
+                            className="p-1.5 rounded-lg bg-surface-raised hover:bg-surface-hover text-muted hover:text-foreground border border-border transition-colors"
                           ><Edit2 size={11} /></button>
                           <button
                             onClick={e => { e.stopPropagation(); setConfirmDeleteId(t.id); }}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-400 border border-white/5 transition-colors"
+                            className="p-1.5 rounded-lg bg-surface-raised hover:bg-rose-900/60 text-muted hover:text-rose-400 border border-border transition-colors"
                           ><Trash2 size={11} /></button>
                         </div>
                       </div>
@@ -218,7 +218,7 @@ export default function TacticsLibrary() {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
-              className="h-full rounded-2xl border border-emerald-500/20 bg-slate-900/40 overflow-y-auto custom-scrollbar flex flex-col"
+              className="h-full rounded-2xl border border-emerald-500/20 bg-surface/40 overflow-y-auto custom-scrollbar flex flex-col"
             >
               {/* Detail Header */}
               <div className="p-6 border-b border-emerald-500/20 bg-emerald-500/5">
@@ -228,17 +228,17 @@ export default function TacticsLibrary() {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       {selected.formation}
                     </span>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">{selected.name}</h2>
+                    <h2 className="text-2xl font-bold text-foreground tracking-tight">{selected.name}</h2>
                   </div>
                   {selected.isCustom && (
                     <div className="flex gap-2 shrink-0">
                       <button
                         onClick={() => openEdit(selected)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
                       ><Edit2 size={12} /> Edit</button>
                       <button
                         onClick={() => setConfirmDeleteId(selected.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-400 text-xs font-bold border border-white/10 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-rose-900/50 text-muted hover:text-rose-400 text-xs font-bold border border-border transition-colors"
                       ><Trash2 size={12} /> Delete</button>
                     </div>
                   )}
@@ -282,7 +282,7 @@ export default function TacticsLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="lg:h-full min-h-[400px] rounded-2xl border border-white/5 bg-slate-900/20 flex flex-col items-center justify-center text-slate-600">
+            <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface-hover/20 flex flex-col items-center justify-center text-dimmed">>
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a tactic to view details</p>
             </div>

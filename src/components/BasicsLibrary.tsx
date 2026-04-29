@@ -273,7 +273,7 @@ export default function BasicsLibrary() {
                         className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors"
                         onClick={() => setViewMedia(selected.diagramUrl!)}
                       >
-                        <div className="flex flex-col items-center gap-2 text-white/60 group-hover:text-white transition-colors">
+                        <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors">
                           <VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span>
                         </div>
                       </div>

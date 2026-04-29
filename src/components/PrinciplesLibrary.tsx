@@ -396,8 +396,8 @@ export default function PrinciplesLibrary() {
                   if (type === 'video') return (
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                      <div className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
-                        <div className="flex flex-col items-center gap-2 text-white/60 group-hover:text-white transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span></div>
+                      <div className="w-full h-40 bg-background rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
+                        <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span></div>
                       </div>
                     </div>
                   );
@@ -483,8 +483,8 @@ export default function PrinciplesLibrary() {
               className="relative max-w-[95vw] max-h-[95vh] flex items-center justify-center"
               onClick={e => e.stopPropagation()}
             >
-              {getMediaType(viewMedia) === 'image' && <img src={viewMedia} className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-white/10" />}
-              {getMediaType(viewMedia) === 'video' && <video src={viewMedia} controls autoPlay className="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-white/10" />}
+              {getMediaType(viewMedia) === 'image' && <img src={viewMedia} className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-border" />}
+              {getMediaType(viewMedia) === 'video' && <video src={viewMedia} controls autoPlay className="max-w-full max-h-[90vh] rounded-xl shadow-2xl border border-border" />}
               {getMediaType(viewMedia) === 'pdf' && <iframe src={viewMedia} title="PDF" className="w-[80vw] h-[85vh] rounded-xl bg-white shadow-2xl" />}
               <button onClick={() => setViewMedia(null)} className="absolute top-3 right-3 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors border border-white/10"><X size={22} /></button>
             </motion.div>

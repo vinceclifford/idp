@@ -181,8 +181,8 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
             >
               <span>Search</span>
               <div className="flex items-center gap-0.5">
-                <kbd className="px-1 py-0.5 rounded bg-surface border border-border">⌘</kbd>
-                <kbd className="px-1 py-0.5 rounded bg-surface border border-border">K</kbd>
+                <kbd className="px-1 py-0.5 rounded bg-surface-raised border border-border">⌘</kbd>
+                <kbd className="px-1 py-0.5 rounded bg-surface-raised border border-border">K</kbd>
               </div>
             </button>
           </motion.div>

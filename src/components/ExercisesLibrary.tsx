@@ -214,7 +214,7 @@ export default function ExercisesLibrary() {
 
         if (type === 'video') return (
             <div
-                className={`w-full h-full bg-black rounded-lg flex items-center justify-center relative group ${isPreview ? 'cursor-zoom-in hover:bg-slate-900 transition-colors' : ''}`}
+                className={`w-full h-full bg-background rounded-lg flex items-center justify-center relative group ${isPreview ? 'cursor-zoom-in hover:bg-surface transition-colors' : ''}`}
                 onClick={openLightbox}
             >
                 {isPreview ? (
@@ -312,7 +312,7 @@ export default function ExercisesLibrary() {
                                 <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${getIntensityStyles(ex.intensity)}`}>{ex.intensity}</span>
                             </div>
 
-                            <div className="h-40 mb-4 bg-slate-950/50 rounded-xl overflow-hidden flex items-center justify-center border border-white/5 relative">
+                            <div className="h-40 mb-4 bg-background rounded-xl overflow-hidden flex items-center justify-center border border-border relative">
                                 {ex.mediaUrl ? renderMedia(ex.mediaUrl, true) : <ImageIcon size={24} className="text-slate-700" />}
 
                                 {/* Floating "View" Icon on Hover if media exists */}
@@ -388,21 +388,21 @@ export default function ExercisesLibrary() {
                         ))}
                     </div>
 
-                    <div className="w-full h-[1px] bg-white/5"></div>
+                    <div className="w-full h-[1px] bg-border"></div>
 
                     <div>
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Equipment</label>
                         <div className="flex flex-wrap gap-2">
                             {equipmentOptions.map(item => (
                                 <button key={item} type="button" onClick={() => toggleSelection('equipment', item)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${formData.equipment.includes(item) ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-900 border-white/5 text-slate-400 hover:border-white/20'}`}>
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${formData.equipment.includes(item) ? 'bg-primary border-primary text-white' : 'bg-surface-raised border-border text-muted hover:border-border-subtle'}`}>
                                     {item}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    <div className="w-full h-[1px] bg-white/5"></div>
+                    <div className="w-full h-[1px] bg-border"></div>
 
                     <div className="space-y-3">
                         {[
@@ -413,16 +413,16 @@ export default function ExercisesLibrary() {
                             const isOpen = openSection === section.label;
                             const count = formData[section.field].length;
                             return (
-                                <div key={section.label} className={`bg-slate-900/30 border border-white/5 rounded-xl overflow-hidden transition-colors ${section.borderHover}`}>
-                                    <button onClick={() => setOpenSection(isOpen ? null : section.label)} className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors">
-                                        <span className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isOpen ? section.color : 'text-slate-400'}`}>
+                                <div key={section.label} className={`bg-surface-hover/30 border border-border rounded-xl overflow-hidden transition-colors ${section.borderHover}`}>
+                                    <button onClick={() => setOpenSection(isOpen ? null : section.label)} className="w-full flex items-center justify-between p-4 text-left hover:bg-surface transition-colors">
+                                        <span className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isOpen ? section.color : 'text-muted'}`}>
                                             {section.label}
                                             {count > 0 && <span className={`bg-white/10 px-2 py-0.5 rounded-md text-[10px] text-white`}>{count} Selected</span>}
                                         </span>
                                         {isOpen ? <ChevronDown size={16} className={section.color} /> : <ChevronRight size={16} className="text-slate-500" />}
                                     </button>
                                     {isOpen && (
-                                        <div className="p-4 pt-0 border-t border-white/5">
+                                        <div className="p-4 pt-0 border-t border-border">
                                             <div className="flex items-center gap-2 mb-3 mt-3">
                                                 <Search size={14} className="text-slate-500" />
                                                 <input className="bg-transparent outline-none text-sm w-full text-slate-300 placeholder-slate-600" placeholder={`Search ${section.label.toLowerCase()}...`} value={section.search} onChange={e => section.setSearch(e.target.value)} />

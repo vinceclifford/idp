@@ -144,7 +144,7 @@ export default function VisionLibrary() {
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${isLatest ? 'text-pink-500' : 'text-muted'}`}>
                                                     {isLatest ? 'Active Version' : 'Archived'}
                                                 </span>
-                                                <p className="text-xs text-muted mt-1 shadow-sm">
+                                                <p className="text-xs text-muted mt-1">
                                                     {new Date(v.uploaded_at).toLocaleDateString()}
                                                 </p>
                                             </div>
@@ -207,13 +207,13 @@ export default function VisionLibrary() {
                             </div>
                             
                             {/* Preview Window inside panel */}
-                            <div className="flex-1 relative bg-slate-900 overflow-hidden isolate">
+                            <div className="flex-1 relative bg-background overflow-hidden isolate">
                                 <iframe 
                                     src={`/static/uploads/${selectedVision.filename}#toolbar=0`}
                                     className="w-full h-full border-none pointer-events-none opacity-60"
                                     title="Active Vision Preview"
                                 />
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/60 opacity-0 hover:opacity-100 transition-opacity text-foreground backdrop-blur-sm">
                                     <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-4 border border-white/20">
                                         <Eye size={24} />
                                     </div>
@@ -253,7 +253,7 @@ export default function VisionLibrary() {
                         <input
                             type="text"
                             placeholder="e.g., Pre-Season Vision 2024"
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                            className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 transition-colors"
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                             required
@@ -262,7 +262,7 @@ export default function VisionLibrary() {
 
                     <div 
                         className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all
-                            ${selectedFile ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 hover:border-blue-500/30 bg-white/[0.02]'}`}
+                            ${selectedFile ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border hover:border-primary/30 bg-surface-hover/50'}`}
                     >
                         <input
                             type="file"
@@ -273,10 +273,10 @@ export default function VisionLibrary() {
                         />
                         <label htmlFor="pdf-upload" className="cursor-pointer flex flex-col items-center">
                             <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 
-                                ${selectedFile ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                                ${selectedFile ? 'bg-emerald-500/20 text-emerald-400' : 'bg-surface-raised text-muted'}`}>
                                 <Upload size={24} />
                             </div>
-                            <span className="text-sm font-medium text-white mb-1">
+                            <span className="text-sm font-medium text-foreground mb-1">
                                 {selectedFile ? selectedFile.name : "Choose PDF Vision"}
                             </span>
                             <span className="text-xs text-slate-500">Only .pdf files supported</span>
@@ -314,7 +314,7 @@ export default function VisionLibrary() {
                     <div className="flex flex-col h-[80vh]">
                         <iframe 
                             src={`/static/uploads/${viewingVision.filename}`}
-                            className="w-full flex-1 rounded-xl border border-white/5 bg-slate-900"
+                            className="w-full flex-1 rounded-xl border border-border bg-background"
                             title="Vision Viewer"
                         />
                         <div className="mt-6 flex justify-between items-center px-2">
