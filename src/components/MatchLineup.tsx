@@ -474,7 +474,7 @@ useEffect(() => {
         </div>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-6 flex-shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             {matchDetails ? (
@@ -523,7 +523,7 @@ useEffect(() => {
           </div>
         </Card>
   
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-6 flex-shrink-0">
           <div className="col-span-12 lg:col-span-3 space-y-6">
             <Card className="p-4 flex flex-col h-[250px]">
               <div className="flex gap-2 mb-4">
