@@ -131,7 +131,14 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
       }
     };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+
+    const handleOpenSearch = () => setCmdOpen(true);
+    window.addEventListener('open-search', handleOpenSearch);
+
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('open-search', handleOpenSearch);
+    };
   }, []);
 
   const pageContent: Record<Exclude<Page, 'login'>, React.ReactNode> = {

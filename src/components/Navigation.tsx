@@ -172,13 +172,19 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
             transition={{ duration: 0.12 }}
             className="px-4 py-2"
           >
-            <div className="flex items-center justify-between px-2.5 py-2 rounded-xl bg-surface-hover border border-border text-[10px] font-semibold text-muted">
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-search'));
+                if (onMobileClose) onMobileClose();
+              }}
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-surface-hover hover:bg-surface-hover/80 border border-border text-[10px] font-semibold text-muted cursor-pointer transition-colors"
+            >
               <span>Search</span>
               <div className="flex items-center gap-0.5">
                 <kbd className="px-1 py-0.5 rounded bg-surface border border-border">⌘</kbd>
                 <kbd className="px-1 py-0.5 rounded bg-surface border border-border">K</kbd>
               </div>
-            </div>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
