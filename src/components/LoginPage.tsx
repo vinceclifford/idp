@@ -85,7 +85,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         toast.success(`Welcome back, ${response.user.full_name || 'Coach'}!`);
 
         localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('access_token', response.access_token);
         localStorage.setItem('user', JSON.stringify(response.user));
 
         console.log("[LoginPage] Calling onLogin()...");

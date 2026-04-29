@@ -107,13 +107,12 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none" if is_production else "lax", # Cross-site needs "none" in production
-        secure=is_production,   # Must be True if samesite="none"
+        samesite="none" if is_production else "lax",
+        secure=is_production,
     )
     
     return {
         "message": "Login successful",
-        "access_token": access_token,
         "user": {
             "email": db_user.email,
             "full_name": db_user.full_name
@@ -121,7 +120,10 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
     }
 
 @app.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
+    token = request.cookies.get("access_token")
+    if token:
+        security.blacklist_token(token)
     response.delete_cookie("access_token")
     return {"message": "Logged out"}
 

@@ -3,7 +3,6 @@ import { apiClient } from './api-client';
 
 export interface AuthResponse {
   message: string;
-  access_token: string;
   user: {
     email: string;
     full_name: string;

@@ -47,8 +47,7 @@ export default function App() {
   const handleLogout = () => {
     // 1. Instant local logout for snappy UX
     localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user'); 
-    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
     setIsAuthenticated(false);
     setCurrentPage('login');
     toast.success("Logged out successfully");
