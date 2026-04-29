@@ -113,6 +113,7 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
     
     return {
         "message": "Login successful",
+        "access_token": access_token,
         "user": {
             "email": db_user.email,
             "full_name": db_user.full_name
@@ -122,6 +123,10 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
 @app.post("/logout")
 def logout(request: Request, response: Response):
     token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
     if token:
         security.blacklist_token(token)
     response.delete_cookie("access_token")
