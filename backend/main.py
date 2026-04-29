@@ -98,8 +98,8 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
         data={"sub": db_user.email}, expires_delta=access_token_expires
     )
     
-    is_production = os.environ.get("ENVIRONMENT") == "production"
-    
+    is_cross_origin = frontend_url.startswith("https://")
+
     # Set HttpOnly Cookie
     response.set_cookie(
         key="access_token",
@@ -107,8 +107,8 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
         httponly=True,
         max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="none" if is_production else "lax",
-        secure=is_production,
+        samesite="none" if is_cross_origin else "lax",
+        secure=is_cross_origin,
     )
     
     return {
