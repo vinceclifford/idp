@@ -282,7 +282,7 @@ export default function TacticsLibrary() {
               </div>
             </motion.div>
           ) : (
-            <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface-hover/20 flex flex-col items-center justify-center text-dimmed">>
+            <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface-hover/20 flex flex-col items-center justify-center text-dimmed">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a tactic to view details</p>
             </div>
