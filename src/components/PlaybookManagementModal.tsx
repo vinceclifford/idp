@@ -18,6 +18,7 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
     const [mode, setMode] = useState<'export' | 'import'>('export');
     const [isLoading, setIsLoading] = useState(false);
     const [playbookData, setPlaybookData] = useState<PlaybookData | null>(null);
+    const [stagedImportData, setStagedImportData] = useState<PlaybookData | null>(null);
     const [selectedIds, setSelectedIds] = useState<Record<ItemType, Set<string>>>({
         exercises: new Set(),
         basics: new Set(),
@@ -28,6 +29,10 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
     useEffect(() => {
         if (isOpen && mode === 'export') {
             fetchData();
+        }
+        if (mode === 'import') {
+            setStagedImportData(null);
+            selectNone();
         }
     }, [isOpen, mode]);
 
@@ -58,12 +63,13 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
     };
 
     const selectAll = () => {
-        if (!playbookData) return;
+        const data = mode === 'export' ? playbookData : stagedImportData;
+        if (!data) return;
         setSelectedIds({
-            exercises: new Set(playbookData.exercises.map(i => i.id)),
-            basics: new Set(playbookData.basics.map(i => i.id)),
-            principles: new Set(playbookData.principles.map(i => i.id)),
-            tactics: new Set(playbookData.tactics.map(i => i.id))
+            exercises: new Set(data.exercises.map(i => i.id)),
+            basics: new Set(data.basics.map(i => i.id)),
+            principles: new Set(data.principles.map(i => i.id)),
+            tactics: new Set(data.tactics.map(i => i.id))
         });
     };
 
@@ -110,18 +116,44 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                     throw new Error("Invalid playbook format");
                 }
                 
-                setIsLoading(true);
-                const res = await PlaybookService.importPlaybook(data);
-                toast.success(res.message);
-                if (onImportSuccess) onImportSuccess();
-                onClose();
+                setStagedImportData(data);
+                setSelectedIds({
+                    exercises: new Set(data.exercises.map(i => i.id)),
+                    basics: new Set(data.basics.map(i => i.id)),
+                    principles: new Set(data.principles.map(i => i.id)),
+                    tactics: new Set(data.tactics.map(i => i.id))
+                });
             } catch (err) {
-                toast.error("Failed to import playbook: " + (err instanceof Error ? err.message : "Invalid JSON"));
-            } finally {
-                setIsLoading(false);
+                toast.error("Failed to parse playbook: " + (err instanceof Error ? err.message : "Invalid JSON"));
             }
         };
         reader.readAsText(file);
+        
+        // Reset input so the same file can be selected again if cancelled
+        e.target.value = '';
+    };
+
+    const handleImportSubmit = async () => {
+        if (!stagedImportData) return;
+
+        const dataToImport: PlaybookData = {
+            exercises: stagedImportData.exercises.filter(i => selectedIds.exercises.has(i.id)),
+            basics: stagedImportData.basics.filter(i => selectedIds.basics.has(i.id)),
+            principles: stagedImportData.principles.filter(i => selectedIds.principles.has(i.id)),
+            tactics: stagedImportData.tactics.filter(i => selectedIds.tactics.has(i.id))
+        };
+
+        setIsLoading(true);
+        try {
+            const res = await PlaybookService.importPlaybook(dataToImport);
+            toast.success(res.message);
+            if (onImportSuccess) onImportSuccess();
+            onClose();
+        } catch (err) {
+            toast.error("Failed to import playbook: " + (err instanceof Error ? err.message : "Unknown error"));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const renderItemList = (type: ItemType, items: (Exercise | Basic | Principle | Tactic)[], icon: React.ReactNode, title: string) => {
@@ -220,6 +252,33 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                             </Button>
                         </div>
                     </div>
+                ) : stagedImportData ? (
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted">Select the items you want to import into your library.</p>
+                            <div className="flex gap-2">
+                                <Button variant="ghost" onClick={selectNone}>Select None</Button>
+                                <Button variant="secondary" onClick={selectAll}>Select All</Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-8 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
+                            {renderItemList('basics', stagedImportData.basics, <BookOpen size={14} className="text-sky-400" />, 'Basics')}
+                            {renderItemList('principles', stagedImportData.principles, <Lightbulb size={14} className="text-purple-400" />, 'Principles')}
+                            {renderItemList('tactics', stagedImportData.tactics, <Trophy size={14} className="text-emerald-400" />, 'Tactics')}
+                            {renderItemList('exercises', stagedImportData.exercises, <Clipboard size={14} className="text-amber-400" />, 'Exercises')}
+                        </div>
+
+                        <div className="pt-4 border-t border-border flex justify-end gap-3">
+                            <Button variant="secondary" onClick={() => setStagedImportData(null)}>Cancel</Button>
+                            <Button 
+                                onClick={handleImportSubmit} 
+                                disabled={isLoading || (selectedIds.exercises.size === 0 && selectedIds.basics.size === 0 && selectedIds.principles.size === 0 && selectedIds.tactics.size === 0)}
+                            >
+                                {isLoading ? 'Importing...' : 'Import Selected'}
+                            </Button>
+                        </div>
+                    </div>
                 ) : (
                     <div className="space-y-8 py-4">
                         <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-2xl bg-surface-hover/50 hover:bg-surface-hover hover:border-emerald-500/30 transition-all group">
@@ -240,7 +299,7 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                                 disabled={isLoading}
                             />
                             <label htmlFor="playbook-import" className="inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-bold cursor-pointer transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20">
-                                {isLoading ? 'Importing...' : 'Choose File'}
+                                Choose File
                             </label>
                         </div>
 
