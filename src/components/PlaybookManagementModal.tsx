@@ -304,7 +304,7 @@ export function PlaybookManagementModal({ isOpen, onClose, onImportSuccess }: Pl
                         </div>
 
                         <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl">
-                            <p className="text-xs text-amber-200/70 leading-relaxed">
+                            <p className="text-xs text-amber-600 dark:text-amber-200/80 leading-relaxed">
                                 <strong>Note:</strong> Items with the same name as existing ones in your library will be skipped to prevent duplicates. This process cannot be undone.
                             </p>
                         </div>
