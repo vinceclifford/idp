@@ -75,14 +75,24 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = security.get_password_hash(user.password)
+    
+    token = secrets.token_urlsafe(32)
+    expiration = datetime.utcnow() + timedelta(hours=24)
+    
     new_user = models.User(
         email=user.email,
         password=hashed_password,
-        full_name=user.full_name
+        full_name=user.full_name,
+        is_verified=False,
+        verification_token=token,
+        verification_token_expires=expiration
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    email_service.send_verification_email(new_user.email, token)
+    
     return new_user
 
 @app.post("/login")
@@ -91,6 +101,9 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
     
     if not db_user or not security.verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    if not db_user.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email address before logging in. Check your inbox.")
     
     # Create JWT Token
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -174,6 +187,24 @@ def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(
     db.commit()
     
     return {"message": "Password has been successfully reset."}
+
+@app.post("/verify-email")
+def verify_email(request: schemas.VerifyEmailRequest, db: Session = Depends(database.get_db)):
+    """Verifies a user's email using the token."""
+    user = db.query(models.User).filter(models.User.verification_token == request.token).first()
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+    if user.verification_token_expires < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Verification token has expired")
+        
+    user.is_verified = True
+    user.verification_token = None
+    user.verification_token_expires = None
+    db.commit()
+    
+    return {"message": "Email verified successfully. You can now log in."}
 
 @app.get("/me")
 def get_me(current_user: models.User = Depends(get_current_user)):

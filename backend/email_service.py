@@ -59,5 +59,49 @@ def send_reset_password_email(email: str, token: str):
         return True
     except Exception as e:
         print(f"Error sending email to {email}: {e}")
-        # In a real app, you might want to log this or re-raise
+        return False
+
+def send_verification_email(email: str, token: str):
+    """Sends an account verification email or logs it if SMTP is not configured."""
+    verify_link = f"{FRONTEND_URL}/?verify_token={token}"
+    
+    subject = "CoachHub - Verify Your Account"
+    body = f"""
+    Hello,
+    
+    Welcome to CoachHub! Please verify your email address by clicking the link below:
+    
+    {verify_link}
+    
+    This link will expire in 24 hours.
+    
+    Best regards,
+    The CoachHub Team
+    """
+
+    if not SMTP_HOST:
+        print("\n" + "="*50)
+        print("PRODUCTION WARNING: SMTP is not configured!")
+        print(f"To: {email}")
+        print(f"Subject: {subject}")
+        print(f"Verify Link: {verify_link}")
+        print("="*50 + "\n")
+        return True
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_FROM
+        msg['To'] = email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+        
+        print(f"Verification email sent successfully to {email}")
+        return True
+    except Exception as e:
+        print(f"Error sending email to {email}: {e}")
         return False

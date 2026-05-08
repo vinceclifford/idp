@@ -52,5 +52,12 @@ export const AuthService = {
    */
   async resetPassword(payload: any): Promise<{ message: string }> {
     return apiClient.post('/reset-password', payload);
+  },
+
+  /**
+   * Verifies the email address using a token.
+   */
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    return apiClient.post('/verify-email', { token });
   }
 };

@@ -179,9 +179,11 @@ class User(BaseModel):
     id: str
     email: str
     full_name: Optional[str] = None
+    is_verified: bool = False
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 class ForgotPasswordRequest(BaseModel):
     email: str
@@ -189,6 +191,9 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+class VerifyEmailRequest(BaseModel):
+    token: str
 
 class PerformanceUpdate(BaseModel):
     performance: int
