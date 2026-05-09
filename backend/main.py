@@ -252,6 +252,34 @@ def delete_season(season_id: str, db: Session = Depends(database.get_db), curren
     return {"message": "Season deleted successfully"}
 
 # ==========================
+#    CUSTOM FORMATIONS
+# ==========================
+@app.get("/custom_formations", response_model=list[schemas.CustomFormation])
+def get_custom_formations(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.CustomFormation).filter(models.CustomFormation.coach_id == current_user.id).all()
+
+@app.post("/custom_formations", response_model=schemas.CustomFormation)
+def create_custom_formation(item: schemas.CustomFormationCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.CustomFormation(
+        name=item.name,
+        positions=item.positions,
+        coach_id=current_user.id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/custom_formations/{formation_id}")
+def delete_custom_formation(formation_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    formation = db.query(models.CustomFormation).filter(models.CustomFormation.id == formation_id, models.CustomFormation.coach_id == current_user.id).first()
+    if not formation:
+        raise HTTPException(status_code=404, detail="Custom formation not found")
+    db.delete(formation)
+    db.commit()
+    return {"message": "Custom formation deleted successfully"}
+
+# ==========================
 #          TEAMS
 # ==========================
 @app.get("/teams")

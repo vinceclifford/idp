@@ -7,3 +7,6 @@ export * from './library-service';
 export * from './exercise-service';
 export * from './auth-service';
 export * from './team-service';
+export * from './season-service';
+export * from './formation-service';
+export * from './playbook-service';

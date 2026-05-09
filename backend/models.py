@@ -159,6 +159,14 @@ class Match(Base):
 
 
 
+# --- 3.5. CUSTOM FORMATIONS ---
+class CustomFormation(Base):
+    __tablename__ = "custom_formations"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    coach_id = Column(String, ForeignKey("users.id"), nullable=True)
+    name = Column(String)
+    positions = Column(Text) # JSON string of PositionSlot array
+
 # --- 4. VISION ---
 class Vision(Base):
     __tablename__ = "visions"

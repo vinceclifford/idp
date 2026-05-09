@@ -149,6 +149,18 @@ class Match(MatchCreate):
     class Config:
         orm_mode = True
 
+# ==========================
+#    CUSTOM FORMATIONS
+# ==========================
+class CustomFormationCreate(BaseModel):
+    name: str
+    positions: str # JSON string
+
+class CustomFormation(CustomFormationCreate):
+    id: str
+    class Config:
+        orm_mode = True
+
 
 
 # ==========================
