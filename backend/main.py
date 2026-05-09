@@ -225,6 +225,33 @@ async def upload_file(file: UploadFile = File(...), current_user: models.User = 
     return {"url": f"/static/uploads/{filename}"}
 
 # ==========================
+#         SEASONS
+# ==========================
+@app.get("/seasons", response_model=list[schemas.Season])
+def get_seasons(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.Season).filter(models.Season.coach_id == current_user.id).all()
+
+@app.post("/seasons", response_model=schemas.Season)
+def create_season(item: schemas.SeasonCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.Season(
+        name=item.name,
+        coach_id=current_user.id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/seasons/{season_id}")
+def delete_season(season_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    season = db.query(models.Season).filter(models.Season.id == season_id, models.Season.coach_id == current_user.id).first()
+    if not season:
+        raise HTTPException(status_code=404, detail="Season not found")
+    db.delete(season)
+    db.commit()
+    return {"message": "Season deleted successfully"}
+
+# ==========================
 #          TEAMS
 # ==========================
 @app.get("/teams")
@@ -460,10 +487,12 @@ def delete_tactic(id: str, db: Session = Depends(database.get_db), current_user:
 #    TRAINING SESSIONS
 # ==========================
 @app.get("/training_sessions")
-def get_sessions(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_sessions(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     query = db.query(models.TrainingSession)
     if team_id:
         query = query.filter(models.TrainingSession.team_id == team_id)
+    if season_id:
+        query = query.filter(models.TrainingSession.season_id == season_id)
     return query.all()
 
 @app.post("/training_sessions")
@@ -478,9 +507,10 @@ def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(da
         end_time=item.end_time,
         focus=item.focus,
         intensity=item.intensity,
+        team_id=item.team_id,
+        season_id=item.season_id,
         selected_players=item.selected_players,
-        selected_exercises=item.selected_exercises,
-        team_id=item.team_id
+        selected_exercises=item.selected_exercises
     )
     db.add(db_item)
     db.commit()
@@ -600,15 +630,19 @@ def import_playbook(data: schemas.PlaybookImport, db: Session = Depends(database
     return {"message": f"Successfully imported {count} items. Duplicately named items were skipped."}
 
 @app.get("/players")
-def get_players(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_players(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     if team_id:
         # Join with TeamPlayer to get the team-specific performance
-        results = db.query(models.Player, models.TeamPlayer.performance.label("team_perf")) \
+        query = db.query(models.Player, models.TeamPlayer.performance.label("team_perf")) \
                   .join(models.TeamPlayer, models.Player.id == models.TeamPlayer.player_id) \
                   .options(joinedload(models.Player.teams)) \
                   .filter(models.Player.coach_id == current_user.id) \
-                  .filter(models.TeamPlayer.team_id == team_id) \
-                  .all()
+                  .filter(models.TeamPlayer.team_id == team_id)
+        
+        if season_id:
+            query = query.filter(models.TeamPlayer.season_id == season_id)
+            
+        results = query.all()
         
         final_players = []
         for p, team_perf in results:
@@ -658,13 +692,25 @@ def update_performance(id: str, item: schemas.PerformanceUpdate, db: Session = D
 
 @app.post("/players")
 def create_player(item: schemas.PlayerCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    data = item.dict(exclude={"team_id"})
+    data = item.dict(exclude={"team_id", "season_id"})
     db_item = models.Player(**data, coach_id=current_user.id)
     
     if item.team_id:
         team = db.query(models.Team).filter(models.Team.id == item.team_id).first()
         if team:
-            db_item.team_assignments.append(models.TeamPlayer(team_id=team.id))
+            # Note: SQLAlchemy relationship mapping. Let's explicitly save the TeamPlayer assignment.
+            db.add(db_item)
+            db.commit()
+            db.refresh(db_item)
+            
+            assignment = models.TeamPlayer(
+                team_id=team.id,
+                player_id=db_item.id,
+                season_id=item.season_id if item.season_id else "default-season"
+            )
+            db.add(assignment)
+            db.commit()
+            return db_item
             
     db.add(db_item)
     db.commit()
@@ -781,8 +827,9 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
         time=item.time,
         location=item.location,
         formation=item.formation,
-        lineup=item.lineup, # <--- Add this
-        team_id=item.team_id
+        lineup=item.lineup, 
+        team_id=item.team_id,
+        season_id=item.season_id
     )
     db.add(db_item)
     db.commit()
@@ -790,20 +837,24 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
     return db_item
 
 @app.get("/matches")
-def get_all_matches(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_all_matches(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     query = db.query(models.Match)
     if team_id:
         query = query.filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
     return query.order_by(models.Match.date.desc()).all()
 
 @app.get("/matches/latest")
-def get_latest_match(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_latest_match(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     import datetime
     today = datetime.date.today()
     
     query = db.query(models.Match).filter(models.Match.date >= today)
     if team_id:
         query = query.filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
         
     match = query.order_by(models.Match.date.asc()).first()
         

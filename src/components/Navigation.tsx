@@ -3,6 +3,7 @@ import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Cli
 import { Page, NavigationProps } from '../types/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSwitcher from './TeamSwitcher';
+import SeasonSwitcher from './SeasonSwitcher';
 import { useTheme } from '../contexts/ThemeContext';
 
 const NAV_GROUPS: { 
@@ -96,8 +97,9 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
         </AnimatePresence>
       </div>
 
-      {/* Team Switcher */}
+      {/* Team & Season Switchers */}
       <TeamSwitcher collapsed={collapsed} />
+      <SeasonSwitcher collapsed={collapsed} />
 
       {/* Nav Items */}
       <nav className="flex-1 flex flex-col gap-6 px-2 py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">

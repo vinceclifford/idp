@@ -10,18 +10,22 @@ export const PlayerService = {
   /**
    * Fetches all players.
    */
-  async getAll(teamId?: string): Promise<Player[]> {
-    const params = teamId ? `?team_id=${teamId}` : '';
-    const data = await apiClient.get<any[]>(`/players${params}`);
+  async getAll(teamId?: string, seasonId?: string): Promise<Player[]> {
+    const params = new URLSearchParams();
+    if (teamId) params.append('team_id', teamId);
+    if (seasonId) params.append('season_id', seasonId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const data = await apiClient.get<any[]>(`/players${queryString}`);
     return data.map(mapPlayerFromApi);
   },
 
   /**
    * Creates a new player.
    */
-  async create(player: Omit<Player, 'id'>, teamId?: string): Promise<Player> {
+  async create(player: Omit<Player, 'id'>, teamId?: string, seasonId?: string): Promise<Player> {
     const payload = mapPlayerToApi(player as Player) as any;
     if (teamId) payload.team_id = teamId;
+    if (seasonId) payload.season_id = seasonId;
     const data = await apiClient.post<any>('/players', payload);
     return mapPlayerFromApi(data);
   },

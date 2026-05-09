@@ -13,6 +13,7 @@ import { Player, TrainingSession, Match } from "../types/models";
 import { Page } from "../types/ui";
 import { PlayerService, TrainingService, MatchService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
+import { useSeason } from '../contexts/SeasonContext';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -20,6 +21,7 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { activeTeam } = useTeam();
+  const { activeSeason } = useSeason();
   const [players, setPlayers] = useState<Player[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -65,9 +67,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     const fetchData = async () => {
       try {
         const [playersData, sessionsData, matchesData] = await Promise.all([
-          PlayerService.getAll(activeTeam.id),
-          TrainingService.getAll(activeTeam.id),
-          MatchService.getAll(activeTeam.id)
+          PlayerService.getAll(activeTeam.id, activeSeason?.id),
+          TrainingService.getAll(activeTeam.id, activeSeason?.id),
+          MatchService.getAll(activeTeam.id, activeSeason?.id)
         ]);
 
         setPlayers(playersData);

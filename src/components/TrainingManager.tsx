@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { Player, TrainingSession, Exercise } from '../types/models';
 import { TrainingService, PlayerService, ExerciseService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
+import { useSeason } from '../contexts/SeasonContext';
 
 // UI Components
 import { Card } from "./ui/Card";
@@ -22,6 +23,7 @@ import SessionSlideOver from "./ui/SessionSlideOver";
 
 export default function TrainingManager() {
     const { activeTeam } = useTeam();
+    const { activeSeason } = useSeason();
     const [sessions, setSessions] = useState<TrainingSession[]>([]);
     const [allPlayers, setAllPlayers] = useState<Player[]>([]);
     const [allExercises, setAllExercises] = useState<Exercise[]>([]);
@@ -47,7 +49,7 @@ export default function TrainingManager() {
 
     // --- 1. LOAD DATA ---
     useEffect(() => {
-        if (!activeTeam) {
+        if (!activeTeam || !activeSeason) {
              setSessions([]);
              setAllPlayers([]);
              ExerciseService.getAll().then(setAllExercises).catch();
@@ -56,8 +58,8 @@ export default function TrainingManager() {
         const fetchData = async () => {
             try {
                 const [sessionsData, playersData, exercisesData] = await Promise.all([
-                    TrainingService.getAll(activeTeam.id),
-                    PlayerService.getAll(activeTeam.id),
+                    TrainingService.getAll(activeTeam.id, activeSeason.id),
+                    PlayerService.getAll(activeTeam.id, activeSeason.id),
                     ExerciseService.getAll()
                 ]);
                 setSessions(sessionsData);
@@ -66,7 +68,7 @@ export default function TrainingManager() {
             } catch (e) { toast.error("Failed to connect to server"); }
         };
         fetchData();
-    }, [activeTeam]);
+    }, [activeTeam, activeSeason]);
 
     // --- 2. HELPERS & ACTIONS ---
     useEffect(() => {
@@ -96,7 +98,7 @@ export default function TrainingManager() {
                 setSessions(prev => prev.map(s => s.id === saved.id ? saved : s));
                 toast.success("Session Updated");
             } else {
-                saved = await TrainingService.create(sessionToSave, activeTeam?.id);
+                saved = await TrainingService.create(sessionToSave, activeTeam?.id, activeSeason?.id);
                 setSessions(prev => [...prev, saved]);
                 toast.success("Session Created");
             }

@@ -17,9 +17,11 @@ import PlayerSlideOver from "./PlayerSlideOver";
 import { Player, Team } from '../types/models';
 import { PlayerService, TrainingService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
+import { useSeason } from '../contexts/SeasonContext';
 
 export default function TeamManagement() {
     const { activeTeam, teams } = useTeam();
+    const { activeSeason } = useSeason();
     const [players, setPlayers] = useState<Player[]>([]); // Initialize empty (No Mock Data)
     const [searchQuery, setSearchQuery] = useState('');
     const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -61,7 +63,7 @@ export default function TeamManagement() {
         // Fetch based on view mode
         const teamFilter = viewMode === 'squad' ? activeTeam?.id : undefined;
         
-        PlayerService.getAll(teamFilter)
+        PlayerService.getAll(teamFilter, activeSeason?.id)
             .then(data => {
                 setPlayers(data);
             })
@@ -69,8 +71,8 @@ export default function TeamManagement() {
             .finally(() => setLoading(false));
 
         // Compute real attendance from training sessions (only if team is active)
-        if (activeTeam) {
-            TrainingService.getAll(activeTeam.id)
+        if (activeTeam && activeSeason) {
+            TrainingService.getAll(activeTeam.id, activeSeason.id)
                 .then((sessions) => {
                     if (sessions.length === 0) {
                         setComputedAttendance({});
@@ -95,7 +97,7 @@ export default function TeamManagement() {
 
     useEffect(() => {
         refreshData();
-    }, [activeTeam, viewMode]);
+    }, [activeTeam, viewMode, activeSeason]);
 
     // --- Handlers ---
     const handleSave = async () => {
@@ -109,7 +111,7 @@ export default function TeamManagement() {
         // Duplicate Check (only for new signings)
         if (!isEditMode) {
             try {
-                const allPlayers = await PlayerService.getAll();
+                const allPlayers = await PlayerService.getAll(undefined, activeSeason?.id);
                 const match = allPlayers.find(p => 
                     p.firstName.trim().toLowerCase() === formData.firstName.trim().toLowerCase() && 
                     p.lastName.trim().toLowerCase() === formData.lastName.trim().toLowerCase()
@@ -127,7 +129,7 @@ export default function TeamManagement() {
         try {
             const formattedPlayer = isEditMode
                 ? await PlayerService.update(formData.id, formData)
-                : await PlayerService.create(formData, activeTeam?.id);
+                : await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
 
             if (isEditMode) {
                 setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));

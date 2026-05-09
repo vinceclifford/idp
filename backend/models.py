@@ -9,6 +9,7 @@ class TeamPlayer(Base):
     __tablename__ = 'team_players'
     team_id = Column(String, ForeignKey('teams.id'), primary_key=True)
     player_id = Column(String, ForeignKey('players.id'), primary_key=True)
+    season_id = Column(String, ForeignKey('seasons.id'), primary_key=True, default='default-season')
     performance = Column(Integer, default=0)
     
     # Helper relationships to reach from assignment
@@ -18,7 +19,14 @@ class TeamPlayer(Base):
 def generate_uuid():
     return str(uuid.uuid4())
 
-# --- 1. AUTH & TEAMS ---
+# --- 1. AUTH & TEAMS & SEASONS ---
+class Season(Base):
+    __tablename__ = "seasons"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    coach_id = Column(String, ForeignKey("users.id"), nullable=True)
+    name = Column(String) 
+    created_at = Column(Date, default=datetime.date.today)
+
 class Team(Base):
     __tablename__ = "teams"
     id = Column(String, primary_key=True, default=generate_uuid)
@@ -126,6 +134,7 @@ class TrainingSession(Base):
     __tablename__ = "training_sessions"
     id = Column(String, primary_key=True, default=generate_uuid)
     team_id = Column(String, ForeignKey("teams.id"), nullable=True)
+    season_id = Column(String, ForeignKey("seasons.id"), nullable=True)
     date = Column(Date)
     start_time = Column(String) 
     end_time = Column(String)   
@@ -139,6 +148,7 @@ class Match(Base):
     __tablename__ = "matches"
     id = Column(String, primary_key=True, default=generate_uuid)
     team_id = Column(String, ForeignKey("teams.id"), nullable=True)
+    season_id = Column(String, ForeignKey("seasons.id"), nullable=True)
     opponent = Column(String)
     date = Column(Date)
     time = Column(String)

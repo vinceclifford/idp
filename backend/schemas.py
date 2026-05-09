@@ -3,6 +3,17 @@ from pydantic import BaseModel
 from typing import Optional
 
 # ==========================
+#         SEASONS
+# ==========================
+class SeasonCreate(BaseModel):
+    name: str
+
+class Season(SeasonCreate):
+    id: str
+    class Config:
+        orm_mode = True
+
+# ==========================
 #      TEAM & PLAYERS
 # ==========================
 class TeamCreate(BaseModel):
@@ -22,6 +33,7 @@ class PlayerCreate(BaseModel):
     jersey_number: int
     status: str
     team_id: Optional[str] = None
+    season_id: Optional[str] = None
     player_phone: Optional[str] = ""
     image_url: Optional[str] = ""
     height: int = 0
@@ -108,6 +120,7 @@ class TrainingSessionCreate(BaseModel):
     end_time: str
     focus: str
     team_id: Optional[str] = None
+    season_id: Optional[str] = None
     intensity: str
     selected_players: str   # stored as comma-separated string
     selected_exercises: str # stored as comma-separated string
@@ -126,6 +139,7 @@ class MatchCreate(BaseModel):
     time: str
     location: str
     team_id: Optional[str] = None
+    season_id: Optional[str] = None
     formation: Optional[str] = "4-4-2"
     lineup: Optional[str] = None
 

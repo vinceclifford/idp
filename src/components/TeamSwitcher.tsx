@@ -22,6 +22,11 @@ export default function TeamSwitcher({ collapsed }: { collapsed: boolean }) {
 
   return (
      <div className="px-3 py-2 border-b border-border">
+        <div className="mb-1">
+           <span className="text-[10px] font-bold text-muted uppercase tracking-widest leading-none">
+              Team
+           </span>
+        </div>
         <Select 
            placeholder={teams.length === 0 ? "No teams yet" : "Select Team"}
            value={activeTeam?.id || ''}

@@ -15,19 +15,25 @@ export const MatchService = {
   /**
    * Fetches all matches.
    */
-  async getAll(teamId?: string): Promise<MatchDetails[]> {
-    const params = teamId ? `?team_id=${teamId}` : '';
-    const data = await apiClient.get<any[]>(`/matches${params}`);
+  async getAll(teamId?: string, seasonId?: string): Promise<MatchDetails[]> {
+    const params = new URLSearchParams();
+    if (teamId) params.append('team_id', teamId);
+    if (seasonId) params.append('season_id', seasonId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const data = await apiClient.get<any[]>(`/matches${queryString}`);
     return data.map(mapMatchDetailsFromApi);
   },
 
   /**
    * Fetches the latest (or upcoming) match.
    */
-  async getLatest(teamId?: string): Promise<Match | null> {
+  async getLatest(teamId?: string, seasonId?: string): Promise<Match | null> {
     try {
-      const params = teamId ? `?team_id=${teamId}` : '';
-      const data = await apiClient.get<any>(`/matches/latest${params}`);
+      const params = new URLSearchParams();
+      if (teamId) params.append('team_id', teamId);
+      if (seasonId) params.append('season_id', seasonId);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const data = await apiClient.get<any>(`/matches/latest${queryString}`);
       return data ? mapMatchFromApi(data) : null;
     } catch (e) {
       console.warn('Failed to fetch latest match', e);
@@ -38,9 +44,10 @@ export const MatchService = {
   /**
    * Creates a new match.
    */
-  async create(match: MatchDetails, teamId?: string): Promise<MatchDetails> {
+  async create(match: MatchDetails, teamId?: string, seasonId?: string): Promise<MatchDetails> {
     const payload = mapMatchDetailsToApi(match) as any;
     if (teamId) payload.team_id = teamId;
+    if (seasonId) payload.season_id = seasonId;
     const data = await apiClient.post<any>('/matches', payload);
     return mapMatchDetailsFromApi(data);
   },
