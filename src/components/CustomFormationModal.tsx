@@ -38,8 +38,33 @@ export default function CustomFormationModal({ isOpen, onClose, onSuccess }: Cus
 
 
 
+  const draggingSlotId = useRef<string | null>(null);
+
   const updateSlotPosition = (id: string, x: number, y: number) => {
     setSlots(prev => prev.map(s => s.id === id ? { ...s, x, y } : s));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, id: string) => {
+    if (editingSlotId) return; // Don't drag while renaming
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    draggingSlotId.current = id;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingSlotId.current || !pitchRef.current) return;
+    
+    const rect = pitchRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    const constrainedX = Math.max(5, Math.min(95, x));
+    const constrainedY = Math.max(5, Math.min(95, y));
+    
+    updateSlotPosition(draggingSlotId.current, constrainedX, constrainedY);
+  };
+
+  const handlePointerUp = () => {
+    draggingSlotId.current = null;
   };
 
   const handleRenameSlot = (id: string, newPosition: string) => {
@@ -130,26 +155,21 @@ export default function CustomFormationModal({ isOpen, onClose, onSuccess }: Cus
             {slots.map((slot) => (
               <motion.div
                 key={slot.id}
-                drag
-                dragMomentum={false}
-                dragConstraints={pitchRef}
-                onDragEnd={(_e, info) => {
-                  if (!pitchRef.current) return;
-                  const rect = pitchRef.current.getBoundingClientRect();
-                  const x = ((info.point.x - rect.left) / rect.width) * 100;
-                  const y = ((info.point.y - rect.top) / rect.height) * 100;
-                  // Constrain within 5-95%
-                  const constrainedX = Math.max(5, Math.min(95, x));
-                  const constrainedY = Math.max(5, Math.min(95, y));
-                  updateSlotPosition(slot.id, constrainedX, constrainedY);
-                }}
+                onPointerDown={(e) => handlePointerDown(e, slot.id)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
 
                 onDoubleClick={() => {
                   setEditingSlotId(slot.id);
                   setEditLabel(slot.position);
                 }}
                 className="absolute w-12 h-12 bg-white/10 hover:bg-white/20 border-2 border-white/30 rounded-full flex items-center justify-center cursor-move shadow-xl backdrop-blur-sm group z-10"
-                style={{ left: `${slot.x}%`, top: `${slot.y}%`, x: "-50%", y: "-50%" }}
+                style={{ 
+                  left: `${slot.x}%`, 
+                  top: `${slot.y}%`, 
+                  transform: 'translate(-50%, -50%)',
+                  touchAction: 'none' 
+                }}
               >
                 {editingSlotId === slot.id ? (
                   <input
