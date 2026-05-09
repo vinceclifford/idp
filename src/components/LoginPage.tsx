@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trophy, Mail, Lock, AlertCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,6 +28,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const hasVerified = useRef(false);
 
   // Detect Tokens on Mount
   useEffect(() => {
@@ -39,7 +40,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setResetToken(token);
       setIsResetPassword(true);
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (verifyToken) {
+    } else if (verifyToken && !hasVerified.current) {
+      hasVerified.current = true;
       setLoading(true);
       AuthService.verifyEmail(verifyToken)
         .then(res => {
