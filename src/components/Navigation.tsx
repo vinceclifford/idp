@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from 'lucide-react';
+import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor, BarChart2, MessageSquare } from 'lucide-react';
 import { Page, NavigationProps } from '../types/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSwitcher from './TeamSwitcher';
+import SeasonSwitcher from './SeasonSwitcher';
 import { useTheme } from '../contexts/ThemeContext';
 
 const NAV_GROUPS: { 
@@ -13,6 +14,7 @@ const NAV_GROUPS: {
     label: 'Team',
     items: [
       { id: 'dashboard',       label: 'Dashboard',    icon: Home,      color: 'text-blue-500',    activeBar: 'bg-blue-500',    activeBg: 'bg-blue-500/15 dark:bg-blue-500/25' },
+      { id: 'statistics',      label: 'Statistics',   icon: BarChart2, color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
       { id: 'team',            label: 'Squad Roster', icon: Users,     color: 'text-indigo-500',  activeBar: 'bg-indigo-500',  activeBg: 'bg-indigo-500/15 dark:bg-indigo-500/25' },
       { id: 'session-planner', label: 'Training',     icon: Calendar,  color: 'text-cyan-500',    activeBar: 'bg-cyan-500',    activeBg: 'bg-cyan-500/15 dark:bg-cyan-500/25' },
       { id: 'match',           label: 'Matches',      icon: Target,    color: 'text-rose-500',    activeBar: 'bg-rose-500',    activeBg: 'bg-rose-500/15 dark:bg-rose-500/25' },
@@ -96,8 +98,9 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
         </AnimatePresence>
       </div>
 
-      {/* Team Switcher */}
+      {/* Team & Season Switchers */}
       <TeamSwitcher collapsed={collapsed} />
+      <SeasonSwitcher collapsed={collapsed} />
 
       {/* Nav Items */}
       <nav className="flex-1 flex flex-col gap-6 px-2 py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
@@ -209,6 +212,36 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                 className="text-sm font-medium whitespace-nowrap capitalize"
               >
                 {theme} Mode
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
+
+        {/* Feedback */}
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate('feedback');
+            if (onMobileClose) onMobileClose();
+          }}
+          title={collapsed && !isMobileOpen ? 'Feedback' : undefined}
+          className={`flex items-center gap-3 w-full rounded-xl px-3 py-2 border border-transparent transition-all duration-150 group ${
+            currentPage === 'feedback'
+              ? 'bg-teal-500/15 dark:bg-teal-500/25 text-foreground'
+              : 'text-muted hover:text-teal-500 hover:bg-teal-500/10'
+          }`}
+        >
+          <MessageSquare className={`w-[18px] h-[18px] flex-shrink-0 ${currentPage === 'feedback' ? 'text-teal-500' : ''}`} />
+          <AnimatePresence>
+            {(!collapsed || isMobileOpen) && (
+              <motion.span
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.12 }}
+                className="text-sm font-medium whitespace-nowrap"
+              >
+                Feedback
               </motion.span>
             )}
           </AnimatePresence>

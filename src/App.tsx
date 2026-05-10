@@ -5,6 +5,7 @@ import { Toaster, toast } from 'sonner';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TeamProvider } from './contexts/TeamContext';
+import { SeasonProvider } from './contexts/SeasonContext';
 
 // Components
 import LoginPage from './components/LoginPage';
@@ -19,7 +20,10 @@ import MatchLineup from './components/MatchLineup';
 import Navigation from './components/Navigation';
 import CommandPalette from './components/CommandPalette';
 import TeamFormModal from './components/TeamFormModal';
+import SeasonFormModal from './components/SeasonFormModal';
 import VisionLibrary from './components/VisionLibrary';
+import StatisticsView from './components/StatisticsView';
+import FeedbackView from './components/FeedbackView';
 import { Page } from './types/ui';
 
 // Services
@@ -102,25 +106,33 @@ export default function App() {
   }
 
   return (
-    <TeamProvider isAuthenticated={isAuthenticated}>
-      <DndProvider backend={HTML5Backend}>
-        <AppLayout currentPage={currentPage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
-        <Toaster position="top-right" theme={toasterTheme} />
-      </DndProvider>
-    </TeamProvider>
+    <SeasonProvider isAuthenticated={isAuthenticated}>
+      <TeamProvider isAuthenticated={isAuthenticated}>
+        <DndProvider backend={HTML5Backend}>
+          <AppLayout currentPage={currentPage} navigateToPage={navigateToPage} handleLogout={handleLogout} />
+          <Toaster position="top-right" theme={toasterTheme} />
+        </DndProvider>
+      </TeamProvider>
+    </SeasonProvider>
   );
 }
 
 function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage: Page, navigateToPage: (page: Page) => void, handleLogout: () => void }) {
   const { loading } = useTeam();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenTeamModal = () => setIsTeamModalOpen(true);
+    const handleOpenSeasonModal = () => setIsSeasonModalOpen(true);
     window.addEventListener('open-create-team', handleOpenTeamModal);
-    return () => window.removeEventListener('open-create-team', handleOpenTeamModal);
+    window.addEventListener('open-create-season', handleOpenSeasonModal);
+    return () => {
+       window.removeEventListener('open-create-team', handleOpenTeamModal);
+       window.removeEventListener('open-create-season', handleOpenSeasonModal);
+    };
   }, []);
 
   useEffect(() => {
@@ -151,6 +163,8 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     tactics:        <TacticsLibrary />,
     match:          <MatchLineup />,
     vision:         <VisionLibrary />,
+    statistics:     <StatisticsView />,
+    feedback:       <FeedbackView />,
   };
 
   return (
@@ -204,6 +218,11 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
           isOpen={isTeamModalOpen} 
           onClose={() => setIsTeamModalOpen(false)} 
           onSuccess={() => setIsTeamModalOpen(false)} 
+        />
+        <SeasonFormModal 
+          isOpen={isSeasonModalOpen} 
+          onClose={() => setIsSeasonModalOpen(false)} 
+          onSuccess={() => setIsSeasonModalOpen(false)} 
         />
 
         <CommandPalette

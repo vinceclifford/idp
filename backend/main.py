@@ -26,6 +26,8 @@ if not frontend_url.startswith("http"):
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
     frontend_url
 ]
 # Remove duplicates
@@ -75,14 +77,24 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = security.get_password_hash(user.password)
+    
+    token = secrets.token_urlsafe(32)
+    expiration = datetime.utcnow() + timedelta(hours=24)
+    
     new_user = models.User(
         email=user.email,
         password=hashed_password,
-        full_name=user.full_name
+        full_name=user.full_name,
+        is_verified=False,
+        verification_token=token,
+        verification_token_expires=expiration
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    email_service.send_verification_email(new_user.email, token)
+    
     return new_user
 
 @app.post("/login")
@@ -91,6 +103,9 @@ def login(user: schemas.UserLogin, response: Response, db: Session = Depends(dat
     
     if not db_user or not security.verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    if not db_user.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email address before logging in. Check your inbox.")
     
     # Create JWT Token
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -175,6 +190,24 @@ def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(
     
     return {"message": "Password has been successfully reset."}
 
+@app.post("/verify-email")
+def verify_email(request: schemas.VerifyEmailRequest, db: Session = Depends(database.get_db)):
+    """Verifies a user's email using the token."""
+    user = db.query(models.User).filter(models.User.verification_token == request.token).first()
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+    if user.verification_token_expires < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Verification token has expired")
+        
+    user.is_verified = True
+    user.verification_token = None
+    user.verification_token_expires = None
+    db.commit()
+    
+    return {"message": "Email verified successfully. You can now log in."}
+
 @app.get("/me")
 def get_me(current_user: models.User = Depends(get_current_user)):
     """Return the current user's profile based on the JWT cookie."""
@@ -192,6 +225,94 @@ async def upload_file(file: UploadFile = File(...), current_user: models.User = 
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
     return {"url": f"/static/uploads/{filename}"}
+
+# ==========================
+#         SEASONS
+# ==========================
+@app.get("/seasons", response_model=list[schemas.Season])
+def get_seasons(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.Season).filter(models.Season.coach_id == current_user.id).all()
+
+@app.post("/seasons", response_model=schemas.Season)
+def create_season(item: schemas.SeasonCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.Season(
+        name=item.name,
+        coach_id=current_user.id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/seasons/{season_id}")
+def delete_season(season_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    season = db.query(models.Season).filter(models.Season.id == season_id, models.Season.coach_id == current_user.id).first()
+    if not season:
+        raise HTTPException(status_code=404, detail="Season not found")
+    db.delete(season)
+    db.commit()
+    return {"message": "Season deleted successfully"}
+
+# ==========================
+#         FEEDBACK
+# ==========================
+ALLOWED_FEEDBACK_TYPES = {"bug", "feature", "question"}
+
+@app.get("/feedback", response_model=list[schemas.FeedbackRequest])
+def get_feedback(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return (
+        db.query(models.FeedbackRequest)
+        .filter(models.FeedbackRequest.coach_id == current_user.id)
+        .order_by(models.FeedbackRequest.created_at.desc())
+        .all()
+    )
+
+@app.post("/feedback", response_model=schemas.FeedbackRequest)
+def create_feedback(item: schemas.FeedbackRequestCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if item.type not in ALLOWED_FEEDBACK_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid feedback type")
+    if not item.title.strip() or not item.description.strip():
+        raise HTTPException(status_code=400, detail="Title and description are required")
+
+    db_item = models.FeedbackRequest(
+        coach_id=current_user.id,
+        type=item.type,
+        title=item.title.strip(),
+        description=item.description.strip(),
+        status="new",
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+# ==========================
+#    CUSTOM FORMATIONS
+# ==========================
+@app.get("/custom_formations", response_model=list[schemas.CustomFormation])
+def get_custom_formations(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.CustomFormation).filter(models.CustomFormation.coach_id == current_user.id).all()
+
+@app.post("/custom_formations", response_model=schemas.CustomFormation)
+def create_custom_formation(item: schemas.CustomFormationCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = models.CustomFormation(
+        name=item.name,
+        positions=item.positions,
+        coach_id=current_user.id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/custom_formations/{formation_id}")
+def delete_custom_formation(formation_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    formation = db.query(models.CustomFormation).filter(models.CustomFormation.id == formation_id, models.CustomFormation.coach_id == current_user.id).first()
+    if not formation:
+        raise HTTPException(status_code=404, detail="Custom formation not found")
+    db.delete(formation)
+    db.commit()
+    return {"message": "Custom formation deleted successfully"}
 
 # ==========================
 #          TEAMS
@@ -399,6 +520,87 @@ def create_tactic(item: schemas.TacticCreate, db: Session = Depends(database.get
     return db_item
 
 # --- TACTICS UPDATE ---
+@app.put("/matches/{id}/lineup")
+def update_match_lineup(id: str, lineup: str, formation: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Match).filter(models.Match.id == id).first()
+    if not db_item: raise HTTPException(status_code=404)
+    db_item.lineup = lineup
+    db_item.formation = formation
+    db.commit()
+    return db_item
+
+@app.put("/matches/{id}/stats")
+def update_match_stats(id: str, stats: schemas.MatchStatsUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Match).filter(models.Match.id == id).first()
+    if not db_item: raise HTTPException(status_code=404)
+    db_item.goals_for = stats.goals_for
+    db_item.goals_against = stats.goals_against
+    db_item.notes = stats.notes
+    db.commit()
+    return db_item
+
+@app.get("/matches/{match_id}/events", response_model=list[schemas.MatchEvent])
+def get_match_events(match_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.MatchEvent).filter(models.MatchEvent.match_id == match_id).all()
+
+@app.post("/matches/{match_id}/events", response_model=schemas.MatchEvent)
+def create_match_event(match_id: str, event: schemas.MatchEventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not db_match: raise HTTPException(status_code=404, detail="Match not found")
+    
+    db_event = models.MatchEvent(
+        **event.dict(),
+        match_id=match_id
+    )
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@app.delete("/match_events/{id}")
+def delete_match_event(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_event = db.query(models.MatchEvent).filter(models.MatchEvent.id == id).first()
+    if not db_event: raise HTTPException(status_code=404)
+    db.delete(db_event)
+    db.commit()
+    return {"message": "Deleted"}
+
+@app.get("/stats/top-performers")
+def get_top_performers(team_id: str, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    # Join MatchEvent -> Match -> Team to filter by team and season
+    query = db.query(models.MatchEvent).join(models.Match).filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
+    
+    events = query.all()
+    
+    # Aggregate stats per player
+    stats = {}
+    for e in events:
+        p_id = e.player_id
+        if p_id not in stats:
+            stats[p_id] = {"goals": 0, "assists": 0}
+        if e.event_type == "Goal":
+            stats[p_id]["goals"] += 1
+        elif e.event_type == "Assist":
+            stats[p_id]["assists"] += 1
+            
+    # Format for response
+    result = []
+    for p_id, s in stats.items():
+        player = db.query(models.Player).filter(models.Player.id == p_id).first()
+        if player:
+            result.append({
+                "player_id": p_id,
+                "first_name": player.first_name,
+                "last_name": player.last_name,
+                "image_url": player.image_url,
+                "goals": s["goals"],
+                "assists": s["assists"]
+            })
+            
+    return sorted(result, key=lambda x: (x["goals"], x["assists"]), reverse=True)
+
 @app.put("/tactics/{id}")
 def update_tactic(id: str, item: schemas.TacticCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Tactic).filter(models.Tactic.id == id).first()
@@ -429,10 +631,12 @@ def delete_tactic(id: str, db: Session = Depends(database.get_db), current_user:
 #    TRAINING SESSIONS
 # ==========================
 @app.get("/training_sessions")
-def get_sessions(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_sessions(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     query = db.query(models.TrainingSession)
     if team_id:
         query = query.filter(models.TrainingSession.team_id == team_id)
+    if season_id:
+        query = query.filter(models.TrainingSession.season_id == season_id)
     return query.all()
 
 @app.post("/training_sessions")
@@ -447,9 +651,10 @@ def create_session(item: schemas.TrainingSessionCreate, db: Session = Depends(da
         end_time=item.end_time,
         focus=item.focus,
         intensity=item.intensity,
+        team_id=item.team_id,
+        season_id=item.season_id,
         selected_players=item.selected_players,
-        selected_exercises=item.selected_exercises,
-        team_id=item.team_id
+        selected_exercises=item.selected_exercises
     )
     db.add(db_item)
     db.commit()
@@ -569,15 +774,19 @@ def import_playbook(data: schemas.PlaybookImport, db: Session = Depends(database
     return {"message": f"Successfully imported {count} items. Duplicately named items were skipped."}
 
 @app.get("/players")
-def get_players(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_players(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     if team_id:
         # Join with TeamPlayer to get the team-specific performance
-        results = db.query(models.Player, models.TeamPlayer.performance.label("team_perf")) \
+        query = db.query(models.Player, models.TeamPlayer.performance.label("team_perf")) \
                   .join(models.TeamPlayer, models.Player.id == models.TeamPlayer.player_id) \
                   .options(joinedload(models.Player.teams)) \
                   .filter(models.Player.coach_id == current_user.id) \
-                  .filter(models.TeamPlayer.team_id == team_id) \
-                  .all()
+                  .filter(models.TeamPlayer.team_id == team_id)
+        
+        if season_id:
+            query = query.filter(models.TeamPlayer.season_id == season_id)
+            
+        results = query.all()
         
         final_players = []
         for p, team_perf in results:
@@ -627,13 +836,25 @@ def update_performance(id: str, item: schemas.PerformanceUpdate, db: Session = D
 
 @app.post("/players")
 def create_player(item: schemas.PlayerCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    data = item.dict(exclude={"team_id"})
+    data = item.dict(exclude={"team_id", "season_id"})
     db_item = models.Player(**data, coach_id=current_user.id)
     
     if item.team_id:
         team = db.query(models.Team).filter(models.Team.id == item.team_id).first()
         if team:
-            db_item.team_assignments.append(models.TeamPlayer(team_id=team.id))
+            # Note: SQLAlchemy relationship mapping. Let's explicitly save the TeamPlayer assignment.
+            db.add(db_item)
+            db.commit()
+            db.refresh(db_item)
+            
+            assignment = models.TeamPlayer(
+                team_id=team.id,
+                player_id=db_item.id,
+                season_id=item.season_id if item.season_id else "default-season"
+            )
+            db.add(assignment)
+            db.commit()
+            return db_item
             
     db.add(db_item)
     db.commit()
@@ -750,8 +971,9 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
         time=item.time,
         location=item.location,
         formation=item.formation,
-        lineup=item.lineup, # <--- Add this
-        team_id=item.team_id
+        lineup=item.lineup, 
+        team_id=item.team_id,
+        season_id=item.season_id
     )
     db.add(db_item)
     db.commit()
@@ -759,20 +981,24 @@ def create_match(item: schemas.MatchCreate, db: Session = Depends(database.get_d
     return db_item
 
 @app.get("/matches")
-def get_all_matches(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_all_matches(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     query = db.query(models.Match)
     if team_id:
         query = query.filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
     return query.order_by(models.Match.date.desc()).all()
 
 @app.get("/matches/latest")
-def get_latest_match(team_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_latest_match(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     import datetime
     today = datetime.date.today()
     
     query = db.query(models.Match).filter(models.Match.date >= today)
     if team_id:
         query = query.filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
         
     match = query.order_by(models.Match.date.asc()).first()
         
