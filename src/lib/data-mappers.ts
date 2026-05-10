@@ -137,6 +137,20 @@ export const mapMatchDetailsFromApi = (m: any): MatchDetails => ({
   location: m.location || '',
   formation: m.formation || '4-4-2',
   lineup: m.lineup,
+  goalsFor: m.goals_for || 0,
+  goalsAgainst: m.goals_against || 0,
+  notes: m.notes || '',
+});
+
+/**
+ * Maps a raw match event from the snake_case API response.
+ */
+export const mapMatchEventFromApi = (e: any): any => ({
+  id: e.id,
+  matchId: e.match_id,
+  playerId: e.player_id,
+  eventType: e.event_type,
+  minute: e.minute,
 });
 
 /**
@@ -228,6 +242,9 @@ export const mapMatchDetailsToApi = (m: MatchDetails) => ({
   location: m.location,
   formation: m.formation,
   lineup: m.lineup,
+  goals_for: m.goalsFor,
+  goals_against: m.goalsAgainst,
+  notes: m.notes,
 });
 
 /**

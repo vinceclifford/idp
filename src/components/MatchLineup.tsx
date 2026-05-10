@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Save, X, Calendar, MapPin, Users, Plus, Trophy, Edit2, ChevronRight, ChevronDown } from 'lucide-react';
-import { useDrag, useDrop, DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useDrag, useDrop } from 'react-dnd';
 import { toast } from 'sonner';
 import { formatDate } from '../lib/utils';
 
@@ -10,11 +9,14 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
+import { MatchStatsModal } from './MatchStatsModal';
 import { DatePicker } from "./ui/DatePicker";
 import { TimePicker } from "./ui/TimePicker";
-import { Player, MatchDetails, PositionSlot, LineupPlayer } from "../types/models";
-import { PlayerService, MatchService } from "../services";
 import { useTeam } from '../contexts/TeamContext';
+import { useSeason } from '../contexts/SeasonContext';
+import { Player, MatchDetails, PositionSlot, LineupPlayer } from "../types/models";
+import { PlayerService, MatchService, FormationService } from "../services";
+import CustomFormationModal from './CustomFormationModal';
 
 // --- Formation Groups for the picker ---
 const FORMATION_GROUPS: { label: string; formations: string[] }[] = [
@@ -153,12 +155,14 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatc
 
 export default function MatchLineup() {
   const { activeTeam } = useTeam();
+  const { activeSeason } = useSeason();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [lineup, setLineup] = useState<Map<string, LineupPlayer>>(new Map());
   const [substitutes, setSubstitutes] = useState<Player[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<LineupPlayer | null>(null);
   
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
 
   const [matches, setMatches] = useState<MatchDetails[]>([]); 
@@ -168,6 +172,8 @@ export default function MatchLineup() {
   const [isEditingMatch, setIsEditingMatch] = useState(false);
   const [matchForm, setMatchForm] = useState({ opponent: '', date: '', time: '', location: '' });
   const [showPastMatches, setShowPastMatches] = useState(false);
+  const [showCustomFormationModal, setShowCustomFormationModal] = useState(false);
+  const [customFormations, setCustomFormations] = useState<any[]>([]);
 
   const [currentFormation, setCurrentFormation] = useState<string>('4-4-2');
   const [formationSource, setFormationSource] = useState<string>('Default');
@@ -204,35 +210,41 @@ export default function MatchLineup() {
 
   // --- 1. Load Data ---
   useEffect(() => {
-    if (!activeTeam) {
+    if (!activeTeam || !activeSeason) {
         setAllPlayers([]);
         setMatches([]);
         setMatchDetails(null);
         return;
     }
 
-    PlayerService.getAll(activeTeam.id)
-      .then(mappedPlayers => {
-          setAllPlayers(mappedPlayers);
-      })
-      .catch(() => toast.error("Failed to load players"));
+    // Fetch primary data in parallel to reduce re-renders
+    Promise.all([
+      PlayerService.getAll(activeTeam.id, activeSeason.id),
+      MatchService.getAll(activeTeam.id, activeSeason.id),
+      MatchService.getSuggestedFormation(activeTeam.id),
+      FormationService.getAll()
+    ]).then(([mappedPlayers, mappedMatches, suggestedData, formations]) => {
+      setAllPlayers(mappedPlayers);
+      setMatches(mappedMatches);
+      setCustomFormations(formations);
+      
+      if (mappedMatches.length > 0) {
+        setMatchDetails(mappedMatches[0]);
+      } else {
+        setMatchDetails(null);
+      }
 
-    MatchService.getAll(activeTeam.id)
-        .then(mappedMatches => {
-            setMatches(mappedMatches);
-            if (mappedMatches.length > 0) setMatchDetails(mappedMatches[0]);
-            else setMatchDetails(null);
-        })
-        .catch(() => toast.error("Failed to load matches"));
+      if (suggestedData.formation) {
+        setAiSuggestedFormation(suggestedData.formation);
+        setAiSourceLabel(suggestedData.source);
+      }
+    }).catch(err => {
+      console.error("Failed to load match data", err);
+      toast.error("Error loading dashboard data");
+    });
+  }, [activeTeam, activeSeason]);
 
-    MatchService.getSuggestedFormation()
-      .then(data => {
-        if (data.formation && FORMATIONS[data.formation]) {
-            setAiSuggestedFormation(data.formation);
-            setAiSourceLabel(data.source);
-        }
-      });
-  }, [activeTeam]);
+  // Remove the separate useEffect for custom formations as it's now in the main one
 
   // --- 2. Switch Match Logic (Reactive to AI Data) ---
 useEffect(() => {
@@ -297,6 +309,12 @@ useEffect(() => {
       setShowCreateMatchModal(true); 
   };
 
+  const handleCustomFormationCreated = (newFormation: any) => {
+    setCustomFormations(prev => [...prev, newFormation]);
+    setCurrentFormation(newFormation.name);
+    setFormationSource('Custom Formation');
+  };
+
   const handleChangeFormation = (formation: string) => {
     if (isMatchPast) return;
     if (formation === currentFormation) return;
@@ -317,7 +335,7 @@ useEffect(() => {
 
         const savedMatch = isEditingMatch && matchDetails
             ? await MatchService.update(matchDetails.id, matchToSave)
-            : await MatchService.create(matchToSave, activeTeam?.id);
+            : await MatchService.create(matchToSave, activeTeam?.id, activeSeason?.id);
 
         if (isEditingMatch) { 
             setMatches(prev => prev.map(m => m.id === savedMatch.id ? savedMatch : m)); 
@@ -353,13 +371,27 @@ useEffect(() => {
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   
   // Check if currently viewing a past match
-  const isMatchPast = matchDetails ? (() => {
+  const isMatchPast = useMemo(() => {
+    if (!matchDetails) return false;
     const matchDate = new Date(matchDetails.date);
     matchDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return matchDate < today;
-  })() : false;
-  
-  const activeSlots = FORMATIONS[currentFormation] || FORMATIONS['4-4-2'];
+  }, [matchDetails]);
+
+  const activeSlots = useMemo(() => {
+    if (FORMATIONS[currentFormation]) return FORMATIONS[currentFormation];
+    const custom = customFormations.find(cf => cf.name === currentFormation);
+    if (custom) {
+        try {
+            return JSON.parse(custom.positions);
+        } catch (e) {
+            console.error("Failed to parse custom formation", e);
+        }
+    }
+    return FORMATIONS['4-4-2'];
+  }, [currentFormation, customFormations]);
 
   // Calculate average performance for a player from past matches
   const getPlayerAveragePerformance = (playerId: string): number | null => {
@@ -458,7 +490,6 @@ useEffect(() => {
   };
 
   return (
-    <DndProvider backend={HTML5Backend}> 
     <div className="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6 overflow-y-auto custom-scrollbar relative">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -470,7 +501,11 @@ useEffect(() => {
         </div>
         <div className="flex gap-3">
             <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>Create Match</Button>
-            <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11 || isMatchPast} icon={<Save size={18} />}>{isMatchPast ? 'Past Match (View Only)' : 'Save Lineup'}</Button>
+            {isMatchPast ? (
+              <Button onClick={() => setShowStatsModal(true)} variant="secondary" icon={<Trophy size={18} />}>Record Stats</Button>
+            ) : (
+              <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>Save Lineup</Button>
+            )}
         </div>
       </div>
 
@@ -482,7 +517,14 @@ useEffect(() => {
                     <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-2xl font-bold text-foreground flex items-center gap-3"><span className="text-muted text-lg">VS</span> {matchDetails.opponent}</h3>
                         {isMatchPast ? (
+                          <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest">Past Match</span>
+                            {(matchDetails.goalsFor !== undefined || matchDetails.goalsAgainst !== undefined) && (
+                              <span className="text-sm font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/20">
+                                {matchDetails.goalsFor} - {matchDetails.goalsAgainst}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                             <button onClick={handleOpenEdit} className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-hover transition-colors"><Edit2 size={16} /></button>
                         )}
@@ -553,7 +595,12 @@ useEffect(() => {
                     (!showPastMatches ? upcomingMatches : pastMatches).map(match => (
                       <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-surface border-border hover:border-border'}`}>
                           <div>
-                            <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-foreground'}`}>vs {match.opponent}</p>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-foreground'}`}>vs {match.opponent}</p>
+                              {(match.goalsFor !== undefined || match.goalsAgainst !== undefined) && showPastMatches && (
+                                <span className="text-[10px] font-bold text-emerald-500">{match.goalsFor} - {match.goalsAgainst}</span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-muted">{formatDate(match.date)}</p>
                           </div>
                           {matchDetails?.id === match.id && <ChevronRight size={14} className="text-blue-400" />}
@@ -591,8 +638,8 @@ useEffect(() => {
         </div>
 
         <div className="col-span-12 lg:col-span-9">
-          <Card className="p-8 bg-gradient-to-br from-emerald-900 to-emerald-950 border-emerald-900/50 relative overflow-y-auto lg:overflow-hidden" style={{ minHeight: '848px' }}>
-            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 49px, #fff 50px)' }}></div>
+          <div className="p-8 bg-gradient-to-br from-emerald-900 to-emerald-950 border border-emerald-900/50 rounded-xl shadow-2xl relative overflow-y-auto lg:overflow-hidden" style={{ minHeight: '848px' }}>
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 49px, #fff 50px)' }}></div>
             <div className="absolute inset-8 border-2 border-emerald-400/20 rounded-lg pointer-events-none">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-emerald-400/20 border-t-0 rounded-b-lg"></div>
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-2 border-emerald-400/20 border-b-0 rounded-t-lg"></div>
@@ -600,13 +647,13 @@ useEffect(() => {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-emerald-400/20 rounded-full"></div>
             </div>
             <div className="absolute inset-8">
-              {activeSlots.map((slot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) { setSelectedPlayer(p); setSelectedPlayerPerformance(p.performance || 0); } }} isMatchPast={isMatchPast} />)}
+              {activeSlots.map((slot: PositionSlot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) { setSelectedPlayer(p); setSelectedPlayerPerformance(p.performance || 0); } }} isMatchPast={isMatchPast} />)}
             </div>
-            <div className="absolute top-6 right-6 bg-surface/40 backdrop-blur-md rounded-lg px-4 py-2 border border-border">
-              <p className="text-[10px] text-muted uppercase tracking-widest">Starters</p>
-              <p className="text-xl font-bold text-foreground">{lineup.size} / 11</p>
+            <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-md rounded-lg px-4 py-2 border border-white/10">
+              <p className="text-[10px] text-white/50 uppercase tracking-widest">Starters</p>
+              <p className="text-xl font-bold text-white">{lineup.size} / 11</p>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 
@@ -793,9 +840,60 @@ useEffect(() => {
               </div>
             </div>
           ))}
+
+          {customFormations.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1 mb-1.5">Custom Formations</p>
+              <div className="flex flex-wrap gap-1.5">
+                {customFormations.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => { handleChangeFormation(f.name); setShowFormationPicker(false); }}
+                    className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all border ${
+                      currentFormation === f.name
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400'
+                        : 'border-border text-muted bg-surface-raised hover:border-emerald-500/40 hover:text-emerald-300'
+                    }`}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-border">
+            <button
+              onClick={() => { setShowCustomFormationModal(true); setShowFormationPicker(false); }}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-bold transition-all border border-blue-500/30"
+            >
+              <Plus size={14} />
+              Create Custom
+            </button>
+          </div>
         </div>
       )}
+
+      <CustomFormationModal 
+        isOpen={showCustomFormationModal}
+        onClose={() => setShowCustomFormationModal(false)}
+        onSuccess={handleCustomFormationCreated}
+      />
+
+      {matchDetails && (
+        <MatchStatsModal 
+          isOpen={showStatsModal}
+          onClose={() => setShowStatsModal(false)}
+          match={matchDetails}
+          players={allPlayers}
+          onSuccess={async () => {
+            const data = await MatchService.getAll();
+            setMatches(data);
+            const updated = data.find(m => m.id === matchDetails.id);
+            if (updated) setMatchDetails(updated);
+          }}
+        />
+      )}
     </div>
-    </DndProvider>
   );
 }

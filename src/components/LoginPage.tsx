@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trophy, Mail, Lock, AlertCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,24 +19,40 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [fullName, setFullName] = useState(''); // Name field for Registration
   const [isRegister, setIsRegister] = useState(false);
   
-  // New States
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const hasVerified = useRef(false);
 
-  // Detect Reset Token on Mount
+  // Detect Tokens on Mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const verifyToken = params.get('verify_token');
+
     if (token) {
       setResetToken(token);
       setIsResetPassword(true);
-      // Clean up URL without reload
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (verifyToken && !hasVerified.current) {
+      hasVerified.current = true;
+      setLoading(true);
+      AuthService.verifyEmail(verifyToken)
+        .then(res => {
+          toast.success(res.message);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .catch(err => {
+          setError(err.message || 'Verification failed');
+          toast.error(err.message || 'Verification failed');
+        })
+        .finally(() => setLoading(false));
     }
   }, []);
 
@@ -54,10 +70,17 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setLoading(false);
       return;
     }
-    if (isRegister && !fullName) {
-      setError('Please enter your full name');
-      setLoading(false);
-      return;
+    if (isRegister) {
+      if (!fullName) {
+        setError('Please enter your full name');
+        setLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -74,11 +97,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
       // Success Action
       if (isRegister) {
-        toast.success('Account created! Please sign in.');
+        toast.success('Account created! Please check your email to verify your account before signing in.');
         console.log("[LoginPage] Switching to Login view...");
         setIsRegister(false); // Redirect to Login view
         setFullName('');
         setPassword('');
+        setConfirmPassword('');
       } else {
         const response = data as AuthResponse;
         console.log(`[LoginPage] Welcome back, ${response.user.full_name || 'Coach'}!`);
@@ -124,8 +148,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword) {
-      setError('Please enter a new password');
+    if (!newPassword || !confirmNewPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match');
       return;
     }
     setLoading(true);
@@ -135,6 +163,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       toast.success(res.message);
       setIsResetPassword(false);
       setResetToken('');
+      setNewPassword('');
+      setConfirmNewPassword('');
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
@@ -182,6 +212,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 placeholder="••••••••"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <Input
+                label="Confirm New Password"
+                type="password"
+                icon={<Lock size={16} />}
+                placeholder="••••••••"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
               />
               <Button type="submit" className="w-full shadow-lg shadow-blue-600/20" isLoading={loading}>
                 Reset Password
@@ -276,8 +314,26 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 className={error ? "border-red-500/50" : ""}
               />
+              {isRegister && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden mt-6"
+                >
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    icon={<Lock size={16} />}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={error ? "border-red-500/50" : ""}
+                  />
+                </motion.div>
+              )}
               {!isRegister && (
-                <div className="flex justify-end">
+                <div className="flex justify-end pt-1">
                   <button 
                     type="button" 
                     onClick={() => { setIsForgotPassword(true); setError(''); }}
@@ -304,7 +360,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </p>
             <Button
               variant="ghost"
-              onClick={() => { setIsRegister(!isRegister); setError(''); setFullName(''); }}
+              onClick={() => { 
+                setIsRegister(!isRegister); 
+                setError(''); 
+                setFullName(''); 
+                setConfirmPassword('');
+                setPassword('');
+              }}
               className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 w-full"
             >
               {isRegister ? 'Sign in instead' : "Create an account"}

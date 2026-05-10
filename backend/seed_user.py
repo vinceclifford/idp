@@ -9,15 +9,17 @@ def seed_admin_user():
     existing_user = db.query(models.User).filter(models.User.email == admin_email).first()
     
     if existing_user:
-        print(f"User {admin_email} already exists. Updating password...")
+        print(f"User {admin_email} already exists. Updating password and verifying...")
         existing_user.password = security.get_password_hash("admin123")
+        existing_user.is_verified = True
         db.commit()
     else:
         print(f"Creating new admin user: {admin_email}")
         new_user = models.User(
             email=admin_email,
             password=security.get_password_hash("admin123"),
-            full_name="Head Coach Admin"
+            full_name="Head Coach Admin",
+            is_verified=True
         )
         db.add(new_user)
         db.commit()

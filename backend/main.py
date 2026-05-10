@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from datetime import date, datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Response, Request

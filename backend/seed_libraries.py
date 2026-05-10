@@ -7,6 +7,11 @@ Base.metadata.create_all(bind=engine)
 def seed_data():
     db = SessionLocal()
     
+    # Get the admin user to assign as coach
+    from models import User
+    admin = db.query(User).filter(User.email == "admin@coachhub.com").first()
+    coach_id = admin.id if admin else None
+
     # ==========================
     # 1. BASICS (Technical Skills)
     # ==========================
@@ -14,17 +19,20 @@ def seed_data():
         Basic(
             name="Inside Foot Pass (Push Pass)",
             description="The most common pass in football. Used for short to medium distances. Key mechanics include planting the non-kicking foot beside the ball, rotating the hips, and striking through the center of the ball with the arch of the foot.",
-            diagram_url="https://example.com/diagrams/push-pass.png"
+            diagram_url="https://example.com/diagrams/push-pass.png",
+            coach_id=coach_id
         ),
         Basic(
             name="Receiving on the Back Foot",
             description="A technique to receive the ball across the body, allowing the player to face forward immediately. Essential for maintaining momentum and playing quickly.",
-            diagram_url="https://example.com/diagrams/back-foot-receiving.png"
+            diagram_url="https://example.com/diagrams/back-foot-receiving.png",
+            coach_id=coach_id
         ),
         Basic(
             name="Shielding the Ball",
             description="Using the body as a barrier between the ball and the opponent. The player should widen their stance, lower their center of gravity, and use arms for balance and distance.",
-            diagram_url="https://example.com/diagrams/shielding.png"
+            diagram_url="https://example.com/diagrams/shielding.png",
+            coach_id=coach_id
         )
     ]
 
@@ -38,7 +46,8 @@ def seed_data():
             description=" The action of moving the ball through or over defensive lines to get closer to the opponent's goal.",
             coaching_notes="Encourage forward passing. Look for split passes between defenders. Dribble to commit opponents.",
             implementation_tips="Use rondo drills with a focus on 'splitting' passes. Reward forward passes more than lateral ones.",
-            media_url="https://example.com/videos/penetration.mp4"
+            media_url="https://example.com/videos/penetration.mp4",
+            coach_id=coach_id
         ),
         Principle(
             name="Defensive Compactness",
@@ -46,7 +55,8 @@ def seed_data():
             description="Reducing the space between lines (vertical) and players (horizontal) to deny the opponent space to play through.",
             coaching_notes="Move as a unit. If the ball moves right, the whole team shifts right. Keep distances short (10-15 yards).",
             implementation_tips="Use a zone defense game on a narrowed pitch. Stop play to check distances between defenders.",
-            media_url="https://example.com/videos/compactness.mp4"
+            media_url="https://example.com/videos/compactness.mp4",
+            coach_id=coach_id
         ),
         Principle(
             name="Counter-Pressing (Gegenpressing)",
@@ -54,7 +64,8 @@ def seed_data():
             description="Immediately attempting to regain possession after losing it, rather than falling back into a defensive shape.",
             coaching_notes="Reaction time must be instant (< 3 seconds). Hunt in packs of 2-3 players. Cut off passing lanes.",
             implementation_tips="Play small-sided games where a team scoring within 5 seconds of winning the ball gets double points.",
-            media_url="https://example.com/videos/counter-press.mp4"
+            media_url="https://example.com/videos/counter-press.mp4",
+            coach_id=coach_id
         )
     ]
 
@@ -67,21 +78,24 @@ def seed_data():
             formation="4-3-3",
             description="A style of play characterized by short passing and movement, working the ball through various channels, and maintaining possession.",
             diagram_url="https://example.com/diagrams/tiki-taka.png",
-            suggested_drills="4v2 Rondos, Positional Play Grids, Third Man Running drills."
+            suggested_drills="4v2 Rondos, Positional Play Grids, Third Man Running drills.",
+            coach_id=coach_id
         ),
         Tactic(
             name="Catenaccio (Low Block)",
             formation="5-3-2",
             description="A highly organized defensive system focused on nullifying opponents' attacks and preventing goal-scoring opportunities, often using a sweeper.",
             diagram_url="https://example.com/diagrams/low-block.png",
-            suggested_drills="Shadow play defending, 8v6 Attack vs Defense scenarios."
+            suggested_drills="Shadow play defending, 8v6 Attack vs Defense scenarios.",
+            coach_id=coach_id
         ),
         Tactic(
             name="High Press Overload",
             formation="4-4-2 Diamond",
             description="Aggressively pressing the opponent high up the pitch to force errors close to their goal. The diamond midfield creates a numerical advantage centrally.",
             diagram_url="https://example.com/diagrams/high-press.png",
-            suggested_drills="High intensity pressing triggers, 1v1 duels in small zones."
+            suggested_drills="High intensity pressing triggers, 1v1 duels in small zones.",
+            coach_id=coach_id
         )
     ]
 

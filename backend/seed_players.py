@@ -7,6 +7,11 @@ Base.metadata.create_all(bind=engine)
 def seed_players():
     db = SessionLocal()
     
+    # Get the admin user to assign as coach
+    from models import User
+    admin = db.query(User).filter(User.email == "admin@coachhub.com").first()
+    coach_id = admin.id if admin else None
+
     players_data = [
         # --- GOALKEEPERS ---
         Player(
@@ -14,7 +19,8 @@ def seed_players():
             date_of_birth="2005-04-12", position="Goalkeeper", jersey_number=1,
             status="Active", height=188, weight=82,
             player_phone="+1 555 0101",
-            image_url=""
+            image_url="",
+            coach_id=coach_id
         ),
         
         # --- DEFENDERS ---
@@ -22,25 +28,29 @@ def seed_players():
             first_name="Lucas", last_name="Gray",
             date_of_birth="2006-02-14", position="Defender", jersey_number=2,
             status="Active", height=178, weight=74,
-            player_phone="+1 555 0102"
+            player_phone="+1 555 0102",
+            coach_id=coach_id
         ),
         Player(
             first_name="Noah", last_name="Williams",
             date_of_birth="2005-11-22", position="Defender", jersey_number=3,
             status="Active", height=180, weight=75,
-            player_phone="+1 555 0103"
+            player_phone="+1 555 0103",
+            coach_id=coach_id
         ),
         Player(
             first_name="Ethan", last_name="James",
             date_of_birth="2004-08-30", position="Defender", jersey_number=4,
             status="Active", height=185, weight=79,
-            player_phone="+1 555 0104"
+            player_phone="+1 555 0104",
+            coach_id=coach_id
         ),
         Player(
             first_name="Mason", last_name="Miller",
             date_of_birth="2005-01-15", position="Defender", jersey_number=5,
             status="Active", height=184, weight=78,
-            player_phone="+1 555 0105"
+            player_phone="+1 555 0105",
+            coach_id=coach_id
         ),
 
         # --- MIDFIELDERS ---
@@ -48,25 +58,29 @@ def seed_players():
             first_name="Oliver", last_name="Smith",
             date_of_birth="2006-05-10", position="Midfielder", jersey_number=6,
             status="Active", height=175, weight=70,
-            player_phone="+1 555 0106"
+            player_phone="+1 555 0106",
+            coach_id=coach_id
         ),
         Player(
             first_name="Jackson", last_name="White",
             date_of_birth="2005-09-05", position="Midfielder", jersey_number=7,
             status="Active", height=172, weight=68,
-            player_phone="+1 555 0107"
+            player_phone="+1 555 0107",
+            coach_id=coach_id
         ),
         Player(
             first_name="Elijah", last_name="Brown",
             date_of_birth="2004-12-01", position="Midfielder", jersey_number=8,
             status="Active", height=176, weight=72,
-            player_phone="+1 555 0108"
+            player_phone="+1 555 0108",
+            coach_id=coach_id
         ),
         Player(
             first_name="Aiden", last_name="Taylor",
             date_of_birth="2005-03-25", position="Midfielder", jersey_number=10,
             status="Active", height=170, weight=67,
-            player_phone="+1 555 0110"
+            player_phone="+1 555 0110",
+            coach_id=coach_id
         ),
 
         # --- FORWARDS ---
@@ -74,13 +88,15 @@ def seed_players():
             first_name="Caleb", last_name="Martin",
             date_of_birth="2004-07-19", position="Forward", jersey_number=9,
             status="Active", height=182, weight=77,
-            player_phone="+1 555 0109"
+            player_phone="+1 555 0109",
+            coach_id=coach_id
         ),
         Player(
             first_name="Benjamin", last_name="Lee",
             date_of_birth="2006-06-11", position="Forward", jersey_number=11,
             status="Active", height=174, weight=69,
-            player_phone="+1 555 0111"
+            player_phone="+1 555 0111",
+            coach_id=coach_id
         ),
 
         # --- SUBSTITUTES / OTHERS ---
@@ -88,7 +104,8 @@ def seed_players():
             first_name="Daniel", last_name="Garcia",
             date_of_birth="2007-01-08", position="Forward", jersey_number=12,
             status="Injured", height=179, weight=73, # Set to Injured to test filter
-            player_phone="+1 555 0112"
+            player_phone="+1 555 0112",
+            coach_id=coach_id
         ),
     ]
 
