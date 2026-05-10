@@ -1,6 +1,6 @@
 // src/services/match-service.ts
-import { Match, MatchDetails } from '../types/models';
-import { mapMatchFromApi, mapMatchDetailsFromApi, mapMatchDetailsToApi } from '../lib/data-mappers';
+import { Match, MatchDetails, MatchEvent } from '../types/models';
+import { mapMatchFromApi, mapMatchDetailsFromApi, mapMatchDetailsToApi, mapMatchEventFromApi } from '../lib/data-mappers';
 import { apiClient } from './api-client';
 
 export interface SuggestedFormation {
@@ -67,5 +67,53 @@ export const MatchService = {
   async getSuggestedFormation(teamId?: string): Promise<SuggestedFormation> {
     const params = teamId ? `?team_id=${teamId}` : '';
     return apiClient.get<SuggestedFormation>(`/match/suggested-formation${params}`);
+  },
+
+  /**
+   * Updates match score and notes.
+   */
+  async updateStats(id: string, goalsFor: number, goalsAgainst: number, notes: string): Promise<MatchDetails> {
+    const data = await apiClient.put<any>(`/matches/${id}/stats`, {
+      goals_for: goalsFor,
+      goals_against: goalsAgainst,
+      notes: notes
+    });
+    return mapMatchDetailsFromApi(data);
+  },
+
+  /**
+   * Fetches all events for a match.
+   */
+  async getEvents(matchId: string): Promise<MatchEvent[]> {
+    const data = await apiClient.get<any[]>(`/matches/${matchId}/events`);
+    return data.map(mapMatchEventFromApi);
+  },
+
+  /**
+   * Adds a new event to a match.
+   */
+  async addEvent(matchId: string, event: Omit<MatchEvent, 'id' | 'matchId'>): Promise<MatchEvent> {
+    const data = await apiClient.post<any>(`/matches/${matchId}/events`, {
+      player_id: event.playerId,
+      event_type: event.eventType,
+      minute: event.minute
+    });
+    return mapMatchEventFromApi(data);
+  },
+
+  /**
+   * Deletes a match event.
+   */
+  async deleteEvent(eventId: string): Promise<void> {
+    return apiClient.delete(`/match_events/${eventId}`);
+  },
+
+  /**
+   * Fetches top scorers and assisters for a team/season.
+   */
+  async getTopPerformers(teamId: string, seasonId?: string): Promise<any[]> {
+    const params = new URLSearchParams({ team_id: teamId });
+    if (seasonId) params.append('season_id', seasonId);
+    return apiClient.get<any[]>(`/stats/top-performers?${params.toString()}`);
   }
 };

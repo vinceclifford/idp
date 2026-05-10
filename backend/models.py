@@ -156,6 +156,22 @@ class Match(Base):
     formation = Column(String, default="4-4-2")
     
     lineup = Column(Text, nullable=True)
+    goals_for = Column(Integer, default=0)
+    goals_against = Column(Integer, default=0)
+    notes = Column(Text, nullable=True)
+    
+    events = relationship("MatchEvent", back_populates="match", cascade="all, delete-orphan")
+
+class MatchEvent(Base):
+    __tablename__ = "match_events"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    match_id = Column(String, ForeignKey("matches.id"), nullable=False)
+    player_id = Column(String, ForeignKey("players.id"), nullable=False)
+    event_type = Column(String) # "Goal", "Assist"
+    minute = Column(Integer, nullable=True)
+    
+    match = relationship("Match", back_populates="events")
+    player = relationship("Player")
 
 
 

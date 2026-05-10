@@ -55,6 +55,17 @@ export interface MatchDetails {
   location: string;
   formation: string; 
   lineup?: string; // JSON String from backend
+  goalsFor?: number;
+  goalsAgainst?: number;
+  notes?: string;
+}
+
+export interface MatchEvent {
+  id: string;
+  matchId: string;
+  playerId: string;
+  eventType: 'Goal' | 'Assist';
+  minute?: number;
 }
 
 export interface Exercise {

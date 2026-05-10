@@ -26,6 +26,8 @@ if not frontend_url.startswith("http"):
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
     frontend_url
 ]
 # Remove duplicates
@@ -485,6 +487,87 @@ def create_tactic(item: schemas.TacticCreate, db: Session = Depends(database.get
     return db_item
 
 # --- TACTICS UPDATE ---
+@app.put("/matches/{id}/lineup")
+def update_match_lineup(id: str, lineup: str, formation: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Match).filter(models.Match.id == id).first()
+    if not db_item: raise HTTPException(status_code=404)
+    db_item.lineup = lineup
+    db_item.formation = formation
+    db.commit()
+    return db_item
+
+@app.put("/matches/{id}/stats")
+def update_match_stats(id: str, stats: schemas.MatchStatsUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Match).filter(models.Match.id == id).first()
+    if not db_item: raise HTTPException(status_code=404)
+    db_item.goals_for = stats.goals_for
+    db_item.goals_against = stats.goals_against
+    db_item.notes = stats.notes
+    db.commit()
+    return db_item
+
+@app.get("/matches/{match_id}/events", response_model=list[schemas.MatchEvent])
+def get_match_events(match_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.MatchEvent).filter(models.MatchEvent.match_id == match_id).all()
+
+@app.post("/matches/{match_id}/events", response_model=schemas.MatchEvent)
+def create_match_event(match_id: str, event: schemas.MatchEventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not db_match: raise HTTPException(status_code=404, detail="Match not found")
+    
+    db_event = models.MatchEvent(
+        **event.dict(),
+        match_id=match_id
+    )
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@app.delete("/match_events/{id}")
+def delete_match_event(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_event = db.query(models.MatchEvent).filter(models.MatchEvent.id == id).first()
+    if not db_event: raise HTTPException(status_code=404)
+    db.delete(db_event)
+    db.commit()
+    return {"message": "Deleted"}
+
+@app.get("/stats/top-performers")
+def get_top_performers(team_id: str, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    # Join MatchEvent -> Match -> Team to filter by team and season
+    query = db.query(models.MatchEvent).join(models.Match).filter(models.Match.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Match.season_id == season_id)
+    
+    events = query.all()
+    
+    # Aggregate stats per player
+    stats = {}
+    for e in events:
+        p_id = e.player_id
+        if p_id not in stats:
+            stats[p_id] = {"goals": 0, "assists": 0}
+        if e.event_type == "Goal":
+            stats[p_id]["goals"] += 1
+        elif e.event_type == "Assist":
+            stats[p_id]["assists"] += 1
+            
+    # Format for response
+    result = []
+    for p_id, s in stats.items():
+        player = db.query(models.Player).filter(models.Player.id == p_id).first()
+        if player:
+            result.append({
+                "player_id": p_id,
+                "first_name": player.first_name,
+                "last_name": player.last_name,
+                "image_url": player.image_url,
+                "goals": s["goals"],
+                "assists": s["assists"]
+            })
+            
+    return sorted(result, key=lambda x: (x["goals"], x["assists"]), reverse=True)
+
 @app.put("/tactics/{id}")
 def update_tactic(id: str, item: schemas.TacticCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Tactic).filter(models.Tactic.id == id).first()

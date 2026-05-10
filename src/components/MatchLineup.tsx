@@ -9,6 +9,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
+import { MatchStatsModal } from './MatchStatsModal';
 import { DatePicker } from "./ui/DatePicker";
 import { TimePicker } from "./ui/TimePicker";
 import { useTeam } from '../contexts/TeamContext';
@@ -161,6 +162,7 @@ export default function MatchLineup() {
   const [selectedPlayer, setSelectedPlayer] = useState<LineupPlayer | null>(null);
   
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
 
   const [matches, setMatches] = useState<MatchDetails[]>([]); 
@@ -499,7 +501,11 @@ useEffect(() => {
         </div>
         <div className="flex gap-3">
             <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>Create Match</Button>
-            <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11 || isMatchPast} icon={<Save size={18} />}>{isMatchPast ? 'Past Match (View Only)' : 'Save Lineup'}</Button>
+            {isMatchPast ? (
+              <Button onClick={() => setShowStatsModal(true)} variant="secondary" icon={<Trophy size={18} />}>Record Stats</Button>
+            ) : (
+              <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>Save Lineup</Button>
+            )}
         </div>
       </div>
 
@@ -511,7 +517,14 @@ useEffect(() => {
                     <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-2xl font-bold text-foreground flex items-center gap-3"><span className="text-muted text-lg">VS</span> {matchDetails.opponent}</h3>
                         {isMatchPast ? (
+                          <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest">Past Match</span>
+                            {(matchDetails.goalsFor !== undefined || matchDetails.goalsAgainst !== undefined) && (
+                              <span className="text-sm font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/20">
+                                {matchDetails.goalsFor} - {matchDetails.goalsAgainst}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                             <button onClick={handleOpenEdit} className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-hover transition-colors"><Edit2 size={16} /></button>
                         )}
@@ -582,7 +595,12 @@ useEffect(() => {
                     (!showPastMatches ? upcomingMatches : pastMatches).map(match => (
                       <div key={match.id} onClick={() => setMatchDetails(match)} className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between group ${matchDetails?.id === match.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-surface border-border hover:border-border'}`}>
                           <div>
-                            <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-foreground'}`}>vs {match.opponent}</p>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-bold ${matchDetails?.id === match.id ? 'text-blue-400' : 'text-foreground'}`}>vs {match.opponent}</p>
+                              {(match.goalsFor !== undefined || match.goalsAgainst !== undefined) && showPastMatches && (
+                                <span className="text-[10px] font-bold text-emerald-500">{match.goalsFor} - {match.goalsAgainst}</span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-muted">{formatDate(match.date)}</p>
                           </div>
                           {matchDetails?.id === match.id && <ChevronRight size={14} className="text-blue-400" />}
@@ -861,6 +879,21 @@ useEffect(() => {
         onClose={() => setShowCustomFormationModal(false)}
         onSuccess={handleCustomFormationCreated}
       />
+
+      {matchDetails && (
+        <MatchStatsModal 
+          isOpen={showStatsModal}
+          onClose={() => setShowStatsModal(false)}
+          match={matchDetails}
+          players={allPlayers}
+          onSuccess={async () => {
+            const data = await MatchService.getAll();
+            setMatches(data);
+            const updated = data.find(m => m.id === matchDetails.id);
+            if (updated) setMatchDetails(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

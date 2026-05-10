@@ -22,6 +22,7 @@ import CommandPalette from './components/CommandPalette';
 import TeamFormModal from './components/TeamFormModal';
 import SeasonFormModal from './components/SeasonFormModal';
 import VisionLibrary from './components/VisionLibrary';
+import StatisticsView from './components/StatisticsView';
 import { Page } from './types/ui';
 
 // Services
@@ -161,6 +162,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     tactics:        <TacticsLibrary />,
     match:          <MatchLineup />,
     vision:         <VisionLibrary />,
+    statistics:     <StatisticsView />,
   };
 
   return (

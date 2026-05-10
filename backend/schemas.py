@@ -142,6 +142,25 @@ class MatchCreate(BaseModel):
     season_id: Optional[str] = None
     formation: Optional[str] = "4-4-2"
     lineup: Optional[str] = None
+    goals_for: Optional[int] = 0
+    goals_against: Optional[int] = 0
+    notes: Optional[str] = ""
+
+class MatchStatsUpdate(BaseModel):
+    goals_for: int
+    goals_against: int
+    notes: Optional[str] = ""
+
+class MatchEventCreate(BaseModel):
+    player_id: str
+    event_type: str # "Goal", "Assist"
+    minute: Optional[int] = None
+
+class MatchEvent(MatchEventCreate):
+    id: str
+    match_id: str
+    class Config:
+        orm_mode = True
 
 class Match(MatchCreate):
     id: str
