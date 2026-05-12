@@ -118,8 +118,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
     } catch (err: any) {
       console.error(`[LoginPage] Error during ${isRegister ? 'Register' : 'Login'}:`, err);
-      setError(err.message);
-      toast.error(err.message);
+      // Fallback message if err.message is empty or weird
+      const msg = err.message || 'Connection failed. Please check if the backend is online.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       console.log("[LoginPage] Finally: Setting loading to false.");
       setLoading(false);
@@ -341,7 +343,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </Button>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on" noValidate>
 
             {/* Error Message Animation */}
             <AnimatePresence mode="wait">
@@ -375,7 +377,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      autoComplete="new-password"
                     />
                   </div>
                 </motion.div>
