@@ -1,4 +1,3 @@
-import React from 'react';
 import { Home, Users, Calendar, Trophy, Library } from 'lucide-react';
 import { Page } from '../types/ui';
 import { cn } from '../lib/utils';
