@@ -3,10 +3,11 @@ import { Team } from '../types/models';
 import { apiClient } from './api-client';
 
 export const TeamService = {
-  async getAll(): Promise<Team[]> {
-    return apiClient.get<Team[]>('/teams');
+  async getAll(seasonId?: string): Promise<Team[]> {
+    const queryString = seasonId ? `?season_id=${seasonId}` : '';
+    return apiClient.get<Team[]>(`/teams${queryString}`);
   },
-  async create(team: Omit<Team, 'id'>): Promise<Team> {
+  async create(team: Omit<Team, 'id'> & { season_id?: string }): Promise<Team> {
     return apiClient.post<Team>('/teams', team);
   },
   async update(id: string, team: Team): Promise<Team> {
@@ -14,5 +15,8 @@ export const TeamService = {
   },
   async delete(id: string): Promise<void> {
     await apiClient.delete(`/teams/${id}`);
+  },
+  async clone(id: string, targetSeasonId: string): Promise<Team> {
+    return apiClient.post<Team>(`/teams/${id}/clone?target_season_id=${targetSeasonId}`, {});
   }
 };

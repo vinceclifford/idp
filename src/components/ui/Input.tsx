@@ -1,13 +1,10 @@
-import { forwardRef, useState } from "react";
+import { forwardRef } from "react";
 import { cn } from "../../lib/utils";
-import { motion } from "framer-motion";
 
 import { InputProps } from "../../types/ui";
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, icon, label, error, rightElement, type, onFocus, onBlur, ...props }, ref) => {
-    const [isFocused, setIsFocused] = useState(false);
-
+  ({ className, icon, label, error, rightElement, type, ...props }, ref) => {
     return (
       <div className="space-y-2 w-full">
         {label && (
@@ -15,15 +12,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <motion.div
-          className="relative group"
-          animate={{
-            scale: isFocused ? 1.01 : 1,
-          }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
+        <div className="relative group">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors z-10">
+            <div className="absolute left-3 top-0 bottom-0 grid place-items-center text-muted group-focus-within:text-primary transition-colors z-10 pointer-events-none">
               {icon}
             </div>
           )}
@@ -31,18 +22,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             type={type}
-            onFocus={(e) => {
-              setIsFocused(true);
-              onFocus?.(e);
-            }}
-            onBlur={(e) => {
-              setIsFocused(false);
-              onBlur?.(e);
-            }}
             className={cn(
               "w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all",
               "placeholder:text-muted/60",
-              "focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10",
+              "focus:bg-surface focus:border-primary/40",
               "hover:border-border",
               type === 'number' && "no-spinner", 
               icon && "pl-10",
@@ -58,7 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               {rightElement}
             </div>
           )}
-        </motion.div>
+        </div>
         {error && <p className="text-xs text-red-500 font-medium ml-1">{error}</p>}
       </div>
     );

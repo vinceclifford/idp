@@ -141,7 +141,7 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatc
       {player ? (
         <div onClick={onClick} className="relative group cursor-pointer">
           <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-2 border-primary/40"><span className="text-lg font-bold">{player.jerseyNumber}</span></div>
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-foreground bg-surface/80 px-2 py-0.5 rounded border border-border">{player.firstName}</p></div>
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center whitespace-nowrap"><p className="text-[10px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{player.firstName}</p></div>
           {!isMatchPast && <button onClick={(e) => { e.stopPropagation(); onRemove(slot.id); }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><X className="w-3 h-3" /></button>}
         </div>
       ) : (
@@ -348,9 +348,9 @@ useEffect(() => {
     } catch (e) { toast.error("Failed to save match"); }
   };
 
-  const availablePlayers = allPlayers.filter(player => 
-      player.status === 'Active' && 
-      !Array.from(lineup.values()).some(lp => lp.id === player.id) && 
+  const availablePlayers = allPlayers.filter(player =>
+      player.status === 'Active' &&
+      !Array.from(lineup.values()).some(lp => lp?.id === player.id) &&
       !substitutes.some(sp => sp.id === player.id)
   );
   
@@ -401,7 +401,7 @@ useEffect(() => {
         try {
           const parsedLineup = JSON.parse(match.lineup);
           parsedLineup.forEach((item: any) => {
-            if (item.player.id === playerId && item.player.performance) {
+            if (item.player?.id === playerId && item.player?.performance) {
               playerPastPerformances.push(item.player.performance);
             }
           });

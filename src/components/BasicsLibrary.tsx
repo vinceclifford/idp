@@ -178,9 +178,6 @@ export default function BasicsLibrary() {
                 return (
                   <motion.div
                     key={basic.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
                     onClick={() => setSelectedId(basic.id)}
                     className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${

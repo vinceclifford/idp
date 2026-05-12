@@ -33,6 +33,7 @@ class Team(Base):
     coach_id = Column(String, ForeignKey("users.id"), nullable=True)
     name = Column(String)
     formation = Column(String) 
+    season_id = Column(String, ForeignKey("seasons.id"), nullable=True)
     created_at = Column(Date, default=datetime.date.today)
     
     player_assignments = relationship("TeamPlayer", back_populates="team", cascade="all, delete-orphan")

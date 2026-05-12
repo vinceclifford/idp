@@ -19,6 +19,7 @@ class Season(SeasonCreate):
 class TeamCreate(BaseModel):
     name: str
     formation: str
+    season_id: Optional[str] = None
 
 class Team(TeamCreate):
     id: str

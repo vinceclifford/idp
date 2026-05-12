@@ -22,6 +22,14 @@ const GAME_PHASES = [
   "Set Pieces",
 ];
 
+const DEFAULT_PHASE_COLOR = {
+  bg: "bg-zinc-500/10", border: "border-zinc-500/30", text: "text-zinc-400",
+  badge: "text-zinc-300", badgeBg: "bg-zinc-500/10 border-zinc-500/20",
+  dot: "bg-zinc-500", glow: "shadow-[0_0_8px_rgba(113,113,122,0.4)]",
+  tabActive: "bg-zinc-500/15 border-zinc-500/50 text-zinc-400",
+  tabHover: "hover:border-zinc-500/30 hover:text-zinc-400",
+};
+
 const PHASE_COLORS: Record<string, {
   bg: string; border: string; text: string; badge: string; badgeBg: string;
   dot: string; glow: string; tabActive: string; tabHover: string;
@@ -70,6 +78,10 @@ const PHASE_SHORT: Record<string, string> = {
   "Transition After Winning Possession": "Trans. Winning",
   "Set Pieces": "Set Pieces",
 };
+
+const getPhaseShort = (phase: string) => PHASE_SHORT[phase] ?? phase;
+
+const getPhaseColor = (phase: string) => PHASE_COLORS[phase] ?? DEFAULT_PHASE_COLOR;
 
 const getMediaType = (url?: string) => {
   if (!url) return null;
@@ -201,7 +213,7 @@ export default function PrinciplesLibrary() {
   });
 
   const selected = principles.find(p => p.id === selectedId) ?? filtered[0] ?? null;
-  const colors = selected ? PHASE_COLORS[selected.gamePhase] : null;
+  const colors = selected ? getPhaseColor(selected.gamePhase) : null;
   const activePhasesCount = GAME_PHASES.filter(ph => phaseCounts[ph] > 0).length;
 
   return (
@@ -238,7 +250,7 @@ export default function PrinciplesLibrary() {
           All <span className="ml-1 opacity-60">{principles.length}</span>
         </button>
         {GAME_PHASES.map(phase => {
-          const c = PHASE_COLORS[phase];
+          const c = getPhaseColor(phase);
           const count = phaseCounts[phase];
           const isActive = activePhase === phase;
           return (
@@ -277,14 +289,11 @@ export default function PrinciplesLibrary() {
                 </div>
               )}
               {filtered.map(p => {
-                const c = PHASE_COLORS[p.gamePhase];
+                const c = getPhaseColor(p.gamePhase);
                 const isSelected = selectedId === p.id;
                 return (
                   <motion.div
                     key={p.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97 }}
                     onClick={() => setSelectedId(p.id)}
                     className={`group relative rounded-xl border cursor-pointer transition-all p-4 ${
@@ -297,7 +306,7 @@ export default function PrinciplesLibrary() {
                     <div className="pl-3 flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-bold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>{p.name}</p>
-                        <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${c.text}`}>{PHASE_SHORT[p.gamePhase]}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${c.text}`}>{getPhaseShort(p.gamePhase)}</span>
                         <p className="text-xs text-muted mt-1.5 line-clamp-2 leading-relaxed">{p.description}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">

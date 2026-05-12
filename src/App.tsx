@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, Trophy } from 'lucide-react';
+import { Menu, Trophy, Users } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TeamProvider } from './contexts/TeamContext';
-import { SeasonProvider } from './contexts/SeasonContext';
+import { SeasonProvider, useSeason } from './contexts/SeasonContext';
+import { Button } from './components/ui/Button';
 
 // Components
 import LoginPage from './components/LoginPage';
@@ -118,7 +119,8 @@ export default function App() {
 }
 
 function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage: Page, navigateToPage: (page: Page) => void, handleLogout: () => void }) {
-  const { loading } = useTeam();
+  const { activeTeam, loading: teamLoading } = useTeam();
+  const { activeSeason, loading: seasonLoading } = useSeason();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -167,6 +169,9 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
     feedback:       <FeedbackView />,
   };
 
+  const isLoading = teamLoading || seasonLoading;
+  const showNoTeamGuard = !isLoading && activeSeason && !activeTeam && currentPage !== 'feedback';
+
   return (
       <div className="flex h-[100dvh] bg-background text-foreground selection:bg-blue-500/30 overflow-hidden">
         <Navigation 
@@ -177,7 +182,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
           onMobileClose={() => setIsMobileMenuOpen(false)}
         />
         
-        <main className="flex-1 overflow-hidden h-full flex flex-col min-h-0">
+        <main className="flex-1 overflow-hidden h-full flex flex-col min-h-0 relative">
           {/* Mobile Header */}
           <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-surface">
             <div className="flex items-center gap-3">
@@ -195,22 +200,58 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.18, ease: 'easeInOut' }}
-              className="flex-1 flex flex-col min-h-0 overflow-hidden"
-            >
-              {loading ? (
-                <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-100px)]">
-                  <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+            {showNoTeamGuard ? (
+              <motion.div
+                key="no-team-guard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface/50 backdrop-blur-sm"
+              >
+                <div className="max-w-md space-y-6">
+                  <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Users size={40} />
+                  </div>
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground">No Team in {activeSeason.name}</h2>
+                  <p className="text-muted leading-relaxed">
+                    Every season needs at least one team to manage players, matches, and training sessions.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    <Button 
+                      onClick={() => setIsTeamModalOpen(true)} 
+                      icon={<Trophy size={18} />}
+                      className="w-full sm:w-auto"
+                    >
+                      Setup Your Team
+                    </Button>
+                    <Button 
+                      variant="secondary"
+                      onClick={() => setIsSeasonModalOpen(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      Change Season
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                pageContent[currentPage as Exclude<Page, 'login'>]
-              )}
-            </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={currentPage}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.18, ease: 'easeInOut' }}
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
+              >
+                {teamLoading || seasonLoading ? (
+                  <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-100px)]">
+                    <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  pageContent[currentPage as Exclude<Page, 'login'>]
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </main>
         

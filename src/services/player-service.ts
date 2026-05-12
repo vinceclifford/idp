@@ -49,15 +49,17 @@ export const PlayerService = {
   /**
    * Assigns an existing player to a team.
    */
-  async assignToTeam(playerId: string, teamId: string): Promise<void> {
-    await apiClient.post(`/players/${playerId}/teams/${teamId}`, {});
+  async assignToTeam(playerId: string, teamId: string, seasonId?: string): Promise<void> {
+    const queryString = seasonId ? `?season_id=${seasonId}` : '';
+    await apiClient.post(`/players/${playerId}/teams/${teamId}${queryString}`, {});
   },
 
   /**
    * Removes a player from a specific team.
    */
-  async removeFromTeam(playerId: string, teamId: string): Promise<void> {
-    await apiClient.delete(`/players/${playerId}/teams/${teamId}`);
+  async removeFromTeam(playerId: string, teamId: string, seasonId?: string): Promise<void> {
+    const queryString = seasonId ? `?season_id=${seasonId}` : '';
+    await apiClient.delete(`/players/${playerId}/teams/${teamId}${queryString}`);
   },
 
   /**

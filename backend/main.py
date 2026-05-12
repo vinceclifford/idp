@@ -88,7 +88,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
         email=user.email,
         password=hashed_password,
         full_name=user.full_name,
-        is_verified=False,
+        is_verified=True,  # Auto-verify for now as requested (no DNS yet)
         verification_token=token,
         verification_token_expires=expiration
     )
@@ -96,6 +96,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db.commit()
     db.refresh(new_user)
     
+    # Still send the email so the user can see it works, but login is already enabled
     email_service.send_verification_email(new_user.email, token)
     
     return new_user
@@ -321,14 +322,18 @@ def delete_custom_formation(formation_id: str, db: Session = Depends(database.ge
 #          TEAMS
 # ==========================
 @app.get("/teams")
-def get_teams(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    return db.query(models.Team).filter(models.Team.coach_id == current_user.id).all()
+def get_teams(season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    query = db.query(models.Team).filter(models.Team.coach_id == current_user.id)
+    if season_id:
+        query = query.filter(models.Team.season_id == season_id)
+    return query.all()
 
 @app.post("/teams", response_model=schemas.Team)
 def create_team(item: schemas.TeamCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = models.Team(
         name=item.name,
         formation=item.formation,
+        season_id=item.season_id,
         coach_id=current_user.id
     )
     db.add(db_item)
@@ -347,6 +352,37 @@ def update_team(id: str, item: schemas.TeamCreate, db: Session = Depends(databas
     db.commit()
     db.refresh(db_item)
     return db_item
+
+@app.post("/teams/{id}/clone")
+def clone_team(id: str, target_season_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    source_team = db.query(models.Team).filter(models.Team.id == id, models.Team.coach_id == current_user.id).first()
+    if not source_team:
+        raise HTTPException(status_code=404, detail="Source team not found")
+    
+    # Create new team
+    new_team = models.Team(
+        name=source_team.name,
+        formation=source_team.formation,
+        season_id=target_season_id,
+        coach_id=current_user.id
+    )
+    db.add(new_team)
+    db.commit()
+    db.refresh(new_team)
+    
+    # Copy players
+    source_players = db.query(models.TeamPlayer).filter(models.TeamPlayer.team_id == id).all()
+    for sp in source_players:
+        new_tp = models.TeamPlayer(
+            team_id=new_team.id,
+            player_id=sp.player_id,
+            season_id=target_season_id,
+            performance=sp.performance
+        )
+        db.add(new_tp)
+    
+    db.commit()
+    return new_team
 
 @app.delete("/teams/{id}")
 def delete_team(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
@@ -885,36 +921,46 @@ def delete_player(id: str, db: Session = Depends(database.get_db), current_user:
     return {"message": "Deleted"}
 
 @app.post("/players/{player_id}/teams/{team_id}")
-def assign_player_to_team(player_id: str, team_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def assign_player_to_team(player_id: str, team_id: str, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_player = db.query(models.Player).filter(models.Player.id == player_id, models.Player.coach_id == current_user.id).first()
     if not db_player: raise HTTPException(status_code=404, detail="Player not found")
     
     db_team = db.query(models.Team).filter(models.Team.id == team_id, models.Team.coach_id == current_user.id).first()
     if not db_team: raise HTTPException(status_code=404, detail="Team not found")
     
-    # Check if assignment already exists
+    target_season = season_id or "default-season"
+    
+    # Check if assignment already exists for this season
     assignment = db.query(models.TeamPlayer).filter(
         models.TeamPlayer.player_id == player_id,
-        models.TeamPlayer.team_id == team_id
+        models.TeamPlayer.team_id == team_id,
+        models.TeamPlayer.season_id == target_season
     ).first()
     
     if not assignment:
-        db_player.team_assignments.append(models.TeamPlayer(team_id=team_id))
+        db_player.team_assignments.append(models.TeamPlayer(team_id=team_id, season_id=target_season))
         db.commit()
     
     return {"message": "Assigned"}
 
 @app.delete("/players/{player_id}/teams/{team_id}")
-def remove_player_from_team(player_id: str, team_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def remove_player_from_team(player_id: str, team_id: str, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_player = db.query(models.Player).filter(models.Player.id == player_id, models.Player.coach_id == current_user.id).first()
     if not db_player: raise HTTPException(status_code=404, detail="Player not found")
     
     db_team = db.query(models.Team).filter(models.Team.id == team_id, models.Team.coach_id == current_user.id).first()
     if not db_team: raise HTTPException(status_code=404, detail="Team not found")
     
-    if db_team in db_player.teams:
-        db_player.teams.remove(db_team)
-        db.commit()
+    target_season = season_id or "default-season"
+    
+    # We delete the specific row from team_players (the association table)
+    db.query(models.TeamPlayer).filter(
+        models.TeamPlayer.player_id == player_id,
+        models.TeamPlayer.team_id == team_id,
+        models.TeamPlayer.season_id == target_season
+    ).delete()
+    
+    db.commit()
         
     return {"message": "Removed"}
 

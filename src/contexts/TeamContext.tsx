@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TeamService } from '../services';
 import { Team } from '../types/models';
+import { useSeason } from './SeasonContext';
 
 interface TeamContextProps {
   teams: Team[];
@@ -21,6 +22,7 @@ const TeamContext = createContext<TeamContextProps>({
 export const useTeam = () => useContext(TeamContext);
 
 export const TeamProvider: React.FC<{ children: React.ReactNode, isAuthenticated: boolean }> = ({ children, isAuthenticated }) => {
+  const { activeSeason } = useSeason();
   const [teams, setTeams] = useState<Team[]>([]);
   const [activeTeamIdState, setActiveTeamIdState] = useState<string | null>(() => localStorage.getItem('activeTeamId'));
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode, isAuthenticated
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const data = await TeamService.getAll();
+      const data = await TeamService.getAll(activeSeason?.id);
       setTeams(data);
       if (data.length > 0) {
         if (!activeTeamIdState || !data.find(t => t.id === activeTeamIdState)) {
@@ -48,7 +50,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode, isAuthenticated
 
   useEffect(() => {
     refreshTeams();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeSeason]);
 
   const setActiveTeamId = (id: string) => {
     setActiveTeamIdState(id);

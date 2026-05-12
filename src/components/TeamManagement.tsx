@@ -57,7 +57,10 @@ export default function TeamManagement() {
 
     // --- Load Data ---
     const refreshData = () => {
-        if (!activeTeam && viewMode === 'squad') return;
+        if (!activeTeam && viewMode === 'squad') {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         
         // Fetch based on view mode
@@ -151,7 +154,9 @@ export default function TeamManagement() {
             await handleAssignToTeam(duplicatePlayer.id);
             setDuplicatePlayer(null);
             setShowPlayerModal(false);
-            toast.success(`${duplicatePlayer.firstName} added to ${activeTeam.name}`);
+            // No need for a separate toast here if handleAssignToTeam already shows one,
+            // but we MUST refresh because the player was likely not in the current squad list.
+            refreshData(); 
         } catch (e) {
             toast.error("Failed to reuse profile");
         }
@@ -160,7 +165,7 @@ export default function TeamManagement() {
     const handleCreateNewAnyway = async () => {
         setDuplicatePlayer(null);
         try {
-            const formattedPlayer = await PlayerService.create(formData, activeTeam?.id);
+            const formattedPlayer = await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
             setPlayers(prev => [...prev, formattedPlayer]);
             toast.success("New player created!");
             setShowPlayerModal(false);
@@ -184,7 +189,7 @@ export default function TeamManagement() {
         const targetTeamId = teamId || activeTeam?.id;
         if (!targetTeamId) return;
         try {
-            await PlayerService.removeFromTeam(playerId, targetTeamId);
+            await PlayerService.removeFromTeam(playerId, targetTeamId, activeSeason?.id);
             setPlayers(prev => prev.map(p => {
                 if (p.id === playerId) {
                     return { ...p, teams: p.teams?.filter(t => t.id !== targetTeamId) || [] };
@@ -202,19 +207,29 @@ export default function TeamManagement() {
         const targetTeamId = teamId || activeTeam?.id;
         if (!targetTeamId) return;
         try {
-            await PlayerService.assignToTeam(playerId, targetTeamId);
+            await PlayerService.assignToTeam(playerId, targetTeamId, activeSeason?.id);
             const teamObj = teams.find(t => t.id === targetTeamId);
-            setPlayers(prev => prev.map(p => {
-                if (p.id === playerId && teamObj) {
-                    const exists = p.teams?.some(t => t.id === targetTeamId);
-                    if (!exists) return { ...p, teams: [...(p.teams || []), teamObj] };
-                }
-                return p;
-            }));
+            
+            // If the player is already in our local list, update their team assignments
+            const playerInList = players.some(p => p.id === playerId);
+            if (playerInList) {
+                setPlayers(prev => prev.map(p => {
+                    if (p.id === playerId && teamObj) {
+                        const exists = p.teams?.some(t => t.id === targetTeamId);
+                        if (!exists) return { ...p, teams: [...(p.teams || []), teamObj] };
+                    }
+                    return p;
+                }));
+            } else {
+                // If they weren't in the list (e.g. adding from pool to squad), we need to refresh to see them
+                refreshData();
+            }
+            
             toast.success('Player added to squad');
         } catch (e) {
             toast.error("Failed to add to squad");
             refreshData();
+            throw e; // Re-throw so callers (like handleReusePlayer) know it failed
         }
     };
 
