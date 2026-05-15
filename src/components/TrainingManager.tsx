@@ -33,7 +33,7 @@ export default function TrainingManager() {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA'),
         startTime: '09:00',
         endTime: '11:00',
         focus: '',
@@ -214,7 +214,7 @@ export default function TrainingManager() {
     };
 
     // --- 4. UI HELPERS ---
-    const openCreate = () => { setIsEditing(false); setEditingId(null); setFormData({ date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '11:00', focus: '', intensity: 'Medium', selectedPlayerIds: allPlayers.map(p => p.id), selectedExerciseIds: [] }); setShowCreateModal(true); };
+    const openCreate = () => { setIsEditing(false); setEditingId(null); setFormData({ date: new Date().toLocaleDateString('en-CA'), startTime: '09:00', endTime: '11:00', focus: '', intensity: 'Medium', selectedPlayerIds: allPlayers.map(p => p.id), selectedExerciseIds: [] }); setShowCreateModal(true); };
     const openEdit = (s: TrainingSession) => { 
         setSelectedSession(null); 
         setIsEditing(true); 
@@ -234,7 +234,7 @@ export default function TrainingManager() {
     const togglePlayer = (id: string) => { setFormData(prev => { const exists = prev.selectedPlayerIds.includes(id); return { ...prev, selectedPlayerIds: exists ? prev.selectedPlayerIds.filter(pid => pid !== id) : [...prev.selectedPlayerIds, id] }; }); };
     const toggleExercise = (id: string) => { setFormData(prev => { const exists = prev.selectedExerciseIds.includes(id); return { ...prev, selectedExerciseIds: exists ? prev.selectedExerciseIds.filter(eid => eid !== id) : [...prev.selectedExerciseIds, id] }; }); };
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const upcomingSessions = sessions
         .filter(s => s.date >= today)
         .sort((a, b) => a.date.localeCompare(b.date));

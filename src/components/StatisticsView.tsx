@@ -44,7 +44,7 @@ export default function StatisticsView() {
         MatchService.getAll(activeTeam?.id, activeSeason?.id),
         MatchService.getTopPerformers(activeTeam!.id, activeSeason?.id)
       ]);
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       const finishedMatches = matchesData
         .filter(m => m.date <= today && (m.goalsFor !== undefined || m.goalsAgainst !== undefined))
         .sort((a, b) => a.date.localeCompare(b.date));

@@ -171,7 +171,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-4">
               {mode === 'create' ? (
                 <>

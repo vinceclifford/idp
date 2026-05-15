@@ -101,6 +101,9 @@ const getMediaType = (url?: string) => {
   return 'unknown';
 };
 
+const resolveMediaUrl = (url: string) =>
+  url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
+
 export default function PrinciplesLibrary() {
   const [principles, setPrinciples] = useState<Principle[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -400,13 +403,13 @@ export default function PrinciplesLibrary() {
                     if (type === 'image') return (
                       <div>
                         <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                        <img src={`${API_BASE_URL}${selected.mediaUrl}`} alt="Media" className="w-full max-h-72 object-cover rounded-xl border border-border cursor-zoom-in hover:opacity-90 transition-opacity" onClick={() => setViewMedia(`${API_BASE_URL}${selected.mediaUrl}`)} />
+                        <img src={resolveMediaUrl(selected.mediaUrl!)} alt="Media" className="w-full max-h-72 object-cover rounded-xl border border-border cursor-zoom-in hover:opacity-90 transition-opacity" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))} />
                       </div>
                     );
                   if (type === 'video') return (
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                      <div className="w-full h-40 bg-background rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
+                      <div className="w-full h-40 bg-background rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))}>
                         <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span></div>
                       </div>
                     </div>
@@ -414,7 +417,7 @@ export default function PrinciplesLibrary() {
                   if (type === 'pdf') return (
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
-                      <div className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(selected.mediaUrl!)}>
+                      <div className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))}>
                         <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors"><FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">Open PDF</span></div>
                       </div>
                     </div>

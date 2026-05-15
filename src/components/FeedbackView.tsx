@@ -94,7 +94,7 @@ export default function FeedbackView() {
       </div>
 
       {/* Submit form */}
-      <Card className="p-6">
+      <Card className="p-6 flex-shrink-0">
         <h2 className="text-base font-semibold text-foreground mb-4">Submit new feedback</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

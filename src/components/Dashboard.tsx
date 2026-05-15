@@ -136,7 +136,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   // --- Derived values (computed each render from real data) ---
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
 
   const upcomingSessions = sessions
     .filter(s => s.date >= today)

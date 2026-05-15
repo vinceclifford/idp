@@ -15,6 +15,9 @@ import {Basic} from "../types/models"
 import { LibraryService } from '../services';
 
 
+const resolveMediaUrl = (url: string) =>
+  url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
+
 const getMediaType = (url?: string) => {
   if (!url) return null;
   const normalized = url.toLowerCase();
@@ -166,7 +169,7 @@ export default function BasicsLibrary() {
             <Input icon={<Search size={15} />} placeholder="Search basics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
-          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1" style={{ maxHeight: '620px' }}>
+          <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 max-h-[60vh]">
             <AnimatePresence>
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
@@ -257,10 +260,10 @@ export default function BasicsLibrary() {
                     <div>
                       <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
                       <img
-                        src={`${API_BASE_URL}${selected.diagramUrl}`}
+                        src={resolveMediaUrl(selected.diagramUrl!)}
                         alt="Diagram"
                         className="w-full max-h-80 object-cover rounded-xl border border-border cursor-zoom-in hover:opacity-90 transition-opacity"
-                        onClick={() => setViewMedia(`${API_BASE_URL}${selected.diagramUrl}`)}
+                        onClick={() => setViewMedia(resolveMediaUrl(selected.diagramUrl!))}
                       />
                     </div>
                   );

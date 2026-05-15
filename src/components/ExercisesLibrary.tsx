@@ -22,6 +22,9 @@ import { ExerciseService, LibraryService } from '../services';
 import { Exercise, SelectorItem } from '../types/models';
 
 // --- Helpers ---
+const resolveMediaUrl = (url: string) =>
+    url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
+
 const getMediaType = (url?: string) => {
     if (!url) return null;
     const normalized = url.toLowerCase();
@@ -236,7 +239,7 @@ export default function ExercisesLibrary() {
             >
                 <FileText size={48} className="mb-2 group-hover:text-primary transition-colors" />
                 <span className="text-sm">PDF Document</span>
-                {!isPreview && <a href={`${API_BASE_URL}${url}`} download="exercise.pdf" className="mt-2 text-blue-500 text-xs hover:underline">Download</a>}
+                {!isPreview && <a href={resolveMediaUrl(url)} download="exercise.pdf" className="mt-2 text-blue-500 text-xs hover:underline">Download</a>}
             </div>
         );
 
