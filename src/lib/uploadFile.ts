@@ -12,10 +12,15 @@ export async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
   form.append('file', file);
 
+  const token = localStorage.getItem('access_token');
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     body: form,
     credentials: 'include',
+    headers,
   });
 
   if (!res.ok) {
