@@ -7,7 +7,7 @@ export const TeamService = {
     const queryString = seasonId ? `?season_id=${seasonId}` : '';
     return apiClient.get<Team[]>(`/teams${queryString}`);
   },
-  async create(team: Omit<Team, 'id'> & { season_id?: string }): Promise<Team> {
+  async create(team: { name: string; formation?: string; season_id?: string }): Promise<Team> {
     return apiClient.post<Team>('/teams', team);
   },
   async update(id: string, team: Team): Promise<Team> {
