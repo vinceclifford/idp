@@ -21,16 +21,45 @@ const TeamContext = createContext<TeamContextProps>({
 
 export const useTeam = () => useContext(TeamContext);
 
-// Module-level cache keyed by season id. Survives provider re-mounts and
-// makes switching back to a previously-loaded season instant.
+// Module-level cache keyed by season id. Survives provider re-mounts so
+// switching back to a previously-loaded season is instant within a session.
+// Hydrated from localStorage so it also survives a full reload.
 const teamCache = new Map<string, Team[]>();
 const NO_SEASON_KEY = '__no_season__';
+const TEAMS_CACHE_KEY = 'cache:teams:v1';
+
+(function hydrateTeamCache() {
+  try {
+    const raw = localStorage.getItem(TEAMS_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, Team[]>;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (Array.isArray(value)) teamCache.set(key, value);
+    }
+  } catch {
+    // ignore corrupt cache
+  }
+})();
+
+function persistTeamCache() {
+  try {
+    const obj: Record<string, Team[]> = {};
+    teamCache.forEach((value, key) => { obj[key] = value; });
+    localStorage.setItem(TEAMS_CACHE_KEY, JSON.stringify(obj));
+  } catch {
+    // storage full, ignore
+  }
+}
 
 export const TeamProvider: React.FC<{ children: React.ReactNode, isAuthenticated: boolean }> = ({ children, isAuthenticated }) => {
   const { activeSeason } = useSeason();
-  const [teams, setTeams] = useState<Team[]>([]);
+  // Seed from the persisted cache if we can — this is what makes the team
+  // list show up immediately on reload instead of waiting for /teams.
+  const initialSeasonKey = (typeof localStorage !== 'undefined' && localStorage.getItem('activeSeasonId')) || NO_SEASON_KEY;
+  const initialTeams = teamCache.get(initialSeasonKey) ?? [];
+  const [teams, setTeams] = useState<Team[]>(initialTeams);
   const [activeTeamIdState, setActiveTeamIdState] = useState<string | null>(() => localStorage.getItem('activeTeamId'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialTeams.length === 0);
 
   // Track the in-flight request so a fast season switch doesn't overwrite
   // the newest result with a stale one.
@@ -78,6 +107,7 @@ export const TeamProvider: React.FC<{ children: React.ReactNode, isAuthenticated
       // Drop the response if a newer request has started since we kicked off.
       if (myRequest !== requestIdRef.current) return;
       teamCache.set(seasonKey, data);
+      persistTeamCache();
       applyTeams(data);
     } catch (e) {
       console.error("Failed to load teams", e);

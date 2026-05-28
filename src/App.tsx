@@ -60,6 +60,12 @@ export default function App() {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
     localStorage.removeItem('access_token');
+    // Clear cached lists so the next user doesn't briefly see the previous
+    // user's seasons / teams during their initial paint.
+    localStorage.removeItem('cache:seasons:v1');
+    localStorage.removeItem('cache:teams:v1');
+    localStorage.removeItem('activeTeamId');
+    localStorage.removeItem('activeSeasonId');
     setIsAuthenticated(false);
     setCurrentPage('login');
     toast.success("Logged out successfully");
