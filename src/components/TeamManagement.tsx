@@ -134,15 +134,13 @@ export default function TeamManagement() {
                 ? await PlayerService.update(formData.id, formData)
                 : await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
 
-            // The POST /players response doesn't include the `teams` join, so
-            // merge what the user just typed (formData) under what the server
-            // returned (saved). saved.id wins so we have the canonical UUID;
-            // every other field falls back to what the user entered if the
-            // server response is missing it. This is what makes the slide-over
-            // show the right info on the next click without a page refresh.
+            // Build the optimistic record. Prefer what the user typed
+            // (formData) over what the server returned (saved), because
+            // mapPlayerFromApi defaults missing fields to '' / 'Unknown' and
+            // would otherwise wipe out the values the user just entered.
+            // We only pick the canonical id and the teams join from saved.
             const formattedPlayer: Player = {
                 ...formData,
-                ...saved,
                 id: saved.id,
                 teams: saved.teams && saved.teams.length > 0
                     ? saved.teams
@@ -180,9 +178,9 @@ export default function TeamManagement() {
         setDuplicatePlayer(null);
         try {
             const saved = await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
+            // formData beats saved — see the matching note in handleSave.
             const formattedPlayer: Player = {
                 ...formData,
-                ...saved,
                 id: saved.id,
                 teams: saved.teams && saved.teams.length > 0
                     ? saved.teams
