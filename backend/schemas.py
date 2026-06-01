@@ -38,7 +38,7 @@ class PlayerCreate(BaseModel):
     player_phone: Optional[str] = ""
     image_url: Optional[str] = ""
     height: int = 0
-    weight: int = 0
+    weight: float = 0
     mother_name: Optional[str] = ""
     mother_phone: Optional[str] = ""
     father_name: Optional[str] = ""

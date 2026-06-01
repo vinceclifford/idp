@@ -60,6 +60,9 @@ export default function TeamManagement() {
     const [formData, setFormData] = useState<Player>({
         id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
     });
+    // Mirrors formData.weight as a string so the user can type a partial
+    // decimal like "72." without us silently dropping the trailing dot.
+    const [weightInput, setWeightInput] = useState<string>('');
 
     // --- Load Data ---
     const refreshData = () => {
@@ -284,12 +287,14 @@ export default function TeamManagement() {
         setEditingId(null);
         setImagePreview('');
         setFormData({ id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0 });
+        setWeightInput('');
         setShowPlayerModal(true);
     };
 
     const openEdit = (player: Player) => {
         setEditingId(player.id);
         setFormData(player);
+        setWeightInput(player.weight ? String(player.weight) : '');
         setImagePreview(player.imageUrl);
         setShowPlayerModal(true);
     };
@@ -592,7 +597,23 @@ export default function TeamManagement() {
                             </h4>
                             <div className="grid grid-cols-2 gap-6">
                                 <Input label="Height" type="text" inputMode="numeric" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(250, parseInt(raw)); setFormData({ ...formData, height: v }); }} />
-                                <Input label="Weight" type="text" inputMode="numeric" icon={<Weight size={14} />} rightElement="kg" value={formData.weight || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(200, parseInt(raw)); setFormData({ ...formData, weight: v }); }} />
+                                <Input label="Weight" type="text" inputMode="decimal" icon={<Weight size={14} />} rightElement="kg" value={weightInput} onChange={e => {
+                                    // Allow digits and one decimal separator (. or ,). Convert a
+                                    // European-style comma to a dot, then collapse extra dots.
+                                    let raw = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                                    const firstDot = raw.indexOf('.');
+                                    if (firstDot !== -1) {
+                                        raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+                                    }
+                                    // Enforce 200 kg cap while leaving partial inputs alone.
+                                    const parsed = parseFloat(raw);
+                                    if (!isNaN(parsed) && parsed > 200) {
+                                        raw = '200';
+                                    }
+                                    setWeightInput(raw);
+                                    const numeric = raw === '' || raw === '.' ? 0 : (parseFloat(raw) || 0);
+                                    setFormData({ ...formData, weight: numeric });
+                                }} />
                             </div>
                         </div>
 

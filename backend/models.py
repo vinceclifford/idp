@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, Boolean, Date, Time, ForeignKey, Table, JSON
+from sqlalchemy import Column, String, Integer, Float, Text, Boolean, Date, Time, ForeignKey, Table, JSON
 from sqlalchemy.orm import relationship
 from database import Base
 import uuid
@@ -61,8 +61,8 @@ class Player(Base):
     image_url = Column(Text, nullable=True) 
     
     # Physical
-    height = Column(Integer, default=0) 
-    weight = Column(Integer, default=0) 
+    height = Column(Integer, default=0)
+    weight = Column(Float, default=0)
     
     # Parents
     mother_name = Column(String, nullable=True)
