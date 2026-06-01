@@ -18,12 +18,6 @@ import { Player, Team } from '../types/models';
 import { PlayerService, TrainingService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
-import { readPageCache, writePageCache } from '../lib/pageCache';
-
-interface RosterCache {
-  players: Player[];
-  attendance: Record<string, number>;
-}
 
 export default function TeamManagement() {
     const { activeTeam, teams } = useTeam();
@@ -70,37 +64,14 @@ export default function TeamManagement() {
             setLoading(false);
             return;
         }
-
-        // Paint instantly from the last-known data for this team+season+viewMode.
-        const cacheKey = `roster:${viewMode}:${activeTeam?.id ?? 'pool'}:${activeSeason?.id ?? 'no-season'}`;
-        const cached = readPageCache<RosterCache>(cacheKey);
-        if (cached) {
-            setPlayers(cached.players);
-            setComputedAttendance(cached.attendance);
-            setLoading(false);
-        } else {
-            setLoading(true);
-        }
+        setLoading(true);
 
         // Fetch based on view mode
         const teamFilter = viewMode === 'squad' ? activeTeam?.id : undefined;
-        let latestPlayers: Player[] | null = null;
-        let latestAttendance: Record<string, number> | null = cached?.attendance ?? null;
-
-        const persist = () => {
-            if (latestPlayers && latestAttendance !== null) {
-                writePageCache<RosterCache>(cacheKey, {
-                    players: latestPlayers,
-                    attendance: latestAttendance,
-                });
-            }
-        };
 
         PlayerService.getAll(teamFilter, activeSeason?.id)
             .then(data => {
-                latestPlayers = data;
                 setPlayers(data);
-                persist();
             })
             .catch(() => {})
             .finally(() => setLoading(false));
@@ -109,26 +80,24 @@ export default function TeamManagement() {
         if (activeTeam && activeSeason) {
             TrainingService.getAll(activeTeam.id, activeSeason.id)
                 .then((sessions) => {
-                    let pctMap: Record<string, number> = {};
-                    if (sessions.length > 0) {
-                        const countMap: Record<string, number> = {};
-                        sessions.forEach(s => {
-                            (s.selectedPlayers || '').split(',').forEach((id: string) => {
-                                const trimmed = id.trim();
-                                if (trimmed) countMap[trimmed] = (countMap[trimmed] || 0) + 1;
-                            });
-                        });
-                        Object.entries(countMap).forEach(([id, count]) => {
-                            pctMap[id] = Math.round((count / sessions.length) * 100);
-                        });
+                    if (sessions.length === 0) {
+                        setComputedAttendance({});
+                        return;
                     }
-                    latestAttendance = pctMap;
+                    const countMap: Record<string, number> = {};
+                    sessions.forEach(s => {
+                        (s.selectedPlayers || '').split(',').forEach((id: string) => {
+                            const trimmed = id.trim();
+                            if (trimmed) countMap[trimmed] = (countMap[trimmed] || 0) + 1;
+                        });
+                    });
+                    const pctMap: Record<string, number> = {};
+                    Object.entries(countMap).forEach(([id, count]) => {
+                        pctMap[id] = Math.round((count / sessions.length) * 100);
+                    });
                     setComputedAttendance(pctMap);
-                    persist();
                 })
                 .catch(() => {});
-        } else {
-            latestAttendance = {};
         }
     };
 
@@ -176,7 +145,9 @@ export default function TeamManagement() {
 
             toast.success("Player saved!");
             setShowPlayerModal(false);
-            refreshData(); 
+            // No refreshData() — the save endpoint already returned the new/
+            // updated player and we merged it into state above. Refetching
+            // the whole roster here adds two more round-trips for no UI gain.
         } catch (error) {
             toast.error('Connection failed');
         }
@@ -203,7 +174,7 @@ export default function TeamManagement() {
             setPlayers(prev => [...prev, formattedPlayer]);
             toast.success("New player created!");
             setShowPlayerModal(false);
-            refreshData();
+            // No refreshData() — same reason as handleSave.
         } catch (error) {
             toast.error('Connection failed');
         }
