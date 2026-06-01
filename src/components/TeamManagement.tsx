@@ -114,28 +114,40 @@ export default function TeamManagement() {
 
         const isEditMode = !!editingId && !!formData.id;
 
-        // Duplicate Check (only for new signings)
+        // Cheap, local duplicate check — uses whatever's already loaded in
+        // the current view instead of refetching every player across every
+        // team. Catches the common case (someone already on this squad);
+        // backend will still reject a true cross-team collision if any.
         if (!isEditMode) {
-            try {
-                const allPlayers = await PlayerService.getAll(undefined, activeSeason?.id);
-                const match = allPlayers.find(p => 
-                    p.firstName.trim().toLowerCase() === formData.firstName.trim().toLowerCase() && 
-                    p.lastName.trim().toLowerCase() === formData.lastName.trim().toLowerCase()
-                );
-                
-                if (match) {
-                    setDuplicatePlayer(match);
-                    return; // Stop and wait for user's decision
-                }
-            } catch (e) {
-                console.error("Duplicate check failed", e);
+            const match = players.find(p =>
+                p.firstName.trim().toLowerCase() === formData.firstName.trim().toLowerCase() &&
+                p.lastName.trim().toLowerCase() === formData.lastName.trim().toLowerCase()
+            );
+            if (match) {
+                setDuplicatePlayer(match);
+                return; // Stop and wait for user's decision
             }
         }
 
         try {
-            const formattedPlayer = isEditMode
+            const saved = isEditMode
                 ? await PlayerService.update(formData.id, formData)
                 : await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
+
+            // The POST /players response doesn't include the `teams` join, so
+            // merge what the user just typed (formData) under what the server
+            // returned (saved). saved.id wins so we have the canonical UUID;
+            // every other field falls back to what the user entered if the
+            // server response is missing it. This is what makes the slide-over
+            // show the right info on the next click without a page refresh.
+            const formattedPlayer: Player = {
+                ...formData,
+                ...saved,
+                id: saved.id,
+                teams: saved.teams && saved.teams.length > 0
+                    ? saved.teams
+                    : (activeTeam && !isEditMode ? [activeTeam] : (formData.teams || [])),
+            };
 
             if (isEditMode) {
                 setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
@@ -145,9 +157,6 @@ export default function TeamManagement() {
 
             toast.success("Player saved!");
             setShowPlayerModal(false);
-            // No refreshData() — the save endpoint already returned the new/
-            // updated player and we merged it into state above. Refetching
-            // the whole roster here adds two more round-trips for no UI gain.
         } catch (error) {
             toast.error('Connection failed');
         }
@@ -170,11 +179,18 @@ export default function TeamManagement() {
     const handleCreateNewAnyway = async () => {
         setDuplicatePlayer(null);
         try {
-            const formattedPlayer = await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
+            const saved = await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
+            const formattedPlayer: Player = {
+                ...formData,
+                ...saved,
+                id: saved.id,
+                teams: saved.teams && saved.teams.length > 0
+                    ? saved.teams
+                    : (activeTeam ? [activeTeam] : (formData.teams || [])),
+            };
             setPlayers(prev => [...prev, formattedPlayer]);
             toast.success("New player created!");
             setShowPlayerModal(false);
-            // No refreshData() — same reason as handleSave.
         } catch (error) {
             toast.error('Connection failed');
         }
