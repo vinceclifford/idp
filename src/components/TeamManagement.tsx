@@ -129,34 +129,43 @@ export default function TeamManagement() {
             }
         }
 
+        // OPTIMISTIC UI: drop the new/edited player into the list right away
+        // and close the modal immediately, so the create feels instant even
+        // when Railway is cold-starting (1-3s round-trip). The API call runs
+        // in the background; we reconcile (or roll back) once it returns.
+        const tempId = isEditMode ? formData.id : `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const optimisticPlayer: Player = {
+            ...formData,
+            id: tempId,
+            teams: isEditMode
+                ? (formData.teams || [])
+                : (activeTeam ? [activeTeam] : (formData.teams || [])),
+        };
+        const playersBefore = players;
+        if (isEditMode) {
+            setPlayers(prev => prev.map(p => p.id === tempId ? optimisticPlayer : p));
+        } else {
+            setPlayers(prev => [...prev, optimisticPlayer]);
+        }
+        setShowPlayerModal(false);
+
         try {
             const saved = isEditMode
                 ? await PlayerService.update(formData.id, formData)
                 : await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
 
-            // Build the optimistic record. Prefer what the user typed
-            // (formData) over what the server returned (saved), because
-            // mapPlayerFromApi defaults missing fields to '' / 'Unknown' and
-            // would otherwise wipe out the values the user just entered.
-            // We only pick the canonical id and the teams join from saved.
-            const formattedPlayer: Player = {
-                ...formData,
+            // Reconcile: swap the temp id for the canonical server id and
+            // pick up the teams join the server populated (if any).
+            setPlayers(prev => prev.map(p => p.id === tempId ? {
+                ...optimisticPlayer,
                 id: saved.id,
-                teams: saved.teams && saved.teams.length > 0
-                    ? saved.teams
-                    : (activeTeam && !isEditMode ? [activeTeam] : (formData.teams || [])),
-            };
-
-            if (isEditMode) {
-                setPlayers(prev => prev.map(p => p.id === formattedPlayer.id ? formattedPlayer : p));
-            } else {
-                setPlayers(prev => [...prev, formattedPlayer]);
-            }
-
+                teams: saved.teams && saved.teams.length > 0 ? saved.teams : optimisticPlayer.teams,
+            } : p));
             toast.success("Player saved!");
-            setShowPlayerModal(false);
         } catch (error) {
-            toast.error('Connection failed');
+            // Roll back the optimistic insert/edit.
+            setPlayers(playersBefore);
+            toast.error('Save failed — please try again');
         }
     };
 
@@ -176,21 +185,27 @@ export default function TeamManagement() {
 
     const handleCreateNewAnyway = async () => {
         setDuplicatePlayer(null);
+        // Same optimistic flow as handleSave for the "create anyway" branch.
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const optimisticPlayer: Player = {
+            ...formData,
+            id: tempId,
+            teams: activeTeam ? [activeTeam] : (formData.teams || []),
+        };
+        const playersBefore = players;
+        setPlayers(prev => [...prev, optimisticPlayer]);
+        setShowPlayerModal(false);
         try {
             const saved = await PlayerService.create(formData, activeTeam?.id, activeSeason?.id);
-            // formData beats saved — see the matching note in handleSave.
-            const formattedPlayer: Player = {
-                ...formData,
+            setPlayers(prev => prev.map(p => p.id === tempId ? {
+                ...optimisticPlayer,
                 id: saved.id,
-                teams: saved.teams && saved.teams.length > 0
-                    ? saved.teams
-                    : (activeTeam ? [activeTeam] : (formData.teams || [])),
-            };
-            setPlayers(prev => [...prev, formattedPlayer]);
+                teams: saved.teams && saved.teams.length > 0 ? saved.teams : optimisticPlayer.teams,
+            } : p));
             toast.success("New player created!");
-            setShowPlayerModal(false);
         } catch (error) {
-            toast.error('Connection failed');
+            setPlayers(playersBefore);
+            toast.error('Save failed — please try again');
         }
     };
 
