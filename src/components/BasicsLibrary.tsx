@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Plus, Edit2, Trash2, Upload, X, Video as VideoIcon, FileText, BookOpen, ChevronRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -36,6 +37,7 @@ const getMediaType = (url?: string) => {
 };
 
 export default function BasicsLibrary() {
+  const { t } = useTranslation();
   const [basics, setBasics] = useState<Basic[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function BasicsLibrary() {
         setBasics(dbItems);
         if (dbItems.length > 0 && !selectedId) setSelectedId(dbItems[0].id);
       })
-      .catch(() => toast.error('Backend offline'));
+      .catch(() => toast.error(t('training.saveFailed')));
   };
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function BasicsLibrary() {
 
   // --- Handlers ---
   const handleSave = async () => {
-    if (!formData.name || !formData.description) return toast.error('Fill required fields');
+    if (!formData.name || !formData.description) return toast.error(t('login.validationFillFields'));
 
     const basicToSave: Basic = {
       id: formData.id,
@@ -78,15 +80,15 @@ export default function BasicsLibrary() {
       if (isEditing && formData.id) {
         saved = await LibraryService.updateBasic(formData.id, basicToSave);
         setBasics(prev => prev.map(b => b.id === saved.id ? saved : b));
-        toast.success('Updated!');
+        toast.success(t('libraries.basicUpdated'));
       } else {
         saved = await LibraryService.createBasic(basicToSave);
         setBasics(prev => [...prev, saved]);
         setSelectedId(saved.id);
-        toast.success('Created!');
+        toast.success(t('libraries.basicCreated'));
       }
       closeModal();
-    } catch { toast.error('Connection failed'); }
+    } catch { toast.error(t('modals.saveFailed')); }
   };
 
   const handleDelete = async (id: string) => {
@@ -98,13 +100,13 @@ export default function BasicsLibrary() {
       if (selectedId === id) setSelectedId(next[0]?.id ?? null);
       return next;
     });
-    toast.success('Deleted');
+    toast.success(t('training.deleted'));
     try {
       await LibraryService.deleteBasic(id);
     } catch {
       setBasics(basicsBefore);
       setSelectedId(selectedBefore);
-      toast.error('Failed to delete');
+      toast.error(t('training.deleteFailed'));
     }
   };
 
@@ -117,11 +119,11 @@ export default function BasicsLibrary() {
     const isPdf = file.type === 'application/pdf';
 
     if (!isImage && !isVideo && !isPdf) {
-      toast.error('Unsupported media type. Please upload an image, video, or PDF.');
+      toast.error(t('libraries.unsupportedMedia'));
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB allowed.");
+    if (file.size > 100 * 1024 * 1024) return toast.error(t('libraries.fileTooLarge'));
     if (isImage) {
       setMediaPreview(URL.createObjectURL(file));
     }
@@ -129,7 +131,7 @@ export default function BasicsLibrary() {
       const url = await uploadFile(file);
       setMediaPreview(url);
     } catch {
-      toast.error('File upload failed. Please try again.');
+      toast.error(t('libraries.uploadFailed'));
       setMediaPreview(null);
     }
   };
@@ -155,15 +157,15 @@ export default function BasicsLibrary() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-sky-500 flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Basics Library</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.basicsTitle')}</h1>
             <p className="text-sm text-muted mt-0.5">
-              {basics.length} {basics.length === 1 ? 'concept' : 'concepts'}
+              {t('libraries.conceptCount', { count: basics.length })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
-          <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>Add Basic</Button>
+          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>{t('libraries.managePlaybook')}</Button>
+          <Button onClick={() => { closeModal(); setShowCreateModal(true); }} icon={<Plus size={18} />}>{t('libraries.addBasic')}</Button>
         </div>
       </div>
 
@@ -173,7 +175,7 @@ export default function BasicsLibrary() {
         {/* LEFT: List */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
           <div className="flex-shrink-0">
-            <Input icon={<Search size={15} />} placeholder="Search basics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Input icon={<Search size={15} />} placeholder={t('libraries.searchBasics')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
           <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 max-h-[60vh]">
@@ -181,7 +183,7 @@ export default function BasicsLibrary() {
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
                   <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No basics found</p>
+                  <p className="text-sm">{t('libraries.noBasicsFound')}</p>
                 </div>
               )}
               {filtered.map(basic => {
@@ -245,11 +247,11 @@ export default function BasicsLibrary() {
                       <button
                         onClick={() => openEdit(selected)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
-                      ><Edit2 size={12} /> Edit</button>
+                      ><Edit2 size={12} /> {t('common.edit')}</button>
                       <button
                         onClick={() => setConfirmDeleteId(selected.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-rose-500/10 text-muted hover:text-rose-500 text-xs font-bold border border-border transition-colors"
-                      ><Trash2 size={12} /> Delete</button>
+                      ><Trash2 size={12} /> {t('common.delete')}</button>
                     </div>
                   )}
                 </div>
@@ -257,7 +259,7 @@ export default function BasicsLibrary() {
 
               <div className="p-6 space-y-6">
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-2">Description</h4>
+                  <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-2">{t('common.description')}</h4>
                   <p className="text-foreground/80 text-sm leading-relaxed">{selected.description}</p>
                 </div>
 
@@ -265,7 +267,7 @@ export default function BasicsLibrary() {
                   const type = getMediaType(selected.diagramUrl);
                   if (type === 'image') return (
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                       <img
                         src={resolveMediaUrl(selected.diagramUrl!)}
                         alt="Diagram"
@@ -276,26 +278,26 @@ export default function BasicsLibrary() {
                   );
                   if (type === 'video') return (
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                       <div
                         className="w-full h-40 bg-black rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors"
                         onClick={() => setViewMedia(selected.diagramUrl!)}
                       >
                         <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors">
-                          <VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span>
+                           <VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">{t('libraries.watchVideo')}</span>
                         </div>
                       </div>
                     </div>
                   );
                   if (type === 'pdf') return (
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                       <div
                         className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors"
                         onClick={() => setViewMedia(selected.diagramUrl!)}
                       >
                         <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors">
-                          <FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">Open PDF</span>
+                          <FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">{t('libraries.pdfDoc')}</span>
                         </div>
                       </div>
                     </div>
@@ -307,32 +309,32 @@ export default function BasicsLibrary() {
           ) : (
             <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
               <BookOpen size={40} className="mb-3 opacity-30" />
-              <p className="text-sm font-medium">Select a basic to view details</p>
+              <p className="text-sm font-medium">{t('libraries.selectBasicToView')}</p>
             </div>
           )}
         </div>
       </div>
 
-      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Basic' : 'Create Basic'}
+      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? t('libraries.editBasic') : t('libraries.addBasic')}
         footer={
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
-            <Button onClick={handleSave} className="flex-1">Save</Button>
+            <Button variant="ghost" onClick={closeModal} className="flex-1">{t('common.cancel')}</Button>
+            <Button onClick={handleSave} className="flex-1">{t('common.save')}</Button>
           </div>
         }
       >
         <div className="space-y-6">
-          <Input label="Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Ball Control" />
+          <Input label={t('common.name')} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder={t('libraries.basicNamePlaceholder')} />
 
           {/* Visual Media Upload */}
           <div>
-            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">Media (Image, Video, PDF)</label>
+            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">{t('libraries.mediaPreviewLabel')}</label>
             <div className="h-32 bg-surface-hover border-2 border-dashed border-border rounded-xl relative group hover:border-primary/30 transition-colors flex flex-col items-center justify-center text-muted overflow-hidden cursor-pointer">
               {mediaPreview ? (
                 <>
                   {getMediaType(mediaPreview) === 'image' && <img src={mediaPreview} className="w-full h-full object-cover" />}
-                  {getMediaType(mediaPreview) === 'video' && <div className="text-primary flex flex-col items-center"><VideoIcon size={32} /><span className="text-xs mt-2 font-bold">Video Selected</span></div>}
-                  {getMediaType(mediaPreview) === 'pdf' && <div className="text-primary flex flex-col items-center"><FileText size={32} /><span className="text-xs mt-2 font-bold">PDF Selected</span></div>}
+                  {getMediaType(mediaPreview) === 'video' && <div className="text-primary flex flex-col items-center"><VideoIcon size={32} /><span className="text-xs mt-2 font-bold">{t('libraries.videoSelected')}</span></div>}
+                  {getMediaType(mediaPreview) === 'pdf' && <div className="text-primary flex flex-col items-center"><FileText size={32} /><span className="text-xs mt-2 font-bold">{t('libraries.pdfSelected')}</span></div>}
 
                   <button
                     onClick={(e) => { e.stopPropagation(); setMediaPreview(null); setFormData({ ...formData, diagramUrl: '' }); }}
@@ -344,7 +346,7 @@ export default function BasicsLibrary() {
               ) : (
                 <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center hover:text-primary transition-colors">
                   <Upload size={24} className="mb-2" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">Upload File</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('libraries.uploadFile')}</span>
                   <input type="file" className="hidden" accept="image/*,video/*,application/pdf" onChange={handleFileUpload} />
                 </label>
               )}
@@ -352,12 +354,12 @@ export default function BasicsLibrary() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">Description</label>
+            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">{t('common.description')}</label>
             <textarea
               className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted/60 focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 hover:border-border resize-none h-32 custom-scrollbar"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the concept..."
+              placeholder={t('libraries.describeConceptPlaceholder')}
             />
           </div>
         </div>
@@ -403,9 +405,9 @@ export default function BasicsLibrary() {
 
       <ConfirmDialog
         isOpen={confirmDeleteId !== null}
-        title="Delete item?"
-        message="This will permanently remove this entry from the library."
-        confirmLabel="Delete"
+        title={t('libraries.deleteBasicTitle')}
+        message={t('libraries.deleteBasicMsg')}
+        confirmLabel={t('common.delete')}
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
         onCancel={() => setConfirmDeleteId(null)}
       />

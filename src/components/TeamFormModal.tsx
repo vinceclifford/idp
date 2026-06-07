@@ -5,6 +5,7 @@ import { TeamService, SeasonService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface TeamFormModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface TeamFormModalProps {
 }
 
 export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormModalProps) {
+  const { t } = useTranslation();
   const { refreshTeams, teams: allTeams } = useTeam();
   const { seasons, activeSeason, refreshSeasons, setActiveSeasonId } = useSeason();
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
     try {
       if (isCreatingNewSeason) {
         if (!newSeasonName.trim()) {
-          toast.error('Please enter a name for the new season');
+          toast.error(t('modals.enterSeasonNameToast'));
           setLoading(false);
           return;
         }
@@ -67,30 +69,30 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
       }
 
       if (!targetSeasonId) {
-        toast.error('Please select a season');
+        toast.error(t('modals.selectSeasonToast'));
         setLoading(false);
         return;
       }
 
       // Check for duplicates in the target season
       const teamNameToCreate = mode === 'clone' 
-        ? availableTeamsForCloning.find(t => t.id === sourceTeamId)?.name 
+        ? availableTeamsForCloning.find(team => team.id === sourceTeamId)?.name 
         : formData.name;
 
-      const isDuplicate = allTeams.some(t => 
-        t.season_id === targetSeasonId && 
-        t.name.toLowerCase() === teamNameToCreate?.toLowerCase()
+      const isDuplicate = allTeams.some(team => 
+        team.season_id === targetSeasonId && 
+        team.name.toLowerCase() === teamNameToCreate?.toLowerCase()
       );
 
       if (isDuplicate) {
-        toast.error(`A team named "${teamNameToCreate}" already exists in this season.`);
+        toast.error(t('modals.teamExistsError', { name: teamNameToCreate }));
         setLoading(false);
         return;
       }
 
       if (mode === 'clone') {
         if (!sourceTeamId) {
-          toast.error('Please select a team to clone');
+          toast.error(t('modals.selectCloneTeamToast'));
           setLoading(false);
           return;
         }
@@ -100,13 +102,13 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
       }
 
       await refreshTeams();
-      toast.success(mode === 'clone' ? 'Team cloned successfully!' : 'Team created successfully!');
+      toast.success(mode === 'clone' ? t('modals.cloneTeamSuccess') : t('modals.createTeamSuccess'));
       onSuccess();
       setFormData({ name: '' });
       setNewSeasonName('');
       setSourceTeamId('');
     } catch (err: any) {
-      toast.error('Failed to process request: ' + (err.message || 'Unknown error'));
+      toast.error(t('modals.processRequestFailed') + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -134,7 +136,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
               <div className="p-2 bg-primary/10 text-primary rounded-xl">
                 <Users size={20} />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Create New Team</h2>
+              <h2 className="text-xl font-bold text-foreground">{t('modals.createTeamHeader')}</h2>
             </div>
             <button
                onClick={onClose}
@@ -155,7 +157,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
                     : 'text-muted hover:text-foreground'
                 }`}
               >
-                Create New
+                {t('modals.createNewMode')}
               </button>
               <button
                 type="button"
@@ -166,7 +168,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
                     : 'text-muted hover:text-foreground'
                 }`}
               >
-                Clone Existing
+                {t('modals.cloneExistingMode')}
               </button>
             </div>
           </div>
@@ -177,14 +179,14 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
                 <>
                   <div>
                     <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
-                      Team Name
+                      {t('modals.teamNameLabel')}
                     </label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. U19 Academy"
+                      placeholder={t('modals.teamNamePlaceholder')}
                       className="w-full bg-surface border border-border text-foreground rounded-xl px-4 py-3 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                     />
                   </div>
@@ -193,28 +195,28 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
               ) : (
                 <div>
                   <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
-                    Select Team to Clone
+                    {t('modals.selectTeamToCloneLabel')}
                   </label>
                   <select
                     value={sourceTeamId}
                     onChange={e => setSourceTeamId(e.target.value)}
                     className="w-full bg-surface border border-border text-foreground rounded-xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   >
-                    <option value="">-- Select a Team --</option>
+                    <option value="">{t('modals.selectTeamDefaultOption')}</option>
                     {/* Show all available teams from other seasons */}
-                    {availableTeamsForCloning.map(t => (
-                      <option key={t.id} value={t.id}>{t.name} ({seasons.find(s => s.id === t.season_id)?.name || 'Unknown Season'})</option>
+                    {availableTeamsForCloning.map(team => (
+                      <option key={team.id} value={team.id}>{team.name} ({seasons.find(s => s.id === team.season_id)?.name || t('modals.unknownSeason', 'Unknown Season')})</option>
                     ))}
                   </select>
                   <p className="mt-2 text-[10px] text-muted leading-relaxed">
-                    This will copy the team name and all player assignments to the selected season.
+                    {t('modals.cloneTeamDesc')}
                   </p>
                 </div>
               )}
 
               <div className="pt-4 border-t border-border">
                 <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
-                  Target Season
+                  {t('modals.targetSeasonLabel')}
                 </label>
                 <select
                   value={selectedSeasonId}
@@ -224,21 +226,21 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
                   {seasons.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
-                  <option value="NEW_SEASON">+ Create New Season</option>
+                  <option value="NEW_SEASON">{t('modals.createNewSeasonOption')}</option>
                 </select>
               </div>
 
               {selectedSeasonId === 'NEW_SEASON' && (
                 <div className="space-y-2 mt-4">
                   <label className="block text-xs font-bold text-muted uppercase tracking-wider">
-                    New Season Name
+                    {t('modals.newSeasonNameLabel')}
                   </label>
                   <input
                     type="text"
                     required={selectedSeasonId === 'NEW_SEASON'}
                     value={newSeasonName}
                     onChange={e => setNewSeasonName(e.target.value)}
-                    placeholder="e.g. 2026/2027 Season"
+                    placeholder={t('modals.newSeasonNamePlaceholder')}
                     className="w-full bg-surface border border-border text-foreground rounded-xl px-4 py-3 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   />
                 </div>
@@ -252,7 +254,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
               onClick={onClose}
               className="px-4 py-2.5 text-sm font-medium text-muted hover:text-foreground hover:bg-surface-hover rounded-xl transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleSubmit}
@@ -260,7 +262,7 @@ export default function TeamFormModal({ isOpen, onClose, onSuccess }: TeamFormMo
               className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              <span>{mode === 'clone' ? 'Clone Team' : 'Create Team'}</span>
+              <span>{mode === 'clone' ? t('modals.cloneTeamBtn') : t('modals.createTeamBtn')}</span>
             </button>
           </div>
         </motion.div>

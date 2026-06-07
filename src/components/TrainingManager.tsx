@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, X, Calendar, Clock, Trash2, Edit2, User, Activity, Download, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ import { ConfirmDialog } from "./ui/ConfirmDialog";
 import SessionSlideOver from "./ui/SessionSlideOver";
 
 export default function TrainingManager() {
+    const { t, i18n } = useTranslation();
     const { activeTeam } = useTeam();
     const { activeSeason } = useSeason();
     const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -78,7 +80,7 @@ export default function TrainingManager() {
                 setSessions(sessionsData);
                 setAllPlayers(playersData);
                 setAllExercises(exercisesData);
-            } catch (e) { toast.error("Failed to connect to server"); }
+            } catch (e) { toast.error(t('training.saveFailed')); }
         };
         fetchData();
     }, [activeTeam, activeSeason]);
@@ -91,16 +93,16 @@ export default function TrainingManager() {
     }, [showCreateModal, isEditing, allPlayers]);
 
     const handleSave = async () => {
-        if (!formData.focus) return toast.error("Focus is required");
+        if (!formData.focus) return toast.error(t('training.focusRequired'));
 
         // Recurring branch: create a series, then reload sessions so the
         // newly materialised occurrences show up in the list.
         if (!isEditing && formData.isRecurring) {
             if (!formData.recurrenceEndDate) {
-                return toast.error('Pick a "Repeat until" date');
+                return toast.error(t('training.repeatUntilRequired'));
             }
             if (formData.recurrenceEndDate < formData.date) {
-                return toast.error('"Repeat until" must be on or after the start date');
+                return toast.error(t('training.repeatUntilFuture'));
             }
             // Day-of-week from the first occurrence. JS Sunday=0 → convert
             // to Python convention (Monday=0).
@@ -127,10 +129,10 @@ export default function TrainingManager() {
                     const fresh = await TrainingService.getAll(activeTeam.id, activeSeason.id);
                     setSessions(fresh);
                 }
-                toast.success("Recurring series created");
+                toast.success(t('training.seriesCreated'));
                 closeModal();
             } catch {
-                toast.error("Failed to create series");
+                toast.error(t('training.saveFailed'));
             }
             return;
         }
@@ -159,14 +161,14 @@ export default function TrainingManager() {
                 } else {
                     setSessions(prev => prev.map(s => s.id === saved.id ? saved : s));
                 }
-                toast.success(editScope === 'future' ? 'Series updated' : 'Session Updated');
+                toast.success(editScope === 'future' ? t('training.seriesUpdated') : t('training.sessionUpdated'));
             } else {
                 saved = await TrainingService.create(sessionToSave, activeTeam?.id, activeSeason?.id);
                 setSessions(prev => [...prev, saved]);
-                toast.success("Session Created");
+                toast.success(t('training.sessionCreated'));
             }
             closeModal();
-        } catch { toast.error("Connection failed"); }
+        } catch { toast.error(t('training.saveFailed')); }
     };
 
     const handleDelete = async (id: string, scope: 'this' | 'future' = 'this') => {
@@ -182,12 +184,12 @@ export default function TrainingManager() {
         } else {
             setSessions(prev => prev.filter(s => s.id !== id));
         }
-        toast.success(scope === 'future' ? 'Future occurrences deleted' : 'Deleted');
+        toast.success(scope === 'future' ? t('training.futureDeleted') : t('training.deleted'));
         try {
             await TrainingService.delete(id, scope);
         } catch (e) {
             setSessions(sessionsBefore);
-            toast.error("Failed to delete");
+            toast.error(t('training.deleteFailed'));
         }
     };
 
@@ -200,10 +202,12 @@ export default function TrainingManager() {
         doc.rect(0, 0, 297, 30, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
-        doc.text("TRAINING SESSION PLAN", 148, 12, { align: "center" });
+        doc.text(t('training.pdfPlan'), 148, 12, { align: "center" });
         doc.setFontSize(10);
         doc.setTextColor(148, 163, 184); // Slate 400
-        doc.text(`${session.date}  |  ${session.startTime} - ${session.endTime}  |  Focus: ${session.focus}  |  Intensity: ${session.intensity}`, 148, 22, { align: "center" });
+        const focusStr = `${t('training.focus')}: ${session.focus}`;
+        const intensityStr = `${t('training.intensity')}: ${session.intensity === 'High' ? t('common.high') : session.intensity === 'Low' ? t('common.low') : t('common.medium')}`;
+        doc.text(`${session.date}  |  ${session.startTime} - ${session.endTime}  |  ${focusStr}  |  ${intensityStr}`, 148, 22, { align: "center" });
 
         let finalY = 40;
 
@@ -216,16 +220,16 @@ export default function TrainingManager() {
         if (sessionExercises.length > 0) {
             doc.setFontSize(12);
             doc.setTextColor(15, 23, 42);
-            doc.text("Session Exercises", 14, finalY);
+            doc.text(t('training.pdfSessionExercises'), 14, finalY);
 
             autoTable(doc, {
                 startY: finalY + 5,
-                head: [['Exercise', 'Diagram', 'Setup', 'Description', 'Coaching Points', 'Equipment', 'Related Items']],
+                head: [[t('nav.exercises'), t('libraries.visuals'), t('libraries.setup'), t('common.description'), t('libraries.coachingPoints'), t('libraries.equipment'), t('training.pdfRelatedItems')]],
                 body: sessionExercises.map(ex => {
                     const related = [
-                        ex.linkedBasics?.length ? `Basics: ${ex.linkedBasics.join(', ')}` : '',
-                        ex.linkedPrinciples?.length ? `Principles: ${ex.linkedPrinciples.join(', ')}` : '',
-                        ex.linkedTactics?.length ? `Tactics: ${ex.linkedTactics.join(', ')}` : ''
+                        ex.linkedBasics?.length ? `${t('nav.basics')}: ${ex.linkedBasics.join(', ')}` : '',
+                        ex.linkedPrinciples?.length ? `${t('nav.principles')}: ${ex.linkedPrinciples.join(', ')}` : '',
+                        ex.linkedTactics?.length ? `${t('nav.tactics')}: ${ex.linkedTactics.join(', ')}` : ''
                     ].filter(s => s).join('\n');
 
                     return [
@@ -275,7 +279,7 @@ export default function TrainingManager() {
         if (sessionPlayers.length > 0) {
             if (finalY > 150) { doc.addPage(); finalY = 20; }
             doc.setFontSize(12); doc.setTextColor(15, 23, 42);
-            doc.text(`Attending Players (${sessionPlayers.length})`, 14, finalY);
+            doc.text(t('training.attendingPlayers', { count: sessionPlayers.length }), 14, finalY);
             doc.setFontSize(9); doc.setTextColor(0, 0, 0);
             let x = 14; let y = finalY + 8;
             sessionPlayers.forEach((p, index) => {
@@ -287,7 +291,7 @@ export default function TrainingManager() {
         }
 
         doc.save(`Training_Session_${session.date}.pdf`);
-        toast.success("PDF Downloaded");
+        toast.success(t('training.pdfDownloaded'));
     };
 
     // --- 4. UI HELPERS ---
@@ -336,9 +340,9 @@ export default function TrainingManager() {
     const weekStr = weekLater.toLocaleDateString('en-CA');
     const twoWeeksStr = twoWeeksLater.toLocaleDateString('en-CA');
     const groupedUpcoming = [
-        { label: 'This Week', items: displaySessions.filter(s => s.date <= weekStr) },
-        { label: 'Next Week', items: displaySessions.filter(s => s.date > weekStr && s.date <= twoWeeksStr) },
-        { label: 'Later',     items: displaySessions.filter(s => s.date > twoWeeksStr) },
+        { label: t('training.thisWeek'), items: displaySessions.filter(s => s.date <= weekStr) },
+        { label: t('training.nextWeek'), items: displaySessions.filter(s => s.date > weekStr && s.date <= twoWeeksStr) },
+        { label: t('training.later'),     items: displaySessions.filter(s => s.date > twoWeeksStr) },
     ];
     const nextSessionId = upcomingSessions[0]?.id;
 
@@ -348,20 +352,20 @@ export default function TrainingManager() {
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-cyan-500 flex-shrink-0" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Training Sessions</h1>
-                        <p className="text-sm text-muted mt-0.5">{upcomingSessions.length} upcoming · {pastSessions.length} past</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.trainingTitle')}</h1>
+                        <p className="text-sm text-muted mt-0.5">{upcomingSessions.length} {t('training.upcomingSessions').toLowerCase()} · {pastSessions.length} {t('training.pastSessions').toLowerCase()}</p>
                     </div>
                 </div>
                 <Button onClick={openCreate} icon={<Plus size={18} />} className="shadow-lg shadow-primary/20">
-                    New Session
+                    {t('training.newSession')}
                 </Button>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 p-1 bg-surface-hover/50 border border-border rounded-xl w-fit">
                 {([
-                    { key: 'upcoming', label: 'Upcoming', count: upcomingSessions.length },
-                    { key: 'past',     label: 'Past',     count: pastSessions.length },
+                    { key: 'upcoming', label: t('training.upcomingSessions'), count: upcomingSessions.length },
+                    { key: 'past',     label: t('training.pastSessions'),     count: pastSessions.length },
                 ] as const).map(tab => (
                     <button
                         key={tab.key}
@@ -383,6 +387,7 @@ export default function TrainingManager() {
                     const base = activeTab === 'upcoming' ? upcomingSessions : pastSessions;
                     const count = level === 'All' ? base.length : base.filter(s => s.intensity === level).length;
                     const dotColor = level === 'Low' ? 'bg-emerald-500' : level === 'Medium' ? 'bg-amber-500' : level === 'High' ? 'bg-rose-500' : '';
+                    const levelLabel = level === 'All' ? t('common.all') : level === 'Low' ? t('common.low') : level === 'Medium' ? t('common.medium') : t('common.high');
                     return (
                         <button
                             key={level}
@@ -393,7 +398,7 @@ export default function TrainingManager() {
                                 }`}
                         >
                             {level !== 'All' && <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />}
-                            {level}
+                            {levelLabel}
                             <span className="text-[10px] px-1 bg-surface text-muted rounded border border-border">{count}</span>
                         </button>
                     );
@@ -405,7 +410,7 @@ export default function TrainingManager() {
                     <>
                         {displaySessions.length === 0 ? (
                             <div className="p-12 text-center text-muted border-2 border-dashed border-border rounded-xl bg-surface-hover/30">
-                                No upcoming sessions scheduled.
+                                {t('training.emptySessionsUpcoming')}
                             </div>
                         ) : groupedUpcoming.filter(g => g.items.length > 0).map(group => (
                             <div key={group.label}>
@@ -430,11 +435,11 @@ export default function TrainingManager() {
                                                     <div className="flex-1 pl-2">
                                                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                             <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${INTENSITY_STYLES[s.intensity] ?? 'bg-surface text-muted border-border'}`}>
-                                                                {s.intensity}
+                                                                {s.intensity === 'High' ? t('common.high') : s.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                                             </span>
                                                             {s.id === nextSessionId && (
                                                                 <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
-                                                                    Next
+                                                                    {t('dashboard.scheduled')}
                                                                 </span>
                                                             )}
                                                             <h3 className="text-lg font-bold text-foreground">{s.focus}</h3>
@@ -442,19 +447,19 @@ export default function TrainingManager() {
                                                         <div className="flex flex-wrap gap-4 text-sm text-muted mt-2">
                                                             <span className="flex items-center gap-1.5"><Calendar size={14} className="text-primary" /> {formatDate(s.date)}</span>
                                                             <span className="flex items-center gap-1.5"><Clock size={14} className="text-primary" /> {s.startTime} - {s.endTime}</span>
-                                                            <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {exerciseCount} Drills</span>
-                                                            <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {playerCount} Players</span>
+                                                            <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {t('dashboard.drillsCount', { count: exerciseCount })}</span>
+                                                            <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {t('dashboard.playersCount', { count: playerCount })}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 mt-4 md:mt-0 flex-shrink-0">
-                                                        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title="Export PDF">
+                                                        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title={`${t('libraries.download')} PDF`}>
                                                             <Download size={18} />
                                                         </Button>
-                                                        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
+                                                        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title={t('common.edit')}>
                                                             <Edit2 size={18} />
                                                         </Button>
-                                                        <Button variant="danger" onClick={(e) => { e.stopPropagation(); if (s.seriesId) setScopeDeleteSession(s); else setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
-                                                            <Trash2 size={18} />
+                                                        <Button variant="danger" onClick={(e) => { e.stopPropagation(); if (s.seriesId) setScopeDeleteSession(s); else setConfirmDeleteId(s.id); }} className="p-2.5" title={t('common.delete')}>
+                                                                <Trash2 size={18} />
                                                         </Button>
                                                     </div>
                                                 </Card>
@@ -484,25 +489,25 @@ export default function TrainingManager() {
                                             <div className="flex-1 pl-2">
                                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                     <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${INTENSITY_STYLES[s.intensity] ?? 'bg-surface text-muted border-border'}`}>
-                                                        {s.intensity}
+                                                        {s.intensity === 'High' ? t('common.high') : s.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                                     </span>
                                                     <h3 className="text-lg font-bold text-foreground">{s.focus}</h3>
                                                 </div>
                                                 <div className="flex flex-wrap gap-4 text-sm text-muted mt-2">
                                                     <span className="flex items-center gap-1.5"><Calendar size={14} className="text-primary" /> {formatDate(s.date)}</span>
                                                     <span className="flex items-center gap-1.5"><Clock size={14} className="text-primary" /> {s.startTime} - {s.endTime}</span>
-                                                    <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {exerciseCount} Drills</span>
-                                                    <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {playerCount} Players</span>
+                                                    <span className="flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {t('dashboard.drillsCount', { count: exerciseCount })}</span>
+                                                    <span className="flex items-center gap-1.5"><User size={14} className="text-purple-500" /> {t('dashboard.playersCount', { count: playerCount })}</span>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 mt-4 md:mt-0 flex-shrink-0">
-                                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title="Export PDF">
+                                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); generatePDF(s); }} className="p-2.5" title={`${t('libraries.download')} PDF`}>
                                                     <Download size={18} />
                                                 </Button>
-                                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title="Edit">
+                                                <Button variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(s); }} className="p-2.5" title={t('common.edit')}>
                                                     <Edit2 size={18} />
                                                 </Button>
-                                                <Button variant="danger" onClick={(e) => { e.stopPropagation(); if (s.seriesId) setScopeDeleteSession(s); else setConfirmDeleteId(s.id); }} className="p-2.5" title="Delete">
+                                                <Button variant="danger" onClick={(e) => { e.stopPropagation(); if (s.seriesId) setScopeDeleteSession(s); else setConfirmDeleteId(s.id); }} className="p-2.5" title={t('common.delete')}>
                                                     <Trash2 size={18} />
                                                 </Button>
                                             </div>
@@ -513,7 +518,7 @@ export default function TrainingManager() {
                         </div>
                         {displaySessions.length === 0 && (
                             <div className="p-12 text-center text-muted border-2 border-dashed border-border rounded-xl bg-surface-hover/30">
-                                No past sessions recorded.
+                                {t('training.emptySessionsPast')}
                             </div>
                         )}
                     </>
@@ -523,14 +528,14 @@ export default function TrainingManager() {
             <Modal
                 isOpen={showCreateModal}
                 onClose={closeModal}
-                title={isEditing ? 'Edit Session' : 'Plan Session'}
+                title={isEditing ? t('training.editSession') : t('training.planSession')}
                 icon={<Activity size={20} />}
                 maxWidth="max-w-5xl"
                 footer={
                     <div className="flex gap-3">
-                        <Button variant="ghost" onClick={closeModal} className="flex-1">Discard</Button>
+                        <Button variant="ghost" onClick={closeModal} className="flex-1">{t('common.discard')}</Button>
                         <Button onClick={handleSave} className="flex-1 bg-primary">
-                            {isEditing ? 'Save Changes' : 'Schedule Session'}
+                            {isEditing ? t('team.saveChanges') : t('training.scheduleSession')}
                         </Button>
                     </div>
                 }
@@ -543,7 +548,7 @@ export default function TrainingManager() {
                         return (
                             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-3">
                                 <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">
-                                    Apply changes to
+                                    {t('training.editSeriesScopeTitle')}
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -551,19 +556,19 @@ export default function TrainingManager() {
                                         onClick={() => setEditScope('this')}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${editScope === 'this' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-surface-raised border-border text-muted hover:text-foreground'}`}
                                     >
-                                        Only this event
+                                        {t('training.editSeriesScopeThis')}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setEditScope('future')}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${editScope === 'future' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-surface-raised border-border text-muted hover:text-foreground'}`}
                                     >
-                                        This and all future
+                                        {t('training.editSeriesScopeFuture')}
                                     </button>
                                 </div>
                                 {editScope === 'future' && (
                                     <p className="text-[11px] text-muted md:ml-2">
-                                        Date can't change with this scope.
+                                        {t('training.editSeriesScopeWarning')}
                                     </p>
                                 )}
                             </div>
@@ -574,34 +579,34 @@ export default function TrainingManager() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <div className="md:col-span-2">
                             <Input
-                                label="Primary Focus"
-                                placeholder="e.g. High Press & Transition"
+                                label={t('training.focus')}
+                                placeholder={t('training.focusPlaceholder')}
                                 value={formData.focus}
                                 onChange={e => setFormData({ ...formData, focus: e.target.value })}
                             />
                         </div>
                         <DatePicker
-                            label="Date"
+                            label={t('training.date')}
                             value={formData.date}
                             onChange={date => setFormData({ ...formData, date })}
                         />
                         <Select
-                            label="Intensity"
+                            label={t('training.intensity')}
                             value={formData.intensity}
                             onChange={(val) => setFormData({ ...formData, intensity: val as string })}
                             options={[
-                                { label: 'Low', value: 'Low' },
-                                { label: 'Medium', value: 'Medium' },
-                                { label: 'High', value: 'High' }
+                                { label: t('common.low'), value: 'Low' },
+                                { label: t('common.medium'), value: 'Medium' },
+                                { label: t('common.high'), value: 'High' }
                             ]}
                         />
                         <TimePicker
-                            label="Start Time"
+                            label={t('training.startTime')}
                             value={formData.startTime}
                             onChange={time => setFormData({ ...formData, startTime: time })}
                         />
                         <TimePicker
-                            label="End Time"
+                            label={t('training.endTime')}
                             value={formData.endTime}
                             onChange={time => setFormData({ ...formData, endTime: time })}
                         />
@@ -620,21 +625,24 @@ export default function TrainingManager() {
                                     className="w-4 h-4 accent-blue-500"
                                 />
                                 <span className="text-sm font-semibold text-foreground">
-                                    Repeat weekly
+                                    {t('training.repeatWeekly')}
                                 </span>
                                 <span className="text-xs text-muted">
-                                    Creates a session every {(() => {
+                                    {(() => {
                                         try {
                                             const d = new Date(formData.date + 'T12:00:00');
-                                            return d.toLocaleDateString('en-US', { weekday: 'long' });
-                                        } catch { return 'week'; }
-                                    })()} until the end date.
+                                            const weekday = d.toLocaleDateString(i18n.language, { weekday: 'long' });
+                                            return t('training.recurringDesc', { weekday });
+                                        } catch {
+                                            return t('training.recurringDesc', { weekday: i18n.language === 'de' ? 'Woche' : 'week' });
+                                        }
+                                    })()}
                                 </span>
                             </label>
                             {formData.isRecurring && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
                                     <DatePicker
-                                        label="Repeat until"
+                                        label={t('training.repeatUntil')}
                                         value={formData.recurrenceEndDate}
                                         onChange={date => setFormData({ ...formData, recurrenceEndDate: date })}
                                     />
@@ -647,7 +655,7 @@ export default function TrainingManager() {
 
                     {/* 2. Player Selection */}
                     <div>
-                        <h3 className="text-[11px] uppercase tracking-widest font-bold text-muted mb-4">Player Availability</h3>
+                        <h3 className="text-[11px] uppercase tracking-widest font-bold text-muted mb-4">{t('training.playerAvailability')}</h3>
                         <div className="flex flex-wrap gap-2">
                             {allPlayers.map(p => {
                                 const isSelected = formData.selectedPlayerIds.includes(p.id);
@@ -674,7 +682,7 @@ export default function TrainingManager() {
                         {/* Available Column */}
                         <div>
                             <h3 className="text-[11px] uppercase tracking-widest font-bold text-muted mb-3 flex justify-between">
-                                Available Drills
+                                {t('training.availDrills')}
                                 <span className="bg-surface-hover px-2 rounded text-[10px] py-0.5 text-muted border border-border">{allExercises.length - formData.selectedExerciseIds.length}</span>
                             </h3>
                             <div className="bg-surface-hover/30 border border-border rounded-xl p-2 h-80 overflow-y-auto space-y-2 custom-scrollbar">
@@ -685,7 +693,9 @@ export default function TrainingManager() {
                                             <Plus size={16} className="text-muted group-hover:text-primary" />
                                         </div>
                                         <div className="mt-1 flex gap-2">
-                                            <span className="text-[10px] text-muted/80 px-1.5 bg-surface-hover rounded border border-border">{ex.intensity || 'Med'}</span>
+                                             <span className="text-[10px] text-muted/80 px-1.5 bg-surface-hover rounded border border-border">
+                                                 {ex.intensity === 'High' ? t('common.high') : ex.intensity === 'Low' ? t('common.low') : t('common.medium')}
+                                             </span>
                                         </div>
                                     </div>
                                 ))}
@@ -695,7 +705,7 @@ export default function TrainingManager() {
                         {/* Selected Column */}
                         <div>
                             <h3 className="text-[11px] uppercase tracking-widest font-bold text-primary mb-3 flex justify-between">
-                                Selected Sequence
+                                {t('training.selectedSequence')}
                                 <span className="bg-primary/10 text-primary px-2 rounded text-[10px] py-0.5 border border-primary/20">{formData.selectedExerciseIds.length}</span>
                             </h3>
                             <div className="bg-primary/5 border border-primary/10 rounded-xl p-2 h-80 overflow-y-auto space-y-2 custom-scrollbar">
@@ -717,7 +727,7 @@ export default function TrainingManager() {
                                 {formData.selectedExerciseIds.length === 0 && (
                                     <div className="h-full flex flex-col items-center justify-center text-muted text-xs italic">
                                         <ArrowRight className="mb-2 opacity-50" />
-                                        Select drills from the left
+                                        {t('training.availableDrillsSub')}
                                     </div>
                                 )}
                             </div>
@@ -728,9 +738,9 @@ export default function TrainingManager() {
 
             <ConfirmDialog
                 isOpen={confirmDeleteId !== null}
-                title="Delete session?"
-                message="This will permanently remove the training session."
-                confirmLabel="Delete Session"
+                title={t('training.deleteSessionTitle')}
+                message={t('training.deleteSessionMessage')}
+                confirmLabel={t('training.deleteSessionConfirm')}
                 onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
                 onCancel={() => setConfirmDeleteId(null)}
             />
@@ -739,11 +749,11 @@ export default function TrainingManager() {
             <Modal
                 isOpen={scopeDeleteSession !== null}
                 onClose={() => setScopeDeleteSession(null)}
-                title="Delete recurring session"
+                title={t('training.deleteSeriesTitle')}
             >
                 <div className="space-y-4">
                     <p className="text-sm text-muted">
-                        This session is part of a recurring series. What do you want to delete?
+                        {t('training.deleteSeriesMessage')}
                     </p>
                     <div className="flex flex-col gap-2">
                         <Button
@@ -754,7 +764,7 @@ export default function TrainingManager() {
                             }}
                             className="w-full justify-start"
                         >
-                            Only this event
+                            {t('training.deleteSeriesThis')}
                         </Button>
                         <Button
                             variant="danger"
@@ -764,14 +774,14 @@ export default function TrainingManager() {
                             }}
                             className="w-full justify-start"
                         >
-                            This and all future events
+                            {t('training.deleteSeriesFuture')}
                         </Button>
                         <Button
                             variant="ghost"
                             onClick={() => setScopeDeleteSession(null)}
                             className="w-full justify-center"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     </div>
                 </div>

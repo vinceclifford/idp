@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, Phone, Calendar, Ruler, Weight, Shield, Hash, User, TrendingUp, Clock, Activity, Shirt, Footprints } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
@@ -29,6 +30,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function PlayerSlideOver({ player, computedAttendance, onClose, onEdit, onDelete }: PlayerSlideOverProps) {
+    const { t, i18n } = useTranslation();
     const [sessions, setSessions] = useState<TrainingSession[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
 
@@ -53,9 +55,12 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
     const chartData = (() => {
         if (!sessions.length) return [];
         const monthMap: Record<string, number> = {};
-        const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthOrder = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(2026, i, 15);
+            return date.toLocaleDateString(i18n.language, { month: 'short' });
+        });
         sessions.forEach(s => {
-            const m = monthOrder[new Date(s.date + 'T12:00:00').getMonth()];
+            const m = new Date(s.date + 'T12:00:00').toLocaleDateString(i18n.language, { month: 'short' });
             monthMap[m] = (monthMap[m] || 0) + 1;
         });
         return monthOrder.filter(m => monthMap[m]).map(m => ({ month: m, sessions: monthMap[m] })).slice(-6);
@@ -120,8 +125,8 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                         <span className="text-xs font-semibold text-muted font-mono">#{player.jerseyNumber}</span>
                                         <span className="text-border">·</span>
-                                        <span className="text-xs text-muted">{player.position}</span>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(player.status)}`}>{player.status}</span>
+                                        <span className="text-xs text-muted">{t(`positions.${player.position}`)}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(player.status)}`}>{t(`status.${player.status}`)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -133,9 +138,9 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                             {/* Key stats row */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { label: 'Attendance', value: `${attendance}%`, color: 'text-blue-400', icon: <Activity size={14} /> },
-                                    { label: 'Performance', value: `${perf}/10`, color: perfStyle.text, icon: <TrendingUp size={14} /> },
-                                    { label: 'Sessions', value: String(sessions.length), color: 'text-slate-300', icon: <Clock size={14} /> },
+                                    { label: t('team.attendanceCol'), value: `${attendance}%`, color: 'text-blue-400', icon: <Activity size={14} /> },
+                                    { label: t('team.performanceCol'), value: `${perf}/10`, color: perfStyle.text, icon: <TrendingUp size={14} /> },
+                                    { label: t('dashboard.totalSessions'), value: String(sessions.length), color: 'text-slate-300', icon: <Clock size={14} /> },
                                 ].map(stat => (
                                     <div key={stat.label} className="bg-surface-hover border border-border rounded-xl p-3 text-center">
                                         <div className={`flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider mb-1.5 ${stat.color}`}>
@@ -149,7 +154,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                             {/* Performance bar */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">Performance Rating</span>
+                                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">{t('team.performanceCol')}</span>
                                     <span className={`text-sm font-bold ${perfStyle.text}`}>{perf} / 10</span>
                                 </div>
                                 <div className="h-2 bg-surface-raised rounded-full overflow-hidden">
@@ -165,7 +170,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                             {/* Attendance chart */}
                             {chartData.length > 0 && (
                                 <div>
-                                    <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Sessions per Month</p>
+                                    <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">{t('team.sessionsPerMonth')}</p>
                                     <div className="h-32">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={chartData} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
@@ -189,16 +194,16 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
 
                             {/* Bio */}
                             <div>
-                                <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Profile</p>
+                                <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">{t('team.profileLabel')}</p>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { icon: <Calendar size={13} />, label: 'Date of Birth', value: player.dateOfBirth ? `${formatDate(player.dateOfBirth)}${age !== null ? ` (${age} yrs)` : ''}` : '—' },
-                                        { icon: <Shield size={13} />, label: 'Position', value: player.position || '—' },
-                                        { icon: <Ruler size={13} />, label: 'Height', value: player.height ? `${player.height} cm` : '—' },
-                                        { icon: <Weight size={13} />, label: 'Weight', value: player.weight ? `${player.weight} kg` : '—' },
-                                        { icon: <Hash size={13} />, label: 'Jersey', value: player.jerseyNumber ? `#${player.jerseyNumber}` : '—' },
-                                        { icon: <Shirt size={13} />, label: 'Clothing Size', value: player.clothingSize || '—' },
-                                        { icon: <Footprints size={13} />, label: 'Strong Foot', value: player.strongFoot || '—' },
+                                        { icon: <Calendar size={13} />, label: t('team.dateOfBirth'), value: player.dateOfBirth ? `${formatDate(player.dateOfBirth)}${age !== null ? ` (${age} ${i18n.language === 'de' ? 'Jahre' : 'yrs'})` : ''}` : '—' },
+                                        { icon: <Shield size={13} />, label: t('common.position'), value: player.position ? t(`positions.${player.position}`) : '—' },
+                                        { icon: <Ruler size={13} />, label: t('team.height'), value: player.height ? `${player.height} cm` : '—' },
+                                        { icon: <Weight size={13} />, label: t('team.weight'), value: player.weight ? `${player.weight} kg` : '—' },
+                                        { icon: <Hash size={13} />, label: t('team.jerseyCol'), value: player.jerseyNumber ? `#${player.jerseyNumber}` : '—' },
+                                        { icon: <Shirt size={13} />, label: t('team.clothingSize'), value: player.clothingSize || '—' },
+                                        { icon: <Footprints size={13} />, label: t('team.strongFoot'), value: player.strongFoot ? t(`team.${player.strongFoot.toLowerCase()}`) : '—' },
                                     ].map(item => (
                                         <div key={item.label} className="bg-surface-hover border border-border rounded-xl px-3 py-2.5">
                                             <div className="flex items-center gap-1.5 text-dimmed text-[10px] font-semibold uppercase tracking-wider mb-1">
@@ -213,7 +218,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                             {/* Contact */}
                             {(player.playerPhone || player.motherName || player.fatherName) && (
                                 <div>
-                                    <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Contacts</p>
+                                    <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">{t('team.contactFamily')}</p>
                                     <div className="space-y-2">
                                         {player.playerPhone && (
                                             <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-hover border border-border rounded-xl">
@@ -221,7 +226,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                                     <User size={13} className="text-indigo-400" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">Player</p>
+                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">{t('team.playerCol')}</p>
                                                     <p className="text-sm font-medium text-foreground font-mono">{player.playerPhone}</p>
                                                 </div>
                                             </div>
@@ -232,7 +237,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                                     <Phone size={13} className="text-rose-400" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">Mother — {player.motherName}</p>
+                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">{t('team.motherName')} — {player.motherName}</p>
                                                     <p className="text-sm font-medium text-foreground font-mono">{player.motherPhone || '—'}</p>
                                                 </div>
                                             </div>
@@ -243,7 +248,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                                     <Phone size={13} className="text-blue-400" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">Father — {player.fatherName}</p>
+                                                    <p className="text-[10px] font-semibold text-dimmed uppercase">{t('team.fatherName')} — {player.fatherName}</p>
                                                     <p className="text-sm font-medium text-foreground font-mono">{player.fatherPhone || '—'}</p>
                                                 </div>
                                             </div>
@@ -255,7 +260,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                             {/* Training history */}
                             <div>
                                 <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
-                                    Training History {sessions.length > 0 && <span className="ml-1 text-dimmed">({sessions.length})</span>}
+                                    {t('team.trainingHistory')} {sessions.length > 0 && <span className="ml-1 text-dimmed">({sessions.length})</span>}
                                 </p>
                                 {loadingSessions ? (
                                     <div className="space-y-2">
@@ -264,7 +269,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                 ) : sessions.length === 0 ? (
                                     <div className="text-center py-8 text-dimmed border border-dashed border-border rounded-xl">
                                         <Activity size={24} className="mx-auto mb-2 opacity-40" />
-                                        <p className="text-sm">No sessions recorded</p>
+                                        <p className="text-sm">{t('dashboard.noSessions')}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
@@ -272,7 +277,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                             <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 bg-surface-hover border border-border rounded-xl">
                                                 <div className="w-8 h-8 rounded-lg bg-surface-raised flex flex-col items-center justify-center flex-shrink-0">
                                                     <span className="text-[8px] font-bold text-muted uppercase leading-none">
-                                                        {new Date(s.date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short' })}
+                                                        {new Date(s.date + 'T12:00:00').toLocaleDateString(i18n.language, { month: 'short' })}
                                                     </span>
                                                     <span className="text-xs font-bold text-foreground leading-tight">{s.date.slice(8, 10)}</span>
                                                 </div>
@@ -288,7 +293,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                                         color: intensityColor[s.intensity] ?? '#94a3b8',
                                                     }}
                                                 >
-                                                    {s.intensity}
+                                                    {s.intensity === 'High' ? t('common.high') : s.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                                 </span>
                                             </div>
                                         ))}
@@ -306,7 +311,7 @@ export default function PlayerSlideOver({ player, computedAttendance, onClose, o
                                 onClick={() => onEdit(player)}
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-indigo-500/20"
                             >
-                                <Edit2 size={15} /> Edit Profile
+                                <Edit2 size={15} /> {t('team.editProfile')}
                             </button>
                             <button
                                 onClick={() => onDelete(player.id)}

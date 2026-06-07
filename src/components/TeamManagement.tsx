@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Edit2, Plus, Trash2, Camera, Shield, Hash, Ruler, Weight, User, TrendingUp, Users, ChevronUp, ChevronDown, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +22,7 @@ import { useSeason } from '../contexts/SeasonContext';
 import { uuid } from '../lib/uuid';
 
 export default function TeamManagement() {
+    const { t } = useTranslation();
     const { activeTeam, teams } = useTeam();
     const { activeSeason } = useSeason();
     const [players, setPlayers] = useState<Player[]>([]); // Initialize empty (No Mock Data)
@@ -348,13 +350,13 @@ export default function TeamManagement() {
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-indigo-500 flex-shrink-0" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Squad Roster</h1>
-                        <p className="text-sm text-muted mt-0.5">Manage player profiles and status</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.squadRosterTitle')}</h1>
+                        <p className="text-sm text-muted mt-0.5">{t('page.squadRosterSubtitle')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button onClick={() => window.dispatchEvent(new Event('open-create-team'))} variant="secondary" icon={<TrendingUp size={18} />} className="shadow-lg hover:border-emerald-500/50">Add Team</Button>
-                    <Button onClick={openCreate} icon={<Plus size={18} />} disabled={!activeTeam} className="shadow-lg shadow-blue-500/20">Add Player</Button>
+                    <Button onClick={() => window.dispatchEvent(new Event('open-create-team'))} variant="secondary" icon={<TrendingUp size={18} />} className="shadow-lg hover:border-emerald-500/50">{t('team.addTeam')}</Button>
+                    <Button onClick={openCreate} icon={<Plus size={18} />} disabled={!activeTeam} className="shadow-lg shadow-blue-500/20">{t('team.addPlayer')}</Button>
                 </div>
             </div>
 
@@ -363,18 +365,18 @@ export default function TeamManagement() {
                     onClick={() => setViewMode('squad')}
                     className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'squad' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-muted hover:text-foreground'}`}
                 >
-                    {activeTeam?.name || 'Current Squad'}
+                    {activeTeam?.name || t('team.currentSquad')}
                 </button>
                 <button 
                     onClick={() => setViewMode('pool')}
                     className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === 'pool' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-muted hover:text-foreground'}`}
                 >
-                    All Players
+                    {t('team.allPlayers')}
                 </button>
             </div>
 
             <div className="flex-shrink-0">
-                <Input icon={<Search size={18} />} placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <Input icon={<Search size={18} />} placeholder={t('team.searchPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
 
             <Card className="border-border bg-surface flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -383,12 +385,12 @@ export default function TeamManagement() {
                         <thead className="sticky top-0 z-10 backdrop-blur-sm bg-surface">
                             <tr className="border-b border-border text-xs uppercase tracking-wider text-muted font-semibold">
                                 {([
-                                    { key: 'jerseyNumber', label: '#' },
-                                    { key: 'firstName',    label: 'Player' },
-                                    { key: 'position',     label: 'Position' },
-                                    viewMode === 'squad' ? { key: 'attendance', label: 'Attendance' } : { key: 'teams', label: 'Assigned Teams' },
-                                    viewMode === 'squad' ? { key: 'performance', label: 'Performance' } : { key: 'status', label: 'Status' },
-                                    viewMode === 'squad' ? { key: 'status', label: 'Status' } : null,
+                                    { key: 'jerseyNumber', label: t('team.jerseyCol') },
+                                    { key: 'firstName',    label: t('team.playerCol') },
+                                    { key: 'position',     label: t('team.positionCol') },
+                                    viewMode === 'squad' ? { key: 'attendance', label: t('team.attendanceCol') } : { key: 'teams', label: t('team.assignedTeamsCol') },
+                                    viewMode === 'squad' ? { key: 'performance', label: t('team.performanceCol') } : { key: 'status', label: t('team.statusCol') },
+                                    viewMode === 'squad' ? { key: 'status', label: t('team.statusCol') } : null,
                                 ].filter(Boolean) as any[]).map(col => (
                                     <th key={col.key} className="px-6 py-4">
                                         <button
@@ -406,7 +408,7 @@ export default function TeamManagement() {
                                         </button>
                                     </th>
                                 ))}
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-4 text-right">{t('team.actionsCol')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -420,10 +422,10 @@ export default function TeamManagement() {
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-muted">
-                                                    {!activeTeam ? 'No active team' : searchQuery ? 'No players found' : 'No players yet'}
+                                                    {!activeTeam ? t('team.noActiveTeam') : searchQuery ? t('team.noPlayersFound') : t('team.noPlayersYet')}
                                                 </p>
                                                 <p className="text-sm mt-1">
-                                                    {!activeTeam ? 'Please add a team to start managing players.' : searchQuery ? 'Try a different search term.' : 'Add your first player to get started.'}
+                                                    {!activeTeam ? t('team.addTeamPrompt') : searchQuery ? t('team.searchPrompt') : t('team.addPlayerPrompt')}
                                                 </p>
                                             </div>
                                             {!searchQuery && (
@@ -431,7 +433,7 @@ export default function TeamManagement() {
                                                     onClick={!activeTeam ? () => window.dispatchEvent(new Event('open-create-team')) : openCreate} 
                                                     className="mt-2 px-4 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 text-sm font-medium hover:bg-indigo-500/20 transition-colors"
                                                 >
-                                                    {!activeTeam ? 'Create Team' : 'Add Player'}
+                                                    {!activeTeam ? t('team.addTeam') : t('team.addPlayer')}
                                                 </button>
                                             )}
                                         </div>
@@ -457,7 +459,7 @@ export default function TeamManagement() {
                                                 </div>
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-hover/50 text-foreground/80 text-xs font-medium border border-border"><Shield size={12} /> {player.position}</span></td>
+                                        <td className="px-6 py-4"><span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-hover/50 text-foreground/80 text-xs font-medium border border-border"><Shield size={12} /> {t(`positions.${player.position}`)}</span></td>
                                         <td className="px-6 py-4">
                                             {viewMode === 'squad' ? (
                                                 <div className="flex items-center gap-3">
@@ -472,11 +474,11 @@ export default function TeamManagement() {
                                                         <span key={t.id} className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 text-[10px] font-bold border border-indigo-500/20">
                                                             {t.name}
                                                         </span>
-                                                    )) : <span className="text-[10px] text-muted/60 font-bold uppercase tracking-wider italic">Unassigned</span>}
+                                                    )) : <span className="text-[10px] text-muted/60 font-bold uppercase tracking-wider italic">{t('team.unassigned')}</span>}
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setAssignmentPlayer(player); }}
                                                         className="ml-1 p-1 rounded-md border border-dashed border-border text-muted/60 hover:border-indigo-500/50 hover:text-indigo-500 transition-colors shadow-sm"
-                                                        title="Manage Team Assignments"
+                                                        title={t('team.manageAssignments')}
                                                     >
                                                         <Plus size={12} />
                                                     </button>
@@ -500,7 +502,7 @@ export default function TeamManagement() {
                                                                     onPointerUp={() => { savePerformance(player, perfDraft, true); setEditingPerf(null); }}
                                                                     autoFocus
                                                                     className="perf-slider"
-                                                                />
+                                                                 />
                                                             </div>
                                                             <span className={`text-xs font-bold tabular-nums ${getPerfColor(perfDraft).text}`}>{perfDraft}</span>
                                                         </div>
@@ -508,7 +510,7 @@ export default function TeamManagement() {
                                                         <div
                                                             className="flex items-center gap-3 group/perf cursor-pointer"
                                                             onClick={() => { setEditingPerf(player.id); setPerfDraft(player.performance); }}
-                                                            title="Click to edit"
+                                                            title={t('team.clickToEdit')}
                                                         >
                                                             <div className="flex-1 w-24 h-1.5 bg-surface-hover rounded-full overflow-hidden">
                                                                 <div className={`h-full rounded-full ${getPerfColor(player.performance).bar}`} style={{ width: `${player.performance * 10}%` }}></div>
@@ -518,20 +520,20 @@ export default function TeamManagement() {
                                                         </div>
                                                     )
                                                 ) : (
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(player.status)}`}>{player.status}</span>
+                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(player.status)}`}>{t(`status.${player.status}`)}</span>
                                                 )}
                                             </div>
                                         </td>
                                         {viewMode === 'squad' && (
-                                            <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(player.status)}`}>{player.status}</span></td>
+                                            <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(player.status)}`}>{t(`status.${player.status}`)}</span></td>
                                         )}
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => openEdit(player)} className="p-2 hover:bg-blue-500/10 text-muted/60 hover:text-blue-500 rounded-lg transition-colors" title="Edit Profile"><Edit2 size={16} /></button>
+                                                <button onClick={() => openEdit(player)} className="p-2 hover:bg-blue-500/10 text-muted/60 hover:text-blue-500 rounded-lg transition-colors" title={t('team.editProfile')}><Edit2 size={16} /></button>
                                                 {viewMode === 'squad' ? (
-                                                    <button onClick={() => setConfirmRemoveId(player.id)} className="p-2 hover:bg-orange-500/10 text-muted/60 hover:text-orange-500 rounded-lg transition-colors" title="Remove from Squad"><Trash2 size={16} /></button>
+                                                    <button onClick={() => setConfirmRemoveId(player.id)} className="p-2 hover:bg-orange-500/10 text-muted/60 hover:text-orange-500 rounded-lg transition-colors" title={t('team.removePlayerBtn')}><Trash2 size={16} /></button>
                                                 ) : (
-                                                    <button onClick={() => setConfirmDeleteId(player.id)} className="p-2 hover:bg-rose-500/10 text-muted/60 hover:text-rose-500 rounded-lg transition-colors" title="Delete Profile Everywhere"><Trash2 size={16} /></button>
+                                                    <button onClick={() => setConfirmDeleteId(player.id)} className="p-2 hover:bg-rose-500/10 text-muted/60 hover:text-rose-500 rounded-lg transition-colors" title={t('team.deleteProfile')}><Trash2 size={16} /></button>
                                                 )}
                                             </div>
                                         </td>
@@ -546,15 +548,15 @@ export default function TeamManagement() {
             <Modal
                 isOpen={showPlayerModal}
                 onClose={() => setShowPlayerModal(false)}
-                title={editingId ? 'Edit Profile' : 'New Signing'}
+                title={editingId ? t('team.editProfile') : t('team.newSigning')}
                 icon={<User size={20} />}
                 footer={
                     <div className="flex gap-3 w-full">
                         {editingId && (
-                            <Button variant="danger" onClick={() => { setShowPlayerModal(false); setConfirmDeleteId(editingId); }} className="flex-1">Delete Profile</Button>
+                            <Button variant="danger" onClick={() => { setShowPlayerModal(false); setConfirmDeleteId(editingId); }} className="flex-1">{t('team.deleteProfile')}</Button>
                         )}
-                        <Button variant="ghost" onClick={() => setShowPlayerModal(false)} className="flex-1">Cancel</Button>
-                        <Button onClick={handleSave} className="flex-1 bg-primary">{editingId ? 'Save Changes' : 'Create Profile'}</Button>
+                        <Button variant="ghost" onClick={() => setShowPlayerModal(false)} className="flex-1">{t('common.cancel')}</Button>
+                        <Button onClick={handleSave} className="flex-1 bg-primary">{editingId ? t('team.saveChanges') : t('team.createProfile')}</Button>
                     </div>
                 }
             >
@@ -575,25 +577,25 @@ export default function TeamManagement() {
                     <div className="space-y-8">
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-blue-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-blue-500/50 rounded-full"></span>Identity & Position<span className="flex-1 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-blue-500/50 rounded-full"></span>{t('team.identityPosition')}<span className="flex-1 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input label="First Name" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Marcus" />
-                                <Input label="Last Name" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Rashford" />
-                                <DatePicker label="Date of Birth" value={formData.dateOfBirth} onChange={date => setFormData({ ...formData, dateOfBirth: date })} />
-                                <Select label="Position" value={formData.position} onChange={(value) => setFormData({ ...formData, position: value as string })} options={[{ label: 'Forward', value: 'Forward' }, { label: 'Midfielder', value: 'Midfielder' }, { label: 'Defender', value: 'Defender' }, { label: 'Goalkeeper', value: 'Goalkeeper' }]} />
-                                <Input label="Jersey Number" type="text" inputMode="numeric" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(99, parseInt(raw)); setFormData({ ...formData, jerseyNumber: v }); }} className="font-mono font-bold" />
-                                <Select label="Status" value={formData.status} onChange={(value) => setFormData({ ...formData, status: value as string })} options={[{ label: 'Active', value: 'Active' }, { label: 'Injured', value: 'Injured' }, { label: 'Away', value: 'Away' }]} />
+                                <Input label={t('team.firstName')} value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Marcus" />
+                                <Input label={t('team.lastName')} value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} placeholder="e.g. Rashford" />
+                                <DatePicker label={t('team.dateOfBirth')} value={formData.dateOfBirth} onChange={date => setFormData({ ...formData, dateOfBirth: date })} />
+                                <Select label={t('common.position')} value={formData.position} onChange={(value) => setFormData({ ...formData, position: value as string })} options={[{ label: t('positions.Forward'), value: 'Forward' }, { label: t('positions.Midfielder'), value: 'Midfielder' }, { label: t('positions.Defender'), value: 'Defender' }, { label: t('positions.Goalkeeper'), value: 'Goalkeeper' }]} />
+                                <Input label={t('team.jerseyNumberLabel')} type="text" inputMode="numeric" icon={<Hash size={14} />} value={formData.jerseyNumber || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(99, parseInt(raw)); setFormData({ ...formData, jerseyNumber: v }); }} className="font-mono font-bold" />
+                                <Select label={t('common.status')} value={formData.status} onChange={(value) => setFormData({ ...formData, status: value as string })} options={[{ label: t('status.Active'), value: 'Active' }, { label: t('status.Injured'), value: 'Injured' }, { label: t('status.Away'), value: 'Away' }]} />
                             </div>
                         </div>
 
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-emerald-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-emerald-500/50 rounded-full"></span>Physical Metrics<span className="flex-1 h-[1px] bg-gradient-to-r from-emerald-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-emerald-500/50 rounded-full"></span>{t('team.physicalMetrics')}<span className="flex-1 h-[1px] bg-gradient-to-r from-emerald-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-2 gap-6">
-                                <Input label="Height" type="text" inputMode="numeric" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(250, parseInt(raw)); setFormData({ ...formData, height: v }); }} />
-                                <Input label="Weight" type="text" inputMode="decimal" icon={<Weight size={14} />} rightElement="kg" value={weightInput} onChange={e => {
+                                <Input label={t('team.height')} type="text" inputMode="numeric" icon={<Ruler size={14} />} rightElement="cm" value={formData.height || ''} onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw === '' ? 0 : Math.min(250, parseInt(raw)); setFormData({ ...formData, height: v }); }} />
+                                <Input label={t('team.weight')} type="text" inputMode="decimal" icon={<Weight size={14} />} rightElement="kg" value={weightInput} onChange={e => {
                                     // Allow digits and one decimal separator (. or ,). Convert a
                                     // European-style comma to a dot, then collapse extra dots.
                                     let raw = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
@@ -610,21 +612,21 @@ export default function TeamManagement() {
                                     const numeric = raw === '' || raw === '.' ? 0 : (parseFloat(raw) || 0);
                                     setFormData({ ...formData, weight: numeric });
                                 }} />
-                                <Input label="Clothing Size" value={formData.clothingSize} onChange={e => setFormData({ ...formData, clothingSize: e.target.value })} placeholder="e.g. M or 152" />
-                                <Select label="Strong Foot" value={formData.strongFoot || ''} onChange={(value) => setFormData({ ...formData, strongFoot: value as string })} options={[{ label: '—', value: '' }, { label: 'Right', value: 'Right' }, { label: 'Left', value: 'Left' }, { label: 'Both', value: 'Both' }]} />
+                                <Input label={t('team.clothingSize')} value={formData.clothingSize} onChange={e => setFormData({ ...formData, clothingSize: e.target.value })} placeholder="e.g. M or 152" />
+                                <Select label={t('team.strongFoot')} value={formData.strongFoot || ''} onChange={(value) => setFormData({ ...formData, strongFoot: value as string })} options={[{ label: '—', value: '' }, { label: t('team.right'), value: 'Right' }, { label: t('team.left'), value: 'Left' }, { label: t('team.both'), value: 'Both' }]} />
                             </div>
                         </div>
 
                         <div>
                             <h4 className="text-[11px] uppercase tracking-widest font-bold text-purple-500 mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-purple-500/50 rounded-full"></span>Contact & Family<span className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/20 to-transparent"></span>
+                                <span className="w-6 h-[2px] bg-purple-500/50 rounded-full"></span>{t('team.contactFamily')}<span className="flex-1 h-[1px] bg-gradient-to-r from-purple-500/20 to-transparent"></span>
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input className="md:col-span-2" label="Player's Phone" value={formData.playerPhone} onChange={e => setFormData({ ...formData, playerPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} placeholder="+1 (555) 000-0000" />
-                                <Input label="Mother's Name" value={formData.motherName} onChange={e => setFormData({ ...formData, motherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
-                                <Input label="Mother's Phone" value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
-                                <Input label="Father's Name" value={formData.fatherName} onChange={e => setFormData({ ...formData, fatherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
-                                <Input label="Father's Phone" value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
+                                <Input className="md:col-span-2" label={t('team.playerPhone')} value={formData.playerPhone} onChange={e => setFormData({ ...formData, playerPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} placeholder="+1 (555) 000-0000" />
+                                <Input label={t('team.motherName')} value={formData.motherName} onChange={e => setFormData({ ...formData, motherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
+                                <Input label={t('team.motherPhone')} value={formData.motherPhone} onChange={e => setFormData({ ...formData, motherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
+                                <Input label={t('team.fatherName')} value={formData.fatherName} onChange={e => setFormData({ ...formData, fatherName: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'\-]/g, '') })} />
+                                <Input label={t('team.fatherPhone')} value={formData.fatherPhone} onChange={e => setFormData({ ...formData, fatherPhone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })} />
                             </div>
                         </div>
                     </div>
@@ -634,7 +636,7 @@ export default function TeamManagement() {
             <Modal
                 isOpen={!!assignmentPlayer}
                 onClose={() => setAssignmentPlayer(null)}
-                title={`Manage Assignments`}
+                title={t('team.manageAssignments')}
                 icon={<TrendingUp size={20} />}
             >
                 <div className="space-y-4">
@@ -644,11 +646,11 @@ export default function TeamManagement() {
                         </div>
                         <div>
                             <p className="font-bold text-foreground text-lg">{assignmentPlayer?.firstName} {assignmentPlayer?.lastName}</p>
-                            <p className="text-xs text-muted uppercase tracking-widest font-bold">{assignmentPlayer?.position}</p>
+                            <p className="text-xs text-muted uppercase tracking-widest font-bold">{assignmentPlayer ? t(`positions.${assignmentPlayer.position}`) : ''}</p>
                         </div>
                     </div>
                     
-                    <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-1">Select teams for this player</p>
+                    <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-1">{t('team.selectTeamPrompt')}</p>
                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1">
                         {teams.map(team => {
                             const isAssigned = assignmentPlayer?.teams?.some(t => t.id === team.id);
@@ -682,25 +684,25 @@ export default function TeamManagement() {
                         })}
                     </div>
                     <div className="pt-4 border-t border-border">
-                        <Button onClick={() => setAssignmentPlayer(null)} className="w-full">Done</Button>
+                        <Button onClick={() => setAssignmentPlayer(null)} className="w-full">{t('common.close')}</Button>
                     </div>
                 </div>
             </Modal>
 
             <ConfirmDialog
                 isOpen={confirmRemoveId !== null}
-                title="Remove from squad?"
-                message="The player will still exist in your global library but will be removed from this team's roster."
-                confirmLabel="Remove Player"
+                title={t('team.removePlayerTitle')}
+                message={t('team.removePlayerMsg')}
+                confirmLabel={t('team.removePlayerBtn')}
                 onConfirm={() => { if (confirmRemoveId) handleRemoveFromTeam(confirmRemoveId); setConfirmRemoveId(null); }}
                 onCancel={() => setConfirmRemoveId(null)}
             />
 
             <ConfirmDialog
                 isOpen={confirmDeleteId !== null}
-                title="PERMANENTLY delete player?"
-                message="This will completely erase the player profile from all teams and your global library. This cannot be undone."
-                confirmLabel="Delete Everywhere"
+                title={t('team.deletePlayerTitle')}
+                message={t('team.deletePlayerMsg')}
+                confirmLabel={t('team.deletePlayerBtn')}
                 onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
                 onCancel={() => setConfirmDeleteId(null)}
             />
@@ -716,17 +718,17 @@ export default function TeamManagement() {
             <Modal
                 isOpen={!!duplicatePlayer}
                 onClose={() => setDuplicatePlayer(null)}
-                title="Duplicate Profile Detected"
+                title={t('team.duplicateTitle')}
                 icon={<Users size={20} />}
                 footer={
                     <div className="flex gap-3 w-full">
-                        <Button variant="ghost" onClick={handleCreateNewAnyway} className="flex-1">Create New anyway</Button>
-                        <Button onClick={handleReusePlayer} className="flex-1 bg-indigo-500 shadow-lg shadow-indigo-500/20">Reuse Existing Profile</Button>
+                        <Button variant="ghost" onClick={handleCreateNewAnyway} className="flex-1">{t('team.duplicateNewBtn')}</Button>
+                        <Button onClick={handleReusePlayer} className="flex-1 bg-indigo-500 shadow-lg shadow-indigo-500/20">{t('team.duplicateReuseBtn')}</Button>
                     </div>
                 }
             >
                 <div className="space-y-4">
-                    <p className="text-sm text-muted">A player named <span className="text-foreground font-bold">{duplicatePlayer?.firstName} {duplicatePlayer?.lastName}</span> already exists in your database. Do you want to use the existing profile for this team or create a completely new one?</p>
+                    <p className="text-sm text-muted">{t('team.duplicateMsg', { name: `${duplicatePlayer?.firstName} ${duplicatePlayer?.lastName}` })}</p>
                     
                     <div className="p-4 bg-surface-hover border border-border rounded-2xl flex items-center gap-4">
                         <div className="w-14 h-14 rounded-full bg-surface border-2 border-indigo-500/30 flex items-center justify-center overflow-hidden">
@@ -734,7 +736,7 @@ export default function TeamManagement() {
                         </div>
                         <div>
                             <p className="font-bold text-foreground">{duplicatePlayer?.firstName} {duplicatePlayer?.lastName}</p>
-                            <p className="text-xs text-muted">{duplicatePlayer?.position} • Joined {(duplicatePlayer?.teams || []).length} teams</p>
+                            <p className="text-xs text-muted">{duplicatePlayer ? t(`positions.${duplicatePlayer.position}`) : ''} • {t('team.duplicateJoinedTeams', { count: (duplicatePlayer?.teams || []).length })}</p>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {(duplicatePlayer?.teams || []).map(t => (
                                     <span key={t.id} className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">{t.name}</span>
@@ -745,7 +747,7 @@ export default function TeamManagement() {
                     
                     <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start">
                         <TrendingUp size={16} className="text-amber-500 mt-1 flex-shrink-0" />
-                        <p className="text-xs text-amber-500/80 leading-relaxed">Selecting <span className="font-bold text-amber-500">Reuse</span> will keep all performance and attendance data synchronized across all teams this player belongs to.</p>
+                        <p className="text-xs text-amber-500/80 leading-relaxed">{t('team.duplicateSubMsg')}</p>
                     </div>
                 </div>
             </Modal>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity, Shield } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -14,19 +15,13 @@ import { Page } from "../types/ui";
 import { PlayerService, TrainingService, MatchService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
-import { readPageCache, writePageCache } from '../lib/pageCache';
-
-interface DashboardData {
-  players: Player[];
-  sessions: TrainingSession[];
-  matches: Match[];
-}
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { t, i18n } = useTranslation();
   const { activeTeam } = useTeam();
   const { activeSeason } = useSeason();
   const [players, setPlayers] = useState<Player[]>([]);
@@ -71,15 +66,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       return;
     }
 
-    const cacheKey = `dashboard:${activeTeam.id}:${activeSeason?.id ?? 'no-season'}`;
-    // Paint immediately from the last-known data for this team+season.
-    const cached = readPageCache<DashboardData>(cacheKey);
-    if (cached) {
-      setPlayers(cached.players);
-      setSessions(cached.sessions);
-      setMatches(cached.matches);
-    }
-
     const fetchData = async () => {
       try {
         const [playersData, sessionsData, matchesData] = await Promise.all([
@@ -91,11 +77,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         setPlayers(playersData);
         setSessions(sessionsData);
         setMatches(matchesData);
-        writePageCache<DashboardData>(cacheKey, {
-          players: playersData,
-          sessions: sessionsData,
-          matches: matchesData,
-        });
 
         // Calculate attendance from training session participation
         if (playersData.length > 0 && sessionsData.length > 0) {
@@ -106,11 +87,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         // Calculate attendance data from training sessions grouped by month
         const calculateMonthlyAttendance = () => {
           const monthMap: { [key: string]: { total: number; count: number } } = {};
-          const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const monthOrder = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(2026, i, 15);
+            return date.toLocaleDateString(i18n.language, { month: 'short' });
+          });
 
           sessionsData.forEach(session => {
             const date = new Date(session.date + 'T12:00:00');
-            const monthName = monthOrder[date.getMonth()];
+            const monthName = date.toLocaleDateString(i18n.language, { month: 'short' });
             
             if (!monthMap[monthName]) {
               monthMap[monthName] = { total: 0, count: 0 };
@@ -145,7 +129,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     };
 
     fetchData();
-  }, [activeTeam, activeSeason]);
+  }, [activeTeam, activeSeason, i18n.language]);
   
   // Animation variants
   const container = {
@@ -200,8 +184,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="w-1 h-8 sm:h-10 rounded-full bg-primary flex-shrink-0" />
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
-            <p className="text-[11px] sm:text-sm text-muted mt-0.5">Welcome back, Coach</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('page.dashboardTitle')}</h1>
+            <p className="text-[11px] sm:text-sm text-muted mt-0.5">{t('page.dashboardSubtitle')}</p>
           </div>
         </div>
         
@@ -211,7 +195,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             icon={<Plus size={16} />}
             className="shadow-lg shadow-primary/20"
           >
-            Session
+            {t('nav.training')}
           </Button>
 
           <Button 
@@ -219,7 +203,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             onClick={() => onNavigate('team')} 
             icon={<Plus size={16} />}
           >
-            Player
+            {t('team.playerCol')}
           </Button>
         </div>
       </div>
@@ -244,12 +228,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <Calendar className="w-6 h-6 text-blue-500" />
               </div>
               <span className="text-[10px] font-bold px-2 py-1 bg-surface-hover text-muted rounded border border-border uppercase tracking-wider">
-                {nextSession ? 'Scheduled' : 'None'}
+                {nextSession ? t('dashboard.scheduled') : t('dashboard.none')}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">Next Session</h3>
+            <h3 className="text-lg font-bold text-foreground mb-1">{t('dashboard.nextSession')}</h3>
             <p className="text-sm text-muted mb-4 line-clamp-1">
-              {nextSession ? nextSession.focus : 'No sessions scheduled'}
+              {nextSession ? nextSession.focus : t('dashboard.noSessions')}
             </p>
             <div className="flex flex-col gap-2 text-xs font-medium text-muted">
               {nextSession && (
@@ -277,18 +261,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <Users className="w-6 h-6 text-emerald-500" />
               </div>
               <span className="text-[10px] font-bold px-2 py-1 bg-surface-hover text-muted rounded border border-border uppercase tracking-wider">
-                {nextMatch ? 'Upcoming' : 'None'}
+                {nextMatch ? t('dashboard.upcoming') : t('dashboard.none')}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">Upcoming Match</h3>
+            <h3 className="text-lg font-bold text-foreground mb-1">{t('dashboard.upcomingMatch')}</h3>
             <p className="text-sm text-muted mb-4">
-              {nextMatch ? `vs. ${nextMatch.opponent}` : 'No matches scheduled'}
+              {nextMatch ? `vs. ${nextMatch.opponent}` : t('matches.noUpcomingMatch')}
             </p>
             <div className="flex flex-col gap-2 text-xs font-medium text-muted">
               {nextMatch && (
                 <>
                   <span className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-muted/60" /> {nextMatch.time} Kickoff
+                    <Clock className="w-3.5 h-3.5 text-muted/60" /> {t('matches.kickoffTime')}: {nextMatch.time}
                   </span>
                   <span className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-muted/60" /> {nextMatch.location}
@@ -316,13 +300,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
                   : 'text-rose-500 bg-rose-500/10 border-rose-500/20'
               }`}>
-                {attendanceTrend === null ? 'No trend data' : `${attendanceTrend >= 0 ? '+' : ''}${attendanceTrend}% vs Last Month`}
+                {attendanceTrend === null ? t('team.noTrendData') : `${attendanceTrend >= 0 ? '+' : ''}${attendanceTrend}% ${t('team.attendanceTrend')}`}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">Attendance Rate</h3>
+            <h3 className="text-lg font-bold text-foreground mb-1">{t('dashboard.attendanceRate')}</h3>
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-bold text-foreground"><CountUp value={calculatedAttendance} suffix="%" /></p>
-              <p className="text-xs text-muted">Based on training</p>
+              <p className="text-xs text-muted">{t('dashboard.basedOnTraining')}</p>
             </div>
           </Card>
         </div>
@@ -330,7 +314,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {/* Analytics Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card animate delay={0.3} className="p-6 md:p-8">
-            <h3 className="text-lg font-bold text-foreground mb-6">Attendance Overview</h3>
+            <h3 className="text-lg font-bold text-foreground mb-6">{t('dashboard.monthlyAttendance')}</h3>
             {attendanceData.length > 0 ? (
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -379,20 +363,20 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             ) : (
               <div className="h-[300px] flex flex-col items-center justify-center text-muted border-2 border-dashed border-border rounded-xl bg-surface-hover/20">
                 <Activity size={32} className="mb-3 opacity-40" />
-                <p className="text-sm font-medium">No session data yet</p>
-                <p className="text-xs text-muted/60 mt-1">Create training sessions to see attendance trends</p>
+                <p className="text-sm font-medium">{t('dashboard.noSessionData')}</p>
+                <p className="text-xs text-muted/60 mt-1">{t('dashboard.noSessionDataSub')}</p>
               </div>
             )}
           </Card>
 
           <Card animate delay={0.4} className="p-6 md:p-8">
-            <h3 className="text-lg font-bold text-foreground mb-6">Team Statistics</h3>
+            <h3 className="text-lg font-bold text-foreground mb-6">{t('dashboard.teamStats')}</h3>
             <div className="space-y-8">
               {/* Stat 1 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-muted">Training Sessions</span>
-                  <span className="text-sm font-bold text-foreground">{sessions.length} total</span>
+                  <span className="text-sm font-medium text-muted">{t('dashboard.totalSessions')}</span>
+                  <span className="text-sm font-bold text-foreground">{t('dashboard.totalSessionsSub', { count: sessions.length })}</span>
                 </div>
                 <div className="w-full bg-surface-hover rounded-full h-2 overflow-hidden">
                   <motion.div 
@@ -407,8 +391,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {/* Stat 2 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-muted">Upcoming Matches</span>
-                  <span className="text-sm font-bold text-foreground">{upcomingMatches.length} scheduled</span>
+                  <span className="text-sm font-medium text-muted">{t('matches.upcomingMatches')}</span>
+                  <span className="text-sm font-bold text-foreground">{t('dashboard.upcomingMatchesSub', { count: upcomingMatches.length })}</span>
                 </div>
                 <div className="w-full bg-surface-hover rounded-full h-2 overflow-hidden">
                   <motion.div 
@@ -423,7 +407,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {/* Stat 3 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-muted">Squad Availability</span>
+                  <span className="text-sm font-medium text-muted">{t('dashboard.squadAvailability')}</span>
                   <span className="text-sm font-bold text-foreground">{players.filter(p => p.status === 'Active').length} / {players.length}</span>
                 </div>
                 <div className="w-full bg-surface-hover rounded-full h-2 overflow-hidden">
@@ -440,15 +424,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="p-3 rounded-xl bg-surface-hover/50 border border-border hover:bg-surface-hover transition-colors">
                     <p className="text-2xl font-bold text-emerald-500"><CountUp value={players.filter(p => p.status === 'Active').length} /></p>
-                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Active</p>
+                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">{t('dashboard.activePlayers')}</p>
                   </div>
                   <div className="p-3 rounded-xl bg-surface-hover/50 border border-border hover:bg-surface-hover transition-colors">
                     <p className="text-2xl font-bold text-muted"><CountUp value={players.filter(p => p.status === 'Injured').length} /></p>
-                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Injured</p>
+                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">{t('dashboard.injuredPlayers')}</p>
                   </div>
                   <div className="p-3 rounded-xl bg-surface-hover/50 border border-border hover:bg-surface-hover transition-colors">
                     <p className="text-2xl font-bold text-foreground"><CountUp value={players.length} /></p>
-                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Total</p>
+                    <p className="text-[10px] font-bold text-muted uppercase tracking-wider">{t('dashboard.totalPlayers')}</p>
                   </div>
                 </div>
               </div>
@@ -460,9 +444,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {upcomingSessions.length > 0 && (
           <Card animate delay={0.5} className="p-6 md:p-8">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-foreground">Upcoming Schedule</h3>
+              <h3 className="text-lg font-bold text-foreground">{t('dashboard.upcomingSchedule')}</h3>
               <button onClick={() => onNavigate('session-planner')} className="text-xs text-primary hover:text-primary-hover transition-colors font-semibold">
-                View All →
+                {t('dashboard.viewAll')} →
               </button>
             </div>
             <div className="space-y-2">
@@ -470,7 +454,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div key={s.id} className="flex items-center gap-4 p-3 rounded-xl bg-surface-hover/50 border border-border hover:border-primary/30 transition-colors group">
                   <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/20 flex flex-col items-center justify-center shrink-0">
                     <span className="text-[9px] font-bold text-blue-500 uppercase leading-none">
-                      {new Date(s.date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short' })}
+                      {new Date(s.date + 'T12:00:00').toLocaleDateString(i18n.language, { month: 'short' })}
                     </span>
                     <span className="text-base font-bold text-foreground leading-tight">{s.date.slice(8, 10)}</span>
                   </div>
@@ -479,14 +463,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     <p className="text-xs text-muted flex items-center gap-1.5 mt-0.5">
                       <Clock size={11} /> {s.startTime} – {s.endTime}
                       <span className="text-muted/30">·</span>
-                      <Shield size={11} /> {s.selectedPlayers.split(',').filter(id => id.trim()).length} players
+                      <Shield size={11} /> {t('dashboard.playersCount', { count: s.selectedPlayers.split(',').filter(id => id.trim()).length })}
                     </p>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider shrink-0 ${
                     s.intensity === 'High'   ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
                     s.intensity === 'Low'    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
                                               'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                  }`}>{s.intensity}</span>
+                  }`}>{s.intensity === 'High' ? t('common.high') : s.intensity === 'Low' ? t('common.low') : t('common.medium')}</span>
                 </div>
               ))}
             </div>

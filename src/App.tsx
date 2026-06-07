@@ -7,6 +7,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TeamProvider } from './contexts/TeamContext';
 import { SeasonProvider, useSeason } from './contexts/SeasonContext';
 import { Button } from './components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 // Components
 import LoginPage from './components/LoginPage';
@@ -32,7 +33,6 @@ import { AuthService } from './services';
 import { useTeam } from './contexts/TeamContext';
 import { useTheme } from './contexts/ThemeContext';
 import { bootPrefetch } from './lib/bootPrefetch';
-import { clearAllPageCache } from './lib/pageCache';
 
 export default function App() {
   // 1. Initialize Auth State from LocalStorage
@@ -68,7 +68,6 @@ export default function App() {
     localStorage.removeItem('cache:teams:v1');
     localStorage.removeItem('activeTeamId');
     localStorage.removeItem('activeSeasonId');
-    clearAllPageCache();
     setIsAuthenticated(false);
     setCurrentPage('login');
     toast.success("Logged out successfully");
@@ -165,6 +164,7 @@ export default function App() {
 }
 
 function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage: Page, navigateToPage: (page: Page) => void, handleLogout: () => void }) {
+  const { t } = useTranslation();
   const { activeTeam, loading: teamLoading } = useTeam();
   const { activeSeason, loading: seasonLoading } = useSeason();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -259,9 +259,9 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
                   <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto mb-6">
                     <Trophy size={40} />
                   </div>
-                  <h2 className="text-3xl font-bold tracking-tight text-foreground">Start Your Coaching Journey</h2>
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground">{t('guards.startJourneyTitle')}</h2>
                   <p className="text-muted leading-relaxed">
-                    First, let's define a season (e.g. "2024/2025") so you can organize your teams and sessions.
+                    {t('guards.startJourneySubtitle')}
                   </p>
                   <div className="pt-4">
                     <Button 
@@ -269,7 +269,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
                       icon={<Plus size={18} />}
                       className="w-full sm:w-auto"
                     >
-                      Create Your First Season
+                      {t('guards.createFirstSeason')}
                     </Button>
                   </div>
                 </div>
@@ -286,9 +286,9 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
                   <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
                     <Users size={40} />
                   </div>
-                  <h2 className="text-3xl font-bold tracking-tight text-foreground">Setup Your Squad</h2>
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground">{t('guards.setupSquadTitle')}</h2>
                   <p className="text-muted leading-relaxed">
-                    You're in the <b>{activeSeason?.name}</b> season. Now you just need to create a team to start managing your roster.
+                    {t('guards.setupSquadSubtitle', { season: activeSeason?.name })}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button 
@@ -296,14 +296,14 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
                       icon={<Users size={18} />}
                       className="w-full sm:w-auto"
                     >
-                      Create My Team
+                      {t('guards.createMyTeam')}
                     </Button>
                     <Button 
                       variant="secondary"
                       onClick={() => setIsSeasonModalOpen(true)}
                       className="w-full sm:w-auto"
                     >
-                      Change Season
+                      {t('guards.changeSeason')}
                     </Button>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Save, X, Calendar, MapPin, Users, Plus, Trophy, Edit2, ChevronRight, ChevronDown } from 'lucide-react';
 import { useDrag, useDrop } from 'react-dnd';
 import { toast } from 'sonner';
@@ -112,6 +113,7 @@ const FORMATIONS: Record<string, PositionSlot[]> = {
 // --- Sub-Components ---
 
 function DraggablePlayer({ player, onClick, isSubstitute = false }: { player: Player; onClick?: () => void; isSubstitute?: boolean }) {
+  const { t } = useTranslation();
   const [{ isDragging }, drag] = useDrag(() => ({ 
       type: 'player', 
       item: { ...player, fromBench: isSubstitute }, 
@@ -123,7 +125,7 @@ function DraggablePlayer({ player, onClick, isSubstitute = false }: { player: Pl
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${isSubstitute ? 'bg-slate-600' : 'bg-blue-600'}`}>{player.jerseyNumber}</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{player.firstName} {player.lastName}</p>
-          <p className="text-[10px] text-muted uppercase tracking-wide">{player.position}</p>
+          <p className="text-[10px] text-muted uppercase tracking-wide">{t(`positions.${player.position}`, player.position)}</p>
         </div>
     </div>
   );
@@ -154,6 +156,7 @@ function PositionSlotComponent({ slot, player, onDrop, onRemove, onClick, isMatc
 // --- Main Component ---
 
 export default function MatchLineup() {
+  const { t } = useTranslation();
   const { activeTeam } = useTeam();
   const { activeSeason } = useSeason();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -322,12 +325,12 @@ useEffect(() => {
       if (!window.confirm(`Switching to ${formation} will clear the current lineup. Continue?`)) return;
     }
     setCurrentFormation(formation);
-    setFormationSource('Manual Selection');
+    setFormationSource(t('matches.manualSelection'));
     setLineup(new Map());
   };
 
   const handleSaveMatch = async () => {
-    if (!matchForm.opponent || !matchForm.date) return toast.error("Opponent and Date required");
+    if (!matchForm.opponent || !matchForm.date) return toast.error(t('matches.opponentDateRequired'));
     try {
         const matchToSave: MatchDetails = isEditingMatch && matchDetails 
             ? { ...matchDetails, ...matchForm }
@@ -344,8 +347,8 @@ useEffect(() => {
         }
         setMatchDetails(savedMatch);
         setShowCreateMatchModal(false);
-        toast.success(isEditingMatch ? "Match updated!" : "Match created!");
-    } catch (e) { toast.error("Failed to save match"); }
+        toast.success(isEditingMatch ? t('matches.matchUpdated') : t('matches.matchCreated'));
+    } catch (e) { toast.error(t('matches.matchSaveFailed')); }
   };
 
   const availablePlayers = allPlayers.filter(player =>
@@ -424,7 +427,7 @@ useEffect(() => {
 
   const handleDropToField = (item: any, slotId: string) => {
     if (isMatchPast) {
-      toast.error('Cannot edit past match lineups');
+      toast.error(t('matches.cannotEditPast'));
       return;
     }
     const player = item as Player;
@@ -446,7 +449,7 @@ useEffect(() => {
         return newLineup;
     });
     
-    toast.success(`${player.firstName} ${player.lastName} set`);
+    toast.success(t('matches.playerSet', { name: player.firstName }));
   };
 
   const handleRemoveFromField = (slotId: string) => {
@@ -462,7 +465,7 @@ useEffect(() => {
   };
 
   const handleSaveLineup = async () => {
-    if (lineup.size < 11) return toast.error('Lineup incomplete (need 11 players)');
+    if (lineup.size < 11) return toast.error(t('matches.incompleteLineup'));
     if (!matchDetails) return;
 
     try {
@@ -481,11 +484,11 @@ useEffect(() => {
 
         setMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
         setMatchDetails(updatedMatch);
-        setFormationSource('Saved Strategy');
-        toast.success(`Lineup saved for ${updatedMatch.opponent}`);
+        setFormationSource(t('matches.savedStrategy'));
+        toast.success(t('matches.lineupSaved', { opponent: updatedMatch.opponent }));
         setShowSaveModal(false);
     } catch (e) {
-        toast.error("Failed to save lineup");
+        toast.error(t('matches.lineupSaveFailed'));
     }
   };
 
@@ -495,16 +498,16 @@ useEffect(() => {
         <div className="flex items-center gap-3">
             <div className="w-1 h-10 rounded-full bg-rose-500 flex-shrink-0" />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Match & Lineup</h1>
-              <p className="text-sm text-muted mt-0.5">Tactical setup for matchday</p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.matchesTitle')}</h1>
+              <p className="text-sm text-muted mt-0.5">{t('page.matchesSubtitle')}</p>
             </div>
         </div>
         <div className="flex gap-3">
-            <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>Create Match</Button>
+            <Button onClick={handleOpenCreate} variant="secondary" icon={<Plus size={18} />}>{t('matches.createMatch')}</Button>
             {isMatchPast ? (
-              <Button onClick={() => setShowStatsModal(true)} variant="secondary" icon={<Trophy size={18} />}>Record Stats</Button>
+              <Button onClick={() => setShowStatsModal(true)} variant="secondary" icon={<Trophy size={18} />}>{t('matches.recordStats')}</Button>
             ) : (
-              <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>Save Lineup</Button>
+              <Button onClick={() => setShowSaveModal(true)} disabled={lineup.size < 11} icon={<Save size={18} />}>{t('matches.saveLineup')}</Button>
             )}
         </div>
       </div>
@@ -518,7 +521,7 @@ useEffect(() => {
                         <h3 className="text-2xl font-bold text-foreground flex items-center gap-3"><span className="text-muted text-lg">VS</span> {matchDetails.opponent}</h3>
                         {isMatchPast ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest">Past Match</span>
+                            <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest">{t('matches.pastMatchBadge')}</span>
                             {(matchDetails.goalsFor !== undefined || matchDetails.goalsAgainst !== undefined) && (
                               <span className="text-sm font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg border border-emerald-500/20">
                                 {matchDetails.goalsFor} - {matchDetails.goalsAgainst}
@@ -532,18 +535,18 @@ useEffect(() => {
                     <div className="flex flex-wrap gap-6 text-sm text-muted font-medium">
                         <span className="flex items-center gap-2"><Calendar size={14} className="text-blue-500" /> {formatDate(matchDetails.date)}</span>
                         <span className="flex items-center gap-2"><Users size={14} className="text-blue-500" /> {matchDetails.time || 'TBD'}</span>
-                        <span className="flex items-center gap-2"><MapPin size={14} className="text-blue-500" /> {matchDetails.location || 'Home'}</span>
+                        <span className="flex items-center gap-2"><MapPin size={14} className="text-blue-500" /> {matchDetails.location || t('matches.locationHome', 'Home')}</span>
                     </div>
                 </>
             ) : (
                 <div className="text-muted flex items-center gap-3">
                     <Trophy size={24} className="opacity-50"/>
-                    <div><h3 className="text-lg font-bold text-muted">No Upcoming Match</h3><p className="text-sm">Click "Create Match" to schedule.</p></div>
+                    <div><h3 className="text-lg font-bold text-muted">{t('matches.noUpcomingMatch')}</h3><p className="text-sm">{t('matches.noUpcomingMatchSub')}</p></div>
                 </div>
             )}
           </div>
           <div className="border-l border-border pl-6">
-            <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">Formation</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">{t('libraries.formationLabel')}</p>
             <div className="flex items-center gap-2">
               <span className="text-3xl font-bold text-emerald-400 font-mono tracking-tight">{currentFormation}</span>
               {!isMatchPast && (
@@ -560,7 +563,7 @@ useEffect(() => {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-muted mt-0.5">{formationSource}</p>
+              <p className="text-[10px] text-muted mt-0.5">{formationSource === 'Default' ? t('matches.defaultStrategy') : formationSource}</p>
             </div>
           </div>
         </Card>
@@ -577,7 +580,7 @@ useEffect(() => {
                       : 'bg-surface text-muted border border-border'
                   }`}
                 >
-                  Upcoming ({upcomingMatches.length})
+                  {t('matches.upcomingMatches')} ({upcomingMatches.length})
                 </button>
                 <button
                   onClick={() => { setShowPastMatches(true); if (pastMatches.length > 0) setMatchDetails(pastMatches[0]); }}
@@ -587,7 +590,7 @@ useEffect(() => {
                       : 'bg-surface text-muted border border-border'
                   }`}
                 >
-                  Past ({pastMatches.length})
+                  {t('matches.pastMatches')} ({pastMatches.length})
                 </button>
               </div>
               <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
@@ -607,27 +610,29 @@ useEffect(() => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-muted italic text-center mt-10">No {showPastMatches ? 'past' : 'upcoming'} matches</p>
+                    <p className="text-xs text-muted italic text-center mt-10">
+                      {showPastMatches ? t('matches.noPastMatches') : t('matches.noUpcomingMatches')}
+                    </p>
                   )}
               </div>
             </Card>
 
           <Card className="p-4 h-[350px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-muted uppercase tracking-widest">Available Players</h3>
-              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">View Only</span>}
+              <h3 className="text-sm font-bold text-muted uppercase tracking-widest">{t('matches.availablePlayers')}</h3>
+              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">{t('matches.viewOnly')}</span>}
             </div>
             <div className={`space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2 ${isMatchPast ? 'opacity-60 pointer-events-none' : ''}`}>
               {availablePlayers.length > 0 ? availablePlayers.map(player => 
                 <DraggablePlayer key={player.id} player={player} onClick={() => !isMatchPast && handleAddSubstitute(player)} />
-              ) : <p className="text-xs text-muted italic text-center mt-10">No active players available</p>}
+              ) : <p className="text-xs text-muted italic text-center mt-10">{t('matches.noActivePlayers')}</p>}
             </div>
           </Card>
 
           <Card className="p-4 h-[200px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-muted uppercase tracking-widest">Substitutes</h3>
-              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">View Only</span>}
+              <h3 className="text-sm font-bold text-muted uppercase tracking-widest">{t('matches.bench')}</h3>
+              {isMatchPast && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">{t('matches.viewOnly')}</span>}
             </div>
             <div className={`space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2 ${isMatchPast ? 'opacity-60' : ''}`}>
               {substitutes.map(player => (
@@ -650,26 +655,26 @@ useEffect(() => {
               {activeSlots.map((slot: PositionSlot) => <PositionSlotComponent key={slot.id} slot={slot} player={lineup.get(slot.id) || null} onDrop={handleDropToField} onRemove={handleRemoveFromField} onClick={() => { const p = lineup.get(slot.id); if (p) { setSelectedPlayer(p); setSelectedPlayerPerformance(p.performance || 0); } }} isMatchPast={isMatchPast} />)}
             </div>
             <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-md rounded-lg px-4 py-2 border border-white/10">
-              <p className="text-[10px] text-white/50 uppercase tracking-widest">Starters</p>
-              <p className="text-xl font-bold text-white">{lineup.size} / 11</p>
+              <p className="text-[10px] text-white/50 uppercase tracking-widest">{t('matches.starters')}</p>
+              <p className="text-xl font-bold text-white">{t('matches.startersCount', { count: lineup.size })}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <Modal isOpen={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} title="Player Profile" icon={<Users size={20}/>} maxWidth="max-w-md">
+      <Modal isOpen={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} title={t('team.profileLabel')} icon={<Users size={20}/>} maxWidth="max-w-md">
         {selectedPlayer && (
             <div className="text-center space-y-6">
                 <div>
                   <div className="w-24 h-24 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-primary/30 border-4 border-surface-raised">{selectedPlayer.jerseyNumber}</div>
                   <h3 className="text-2xl font-bold text-foreground mb-1">{selectedPlayer.firstName} {selectedPlayer.lastName}</h3>
-                  <p className="text-primary font-medium">{selectedPlayer.position}</p>
+                  <p className="text-primary font-medium">{t(`positions.${selectedPlayer.position}`, selectedPlayer.position)}</p>
                 </div>
                 
                 <div className="w-full space-y-4">
                     {isMatchPast ? (
                       <div className="bg-surface-raised/50 p-6 rounded-xl border border-border">
-                        <p className="text-xs text-muted uppercase tracking-widest font-bold mb-4">Match Performance</p>
+                        <p className="text-xs text-muted uppercase tracking-widest font-bold mb-4">{t('matches.matchPerformance')}</p>
                         <div className="space-y-3">
                           <input
                             type="range"
@@ -700,17 +705,17 @@ useEffect(() => {
                         </div>
                         <div className="mt-4 pt-4 border-t border-white/5">
                           <p className="text-xs text-slate-500">
-                            {selectedPlayerPerformance <= 3 && '🔴 Below Average'}
-                            {selectedPlayerPerformance > 3 && selectedPlayerPerformance <= 5 && '🟡 Average'}
-                            {selectedPlayerPerformance > 5 && selectedPlayerPerformance <= 7 && '🟢 Good'}
-                            {selectedPlayerPerformance > 7 && selectedPlayerPerformance <= 9 && '⭐ Excellent'}
-                            {selectedPlayerPerformance === 10 && '👑 Outstanding'}
+                            {selectedPlayerPerformance <= 3 && '🔴 ' + t('statistics.belowAverage')}
+                            {selectedPlayerPerformance > 3 && selectedPlayerPerformance <= 5 && '🟡 ' + t('statistics.average')}
+                            {selectedPlayerPerformance > 5 && selectedPlayerPerformance <= 7 && '🟢 ' + t('statistics.good')}
+                            {selectedPlayerPerformance > 7 && selectedPlayerPerformance <= 9 && '⭐ ' + t('statistics.excellent')}
+                            {selectedPlayerPerformance === 10 && '👑 ' + t('statistics.outstanding')}
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-white/5">
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Average Performance</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">{t('matches.averagePerformance')}</p>
                         {getPlayerAveragePerformance(selectedPlayer.id) !== null ? (
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -737,22 +742,22 @@ useEffect(() => {
                             <p className="text-xs text-slate-500">
                               {(() => {
                                 const avg = getPlayerAveragePerformance(selectedPlayer.id) || 0;
-                                if (avg <= 3) return '🔴 Below Average';
-                                if (avg <= 5) return '🟡 Average';
-                                if (avg <= 7) return '🟢 Good';
-                                if (avg <= 9) return '⭐ Excellent';
-                                return '👑 Outstanding';
+                                if (avg <= 3) return '🔴 ' + t('statistics.belowAverage');
+                                if (avg <= 5) return '🟡 ' + t('statistics.average');
+                                if (avg <= 7) return '🟢 ' + t('statistics.good');
+                                if (avg <= 9) return '⭐ ' + t('statistics.excellent');
+                                return '👑 ' + t('statistics.outstanding');
                               })()}
                             </p>
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-400 italic">No past match data available</p>
+                          <p className="text-sm text-slate-400 italic">{t('matches.noPastPerformance')}</p>
                         )}
                       </div>
                     )}
                     
                     <div className="bg-surface-raised/50 p-6 rounded-xl border border-border">
-                      <p className="text-xs text-muted uppercase tracking-widest font-bold mb-2">Status</p>
+                      <p className="text-xs text-muted uppercase tracking-widest font-bold mb-2">{t('common.status')}</p>
                       <p className={`text-lg font-bold mt-2 ${
                         selectedPlayer.status === 'Active' 
                           ? 'text-emerald-400' 
@@ -760,7 +765,7 @@ useEffect(() => {
                           ? 'text-red-400'
                           : 'text-muted'
                       }`}>
-                        {selectedPlayer.status}
+                        {t(`status.${selectedPlayer.status}`, selectedPlayer.status)}
                       </p>
                     </div>
                 </div>
@@ -784,32 +789,34 @@ useEffect(() => {
                   disabled={!isMatchPast}
                   className="w-full"
                 >
-                  {isMatchPast ? 'Save Performance' : 'Upcoming Match (View Only)'}
+                  {isMatchPast ? t('matches.savePerformance') : t('matches.upcomingMatchViewOnly')}
                 </Button>
             </div>
         )}
       </Modal>
 
-      <Modal isOpen={showCreateMatchModal} onClose={() => setShowCreateMatchModal(false)} title={isEditingMatch ? "Edit Match" : "Create New Match"} maxWidth="max-w-md"
-        footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowCreateMatchModal(false)} className="flex-1">Cancel</Button><Button onClick={handleSaveMatch} className="flex-1">{isEditingMatch ? "Update Match" : "Create Match"}</Button></div>}>
+      <Modal isOpen={showCreateMatchModal} onClose={() => setShowCreateMatchModal(false)} title={isEditingMatch ? t('matches.editMatch') : t('matches.newMatch')} maxWidth="max-w-md"
+        footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowCreateMatchModal(false)} className="flex-1">{t('common.cancel')}</Button><Button onClick={handleSaveMatch} className="flex-1">{isEditingMatch ? t('common.save') : t('matches.createMatch')}</Button></div>}>
         <div className="space-y-4">
-            <Input label="Opponent Name" value={matchForm.opponent} onChange={e => setMatchForm({...matchForm, opponent: e.target.value})} placeholder="e.g. City Rovers FC" />
-            <DatePicker label="Match Date" value={matchForm.date} onChange={date => setMatchForm({...matchForm, date})} />
+            <Input label={t('matches.opponent')} value={matchForm.opponent} onChange={e => setMatchForm({...matchForm, opponent: e.target.value})} placeholder="e.g. City Rovers FC" />
+            <DatePicker label={t('matches.matchDate')} value={matchForm.date} onChange={date => setMatchForm({...matchForm, date})} />
             <div className="grid grid-cols-2 gap-4">
-                <TimePicker label="Kickoff Time" value={matchForm.time} onChange={time => setMatchForm({...matchForm, time})} />
-                <Input label="Location" value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} placeholder="e.g. Home / Away" />
+                <TimePicker label={t('matches.kickoffTime')} value={matchForm.time} onChange={time => setMatchForm({...matchForm, time})} />
+                <Input label={t('matches.location')} value={matchForm.location} onChange={e => setMatchForm({...matchForm, location: e.target.value})} placeholder={t('matches.locationPlaceholder')} />
             </div>
         </div>
       </Modal>
 
-      <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title="Confirm Lineup" maxWidth="max-w-sm" 
-        footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowSaveModal(false)} className="flex-1">Cancel</Button><Button onClick={handleSaveLineup} className="flex-1">Confirm</Button></div>}>
+      <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title={t('matches.confirmLineupTitle', 'Confirm Lineup')} maxWidth="max-w-sm" 
+        footer={<div className="flex gap-3"><Button variant="ghost" onClick={() => setShowSaveModal(false)} className="flex-1">{t('common.cancel')}</Button><Button onClick={handleSaveLineup} className="flex-1">{t('matches.confirmBtn', 'Confirm')}</Button></div>}>
         <div className="space-y-4">
             <div className="bg-surface-raised/50 p-4 rounded-xl border border-border space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-muted">Match</span><span className="text-foreground font-bold">{matchDetails?.opponent || 'Unscheduled'}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted">Formation</span><span className="text-emerald-400 font-bold font-mono">{currentFormation}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted">{t('nav.matches')}</span><span className="text-foreground font-bold">{matchDetails?.opponent || t('matches.upcomingMatchViewOnly')}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted">{t('libraries.formationLabel')}</span><span className="text-emerald-400 font-bold font-mono">{currentFormation}</span></div>
             </div>
-            <p className="text-sm text-slate-400 text-center">Save this lineup for {matchDetails ? matchDetails.opponent : 'the upcoming match'}?</p>
+            <p className="text-sm text-slate-400 text-center">
+              {t('matches.saveLineupPrompt', 'Save this lineup for {{opponent}}?', { opponent: matchDetails ? matchDetails.opponent : t('matches.upcomingMatchViewOnly') })}
+            </p>
         </div>
       </Modal>
 
@@ -820,30 +827,37 @@ useEffect(() => {
           style={{ position: 'fixed', top: pickerPos.top, right: pickerPos.right, zIndex: 9999 }}
           className="w-64 bg-surface border border-border rounded-2xl shadow-2xl shadow-black/60 p-3 space-y-3"
         >
-          {FORMATION_GROUPS.map(group => (
-            <div key={group.label}>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1 mb-1.5">{group.label}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {group.formations.map(f => (
-                  <button
-                    key={f}
-                    onClick={() => { handleChangeFormation(f); setShowFormationPicker(false); }}
-                    className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all border ${
-                      currentFormation === f
-                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400'
-                        : 'border-border text-muted bg-surface-raised hover:border-emerald-500/40 hover:text-emerald-300'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
+          {FORMATION_GROUPS.map(group => {
+            const translatedLabel = group.label.includes('4') 
+              ? t('matches.fourDefenders')
+              : group.label.includes('3')
+              ? t('matches.threeDefenders')
+              : t('matches.fiveDefenders');
+            return (
+              <div key={group.label}>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1 mb-1.5">{translatedLabel}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.formations.map(f => (
+                    <button
+                      key={f}
+                      onClick={() => { handleChangeFormation(f); setShowFormationPicker(false); }}
+                      className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all border ${
+                        currentFormation === f
+                          ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400'
+                          : 'border-border text-muted bg-surface-raised hover:border-emerald-500/40 hover:text-emerald-300'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {customFormations.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1 mb-1.5">Custom Formations</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1 mb-1.5">{t('libraries.customFormationsLabel', 'Custom Formations')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {customFormations.map(f => (
                   <button
@@ -868,7 +882,7 @@ useEffect(() => {
               className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-bold transition-all border border-blue-500/30"
             >
               <Plus size={14} />
-              Create Custom
+              {t('libraries.customFormation')}
             </button>
           </div>
         </div>

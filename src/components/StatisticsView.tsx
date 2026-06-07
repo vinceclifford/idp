@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, History } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -23,6 +24,7 @@ interface TopPerformer {
 }
 
 export default function StatisticsView() {
+  const { t, i18n } = useTranslation();
   const { activeTeam } = useTeam();
   const { activeSeason } = useSeason();
   const [matches, setMatches] = useState<MatchDetails[]>([]);
@@ -51,7 +53,7 @@ export default function StatisticsView() {
       setMatches(finishedMatches);
       setTopPerformers(performersData);
     } catch (error) {
-      toast.error('Failed to load statistics');
+      toast.error(t('feedback.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -98,18 +100,18 @@ export default function StatisticsView() {
     return matches.slice(-5).map(m => {
       const gf = m.goalsFor ?? 0;
       const ga = m.goalsAgainst ?? 0;
-      if (gf > ga) return { type: 'W', color: 'bg-emerald-500', label: 'Win' };
-      if (gf < ga) return { type: 'L', color: 'bg-rose-500', label: 'Loss' };
-      return { type: 'D', color: 'bg-amber-500', label: 'Draw' };
+      if (gf > ga) return { type: 'W', color: 'bg-emerald-500', label: t('statistics.win') };
+      if (gf < ga) return { type: 'L', color: 'bg-rose-500', label: t('statistics.loss') };
+      return { type: 'D', color: 'bg-amber-500', label: t('statistics.draw') };
     });
   }, [matches]);
 
   const shortDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' });
   };
   const monthOf = (dateStr: string) =>
-    new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' });
+    new Date(dateStr + 'T00:00:00').toLocaleDateString(i18n.language, { month: 'short' });
 
   const pointsData = matches.map((m, i, arr) => {
     const gf = m.goalsFor ?? 0;
@@ -146,9 +148,9 @@ export default function StatisticsView() {
   const chartMonthMap  = new Map(chartData .map(d => [d.date, d.monthLabel]));
 
   const pieData = [
-    { name: 'Wins', value: stats.wins, color: '#10b981' },
-    { name: 'Draws', value: stats.draws, color: '#f59e0b' },
-    { name: 'Losses', value: stats.losses, color: '#ef4444' },
+    { name: t('statistics.wins'), value: stats.wins, color: '#10b981' },
+    { name: t('statistics.draws'), value: stats.draws, color: '#f59e0b' },
+    { name: t('statistics.losses'), value: stats.losses, color: '#ef4444' },
   ].filter(d => d.value > 0);
 
   if (isLoading) {
@@ -169,7 +171,7 @@ export default function StatisticsView() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-primary flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Statistics</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('page.statisticsTitle')}</h1>
             <p className="text-sm text-muted mt-0.5">
               {activeTeam?.name}{activeSeason?.name ? ` · ${activeSeason.name}` : ''}
             </p>
@@ -177,7 +179,7 @@ export default function StatisticsView() {
         </div>
         {recentForm.length > 0 && (
           <div className="flex flex-col items-start sm:items-end gap-1.5">
-            <span className="text-xs text-muted">Last {recentForm.length} results</span>
+            <span className="text-xs text-muted">{t('statistics.lastResults', { count: recentForm.length })}</span>
             <div className="flex gap-1">
               {recentForm.map((f, i) => (
                 <div
@@ -196,56 +198,56 @@ export default function StatisticsView() {
       {matches.length === 0 ? (
         <Card className="p-12 flex flex-col items-center justify-center text-center">
           <History size={36} className="text-muted/30 mb-4" />
-          <h3 className="text-base font-semibold text-foreground">No match results yet</h3>
-          <p className="text-sm text-muted mt-1">Record your first match result to see statistics here.</p>
+          <h3 className="text-base font-semibold text-foreground">{t('statistics.noMatchResultsYet')}</h3>
+          <p className="text-sm text-muted mt-1">{t('statistics.noMatchResultsSub')}</p>
         </Card>
       ) : (
         <div className="space-y-6 pb-8">
           {/* Hero stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-5">
-              <p className="text-xs text-muted font-medium mb-4">Season Record</p>
+              <p className="text-xs text-muted font-medium mb-4">{t('statistics.seasonRecord')}</p>
               <div className="flex items-end gap-4">
                 <div>
                   <p className="text-3xl font-black text-emerald-500">{stats.wins}</p>
-                  <p className="text-[11px] text-muted font-medium mt-1">Wins</p>
+                  <p className="text-[11px] text-muted font-medium mt-1">{t('statistics.wins')}</p>
                 </div>
                 <div>
                   <p className="text-3xl font-black text-amber-500">{stats.draws}</p>
-                  <p className="text-[11px] text-muted font-medium mt-1">Draws</p>
+                  <p className="text-[11px] text-muted font-medium mt-1">{t('statistics.draws')}</p>
                 </div>
                 <div>
                   <p className="text-3xl font-black text-rose-500">{stats.losses}</p>
-                  <p className="text-[11px] text-muted font-medium mt-1">Losses</p>
+                  <p className="text-[11px] text-muted font-medium mt-1">{t('statistics.losses')}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted mt-4 pt-4 border-t border-border/40">{stats.total} matches played</p>
+              <p className="text-xs text-muted mt-4 pt-4 border-t border-border/40">{t('statistics.matchesPlayedCount', { count: stats.total })}</p>
             </Card>
 
             <Card className="p-5">
-              <p className="text-xs text-muted font-medium mb-4">Points</p>
+              <p className="text-xs text-muted font-medium mb-4">{t('statistics.points')}</p>
               <p className="text-4xl font-black text-foreground">{stats.points}</p>
               <p className="text-xs text-muted mt-4 pt-4 border-t border-border/40">
-                {stats.ptsPerGame} per game · {stats.winRate}% win rate
+                {t('statistics.pointsSub', { ptsPerGame: stats.ptsPerGame, winRate: stats.winRate })}
               </p>
             </Card>
 
             <Card className="p-5">
-              <p className="text-xs text-muted font-medium mb-4">Goals</p>
+              <p className="text-xs text-muted font-medium mb-4">{t('statistics.goals')}</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-4xl font-black text-foreground">{stats.goalsFor}</p>
-                <span className="text-sm text-muted">scored</span>
+                <span className="text-sm text-muted">{t('statistics.goalsScored')}</span>
               </div>
               <p className="text-xs text-muted mt-4 pt-4 border-t border-border/40">
-                {stats.goalsAgainst} conceded · {stats.goalDiff > 0 ? '+' : ''}{stats.goalDiff} goal diff
+                {t('statistics.goalsSub', { goalsAgainst: stats.goalsAgainst, goalDiffPrefix: stats.goalDiff > 0 ? '+' : '', goalDiff: stats.goalDiff })}
               </p>
             </Card>
 
             <Card className="p-5">
-              <p className="text-xs text-muted font-medium mb-4">Clean Sheets</p>
+              <p className="text-xs text-muted font-medium mb-4">{t('statistics.cleanSheets')}</p>
               <p className="text-4xl font-black text-foreground">{stats.cleanSheets}</p>
               <p className="text-xs text-muted mt-4 pt-4 border-t border-border/40">
-                {stats.total > 0 ? Math.round((stats.cleanSheets / stats.total) * 100) : 0}% of matches
+                {t('statistics.cleanSheetsSub', { pct: stats.total > 0 ? Math.round((stats.cleanSheets / stats.total) * 100) : 0 })}
               </p>
             </Card>
           </div>
@@ -253,10 +255,10 @@ export default function StatisticsView() {
           {/* Secondary stats strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { value: stats.avgScored, label: 'Goals scored / game' },
-              { value: stats.avgConceded, label: 'Goals conceded / game' },
-              { value: stats.unbeatenStreak, label: 'Unbeaten streak' },
-              { value: stats.ptsPerGame, label: 'Points per game' },
+              { value: stats.avgScored, label: t('statistics.avgGoalsScored') },
+              { value: stats.avgConceded, label: t('statistics.avgGoalsConceded') },
+              { value: stats.unbeatenStreak, label: t('statistics.unbeatenStreak') },
+              { value: stats.ptsPerGame, label: t('statistics.ptsPerGame') },
             ].map(({ value, label }) => (
               <Card key={label} className="p-4 text-center">
                 <p className="text-xl font-bold text-foreground">{value}</p>
@@ -269,21 +271,21 @@ export default function StatisticsView() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Points per Match</h3>
-                <p className="text-xs text-muted mt-0.5">Full season timeline</p>
+                <h3 className="text-sm font-semibold text-foreground">{t('statistics.pointsPerMatch')}</h3>
+                <p className="text-xs text-muted mt-0.5">{t('statistics.fullSeasonTimeline')}</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-xs text-muted">Win (3 pts)</span>
+                  <span className="text-xs text-muted">{t('statistics.winLegend')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-xs text-muted">Draw (1 pt)</span>
+                  <span className="text-xs text-muted">{t('statistics.drawLegend')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                  <span className="text-xs text-muted">Loss (0 pts)</span>
+                  <span className="text-xs text-muted">{t('statistics.lossLegend')}</span>
                 </div>
               </div>
             </div>
@@ -321,17 +323,17 @@ export default function StatisticsView() {
             <Card className="xl:col-span-8 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Goals per Match</h3>
-                  <p className="text-xs text-muted mt-0.5">Full season — {matches.length} matches</p>
+                  <h3 className="text-sm font-semibold text-foreground">{t('statistics.goalsPerMatch')}</h3>
+                  <p className="text-xs text-muted mt-0.5">{t('statistics.fullSeasonMatches', { count: matches.length })}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs text-muted">Scored</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-muted">{t('statistics.scoredLegend')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span className="text-xs text-muted">Conceded</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                    <span className="text-xs text-muted">{t('statistics.concededLegend')}</span>
                   </div>
                 </div>
               </div>
@@ -356,7 +358,7 @@ export default function StatisticsView() {
                         borderRadius: '10px',
                         fontSize: '12px',
                       }}
-                      formatter={(value, name) => [value, name === 'scored' ? 'Scored' : 'Conceded']}
+                      formatter={(value, name) => [value, name === 'scored' ? t('statistics.scoredLegend') : t('statistics.concededLegend')]}
                       labelFormatter={(label, payload: any[]) => {
                         const p = payload?.[0]?.payload;
                         return p ? `${p.opponent} · ${p.fullDate}` : label;
@@ -370,8 +372,8 @@ export default function StatisticsView() {
             </Card>
 
             <Card className="xl:col-span-4 p-6 flex flex-col">
-              <h3 className="text-sm font-semibold text-foreground">Results Breakdown</h3>
-              <p className="text-xs text-muted mt-0.5 mb-4">Season totals</p>
+              <h3 className="text-sm font-semibold text-foreground">{t('statistics.resultsBreakdown')}</h3>
+              <p className="text-xs text-muted mt-0.5 mb-4">{t('statistics.seasonTotals')}</p>
               <div className="flex-1 flex flex-col items-center justify-center">
                 <div className="h-[200px] w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
@@ -386,7 +388,7 @@ export default function StatisticsView() {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-2xl font-black text-foreground">{stats.total}</span>
-                    <span className="text-xs text-muted">played</span>
+                    <span className="text-xs text-muted">{t('statistics.playedCenterText')}</span>
                   </div>
                 </div>
                 <div className="w-full space-y-2 mt-4">
@@ -410,33 +412,33 @@ export default function StatisticsView() {
           {/* Leaderboards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <LeaderboardCard
-              title="Top Scorers"
+              title={t('statistics.topScorers')}
               items={topPerformers.filter(p => p.goals > 0).slice(0, 5)}
               statKey="goals"
-              statLabel="Goals"
+              statLabel={t('statistics.goals')}
             />
             <LeaderboardCard
-              title="Top Assisters"
+              title={t('statistics.topAssisters')}
               items={topPerformers.filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 5)}
               statKey="assists"
-              statLabel="Assists"
+              statLabel={t('statistics.assists')}
             />
           </div>
 
           {/* Match history */}
           <Card className="overflow-hidden">
             <div className="px-5 py-4 border-b border-border/50">
-              <h3 className="text-sm font-semibold text-foreground">Match History</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('statistics.matchHistory')}</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-xs text-muted border-b border-border/50">
-                    <th className="px-5 py-3 font-medium">Result</th>
-                    <th className="px-5 py-3 font-medium">Opponent</th>
-                    <th className="px-5 py-3 font-medium text-center">Score</th>
-                    <th className="px-5 py-3 font-medium">Date</th>
-                    <th className="px-5 py-3 font-medium">Venue</th>
+                    <th className="px-5 py-3 font-medium">{t('statistics.tableResult')}</th>
+                    <th className="px-5 py-3 font-medium">{t('statistics.tableOpponent')}</th>
+                    <th className="px-5 py-3 font-medium text-center">{t('statistics.tableScore')}</th>
+                    <th className="px-5 py-3 font-medium">{t('statistics.tableDate')}</th>
+                    <th className="px-5 py-3 font-medium">{t('statistics.tableVenue')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -483,11 +485,12 @@ function LeaderboardCard({ title, items, statKey, statLabel }: {
   statKey: string;
   statLabel: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="p-6">
       <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>
       {items.length === 0 ? (
-        <p className="text-sm text-muted text-center py-10">No data recorded yet</p>
+        <p className="text-sm text-muted text-center py-10">{t('statistics.noDataRecordedYet')}</p>
       ) : (
         <div className="space-y-2">
           {items.map((item, index) => (
@@ -527,6 +530,7 @@ function PointsDot(props: any) {
 }
 
 function PointsTooltip({ active, payload }: any) {
+  const { t } = useTranslation();
   if (active && payload && payload.length) {
     const d = payload[0].payload;
     const pts = d.points;
@@ -535,7 +539,7 @@ function PointsTooltip({ active, payload }: any) {
       <div className="px-3 py-2 rounded-lg bg-surface border border-border shadow-lg text-xs space-y-0.5">
         <p className="font-semibold text-foreground">{d.opponent}</p>
         <p className="text-muted">{d.fullDate} · {d.score}</p>
-        <p className={`font-bold ${color}`}>{pts} {pts === 1 ? 'point' : 'points'}</p>
+        <p className={`font-bold ${color}`}>{t('statistics.pointPlural', { count: pts })}</p>
       </div>
     );
   }

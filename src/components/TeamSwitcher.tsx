@@ -1,10 +1,11 @@
-
 import { useTeam } from '../contexts/TeamContext';
 import { Users } from 'lucide-react';
 import { Select } from './ui/Select';
+import { useTranslation } from 'react-i18next';
 
 export default function TeamSwitcher({ collapsed }: { collapsed: boolean }) {
   const { teams, activeTeam, setActiveTeamId, loading } = useTeam();
+  const { t } = useTranslation();
 
   if (loading) return <div className="h-10 animate-pulse bg-surface-hover rounded-xl mx-2 my-2"></div>;
 
@@ -24,7 +25,7 @@ export default function TeamSwitcher({ collapsed }: { collapsed: boolean }) {
      <div className="px-3 py-2 border-b border-border">
         <div className="mb-1">
            <span className="text-[10px] font-bold text-muted uppercase tracking-widest leading-none">
-              Team
+              {t('nav.teamSwitcherLabel')}
            </span>
         </div>
         <Select 

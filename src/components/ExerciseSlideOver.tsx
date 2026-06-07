@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, FileText, Video as VideoIcon, Dumbbell, Users, Layers, BookOpen, Target, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {ExerciseSlideOverProps} from "../types/ui"
 
 const getIntensityStyles = (intensity: string) => {
@@ -25,6 +26,7 @@ const getMediaType = (url?: string) => {
 };
 
 export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete }: ExerciseSlideOverProps) {
+    const { t } = useTranslation();
     const intensity = exercise ? getIntensityStyles(exercise.intensity) : null;
 
     const renderMedia = (url: string) => {
@@ -36,14 +38,14 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
         if (type === 'pdf') return (
             <div className="flex flex-col items-center justify-center h-full text-muted gap-2">
                 <FileText size={40} />
-                <span className="text-sm font-medium">PDF Document</span>
-                <a href={url} download="exercise.pdf" className="text-primary text-xs hover:underline">Download</a>
+                <span className="text-sm font-medium">{t('libraries.pdfDoc')}</span>
+                <a href={url} download="exercise.pdf" className="text-primary text-xs hover:underline">{t('libraries.download')}</a>
             </div>
         );
         return (
             <div className="flex flex-col items-center justify-center h-full text-dimmed gap-2">
                 <VideoIcon size={32} />
-                <span className="text-xs">Unsupported media</span>
+                <span className="text-xs">{t('libraries.unsupportedMedia')}</span>
             </div>
         );
     };
@@ -93,7 +95,7 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
                                     <h2 className="text-xl font-bold text-foreground truncate">{exercise.name}</h2>
                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${intensity?.badge}`}>
-                                            {exercise.intensity} Intensity
+                                            {exercise.intensity === 'High' ? t('common.high') : exercise.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                         </span>
                                         {exercise.goalkeepers > 0 && (
                                             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-border text-muted">
@@ -112,9 +114,11 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
                                     <span className="text-[10px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                        <Zap size={10} /> Intensity
+                                        <Zap size={10} /> {t('training.intensity')}
                                     </span>
-                                    <span className={`text-xs font-bold ${intensity?.badge.split(' ').find(c => c.startsWith('text-'))}`}>{exercise.intensity}</span>
+                                    <span className={`text-xs font-bold ${intensity?.badge.split(' ').find(c => c.startsWith('text-'))}`}>
+                                        {exercise.intensity === 'High' ? t('common.high') : exercise.intensity === 'Low' ? t('common.low') : t('common.medium')}
+                                    </span>
                                 </div>
                                 <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
                                     <motion.div
@@ -135,10 +139,10 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
 
                             {/* Text sections */}
                             {[
-                                { label: 'Description', value: exercise.description },
-                                { label: 'Setup', value: exercise.setup },
-                                { label: 'Coaching Points', value: exercise.coachingPoints },
-                                { label: 'Variations', value: exercise.variations },
+                                { label: t('common.description'), value: exercise.description },
+                                { label: t('libraries.setup'), value: exercise.setup },
+                                { label: t('libraries.coachingPoints'), value: exercise.coachingPoints },
+                                { label: t('libraries.variations'), value: exercise.variations },
                             ].filter(s => s.value).map(section => (
                                 <div key={section.label}>
                                     <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">{section.label}</p>
@@ -151,7 +155,7 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
                             {/* Equipment */}
                             {exercise.equipment.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Equipment</p>
+                                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">{t('libraries.equipment')}</p>
                                     <div className="flex flex-wrap gap-2">
                                         {exercise.equipment.map(item => (
                                             <span key={item} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-surface-raised border border-border text-foreground/80">
@@ -164,9 +168,9 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
 
                             {/* Linked library items */}
                             {[
-                                { label: 'Related Basics', items: exercise.linkedBasics, icon: <BookOpen size={11} />, style: 'bg-sky-500/10 border-sky-500/20 text-sky-400' },
-                                { label: 'Related Principles', items: exercise.linkedPrinciples, icon: <Layers size={11} />, style: 'bg-violet-500/10 border-violet-500/20 text-violet-400' },
-                                { label: 'Related Tactics', items: exercise.linkedTactics, icon: <Target size={11} />, style: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+                                { label: t('libraries.linkedBasics'), items: exercise.linkedBasics, icon: <BookOpen size={11} />, style: 'bg-sky-500/10 border-sky-500/20 text-sky-400' },
+                                { label: t('libraries.linkedPrinciples'), items: exercise.linkedPrinciples, icon: <Layers size={11} />, style: 'bg-violet-500/10 border-violet-500/20 text-violet-400' },
+                                { label: t('libraries.linkedTactics'), items: exercise.linkedTactics, icon: <Target size={11} />, style: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
                             ].filter(s => s.items.length > 0).map(section => (
                                 <div key={section.label}>
                                     <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -188,7 +192,7 @@ export default function ExerciseSlideOver({ exercise, onClose, onEdit, onDelete 
                                     onClick={() => onEdit(exercise)}
                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-amber-500/20"
                                 >
-                                    <Edit2 size={15} /> Edit Exercise
+                                    <Edit2 size={15} /> {t('libraries.editExercise')}
                                 </button>
                                 <button
                                     onClick={() => onDelete(exercise.id)}

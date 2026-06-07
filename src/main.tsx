@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client'
 import './lib/bootPrefetch'
 import App from './App.tsx'
 import './styles/globals.css'
+import './i18n'
 import { ThemeProvider } from './contexts/ThemeContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

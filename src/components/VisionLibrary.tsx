@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload, FileText, Trash2, Eye, Download, Plus, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +22,7 @@ interface Vision {
 }
 
 export default function VisionLibrary() {
+    const { t } = useTranslation();
     const [visions, setVisions] = useState<Vision[]>([]);
     const [, setIsLoading] = useState(true);
     const [viewingVision, setViewingVision] = useState<Vision | null>(null);
@@ -40,7 +42,7 @@ export default function VisionLibrary() {
             const data = await apiClient.get<Vision[]>('/visions');
             setVisions(data);
         } catch (err) {
-            toast.error("Failed to load vision log");
+            toast.error(t('libraries.failedLoadLog'));
         } finally {
             setIsLoading(false);
         }
@@ -62,20 +64,20 @@ export default function VisionLibrary() {
                 filename: filename
             });
 
-            toast.success("Vision uploaded successfully");
+            toast.success(t('libraries.uploadedSuccess'));
             setShowUploadModal(false);
             setNewTitle('');
             setSelectedFile(null);
             fetchVisions();
         } catch (err) {
-            toast.error("Upload failed");
+            toast.error(t('libraries.uploadFailed'));
         } finally {
             setUploading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this version?")) return;
+        if (!confirm(t('libraries.deleteVersionConfirmMsg'))) return;
         // Optimistic delete: remove locally instead of refetching the list.
         const visionsBefore = visions;
         const selectedBefore = selectedVisionId;
@@ -84,13 +86,13 @@ export default function VisionLibrary() {
             if (selectedVisionId === id) setSelectedVisionId(next[0]?.id ?? null);
             return next;
         });
-        toast.success("Version deleted");
+        toast.success(t('libraries.versionDeleted'));
         try {
             await apiClient.delete(`/visions/${id}`);
         } catch (err) {
             setVisions(visionsBefore);
             setSelectedVisionId(selectedBefore);
-            toast.error("Delete failed");
+            toast.error(t('libraries.deleteFailed'));
         }
     };
 
@@ -103,8 +105,8 @@ export default function VisionLibrary() {
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-pink-500 flex-shrink-0" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Coaching Vision</h1>
-                        <p className="text-sm text-muted mt-0.5">Manage and present your tactical philosophy</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.visionTitle')}</h1>
+                        <p className="text-sm text-muted mt-0.5">{t('libraries.coachingVisionSub')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -113,7 +115,7 @@ export default function VisionLibrary() {
                         icon={<Plus size={18} />}
                         className="shadow-lg shadow-pink-500/20"
                     >
-                        New Version
+                        {t('libraries.newVersion')}
                     </Button>
                 </div>
             </div>
@@ -127,7 +129,7 @@ export default function VisionLibrary() {
                             {visions.length === 0 && (
                                 <div className="text-center py-16 text-muted">
                                     <FileText size={32} className="mx-auto mb-3 opacity-30" />
-                                    <p className="text-sm">No visions found</p>
+                                    <p className="text-sm">{t('libraries.noVisionsFound')}</p>
                                 </div>
                             )}
                             {visions.map((v, idx) => {
@@ -152,7 +154,7 @@ export default function VisionLibrary() {
                                             <div className="flex-1 min-w-0">
                                                 <p className={`text-sm font-bold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>{v.title}</p>
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${isLatest ? 'text-pink-500' : 'text-muted'}`}>
-                                                    {isLatest ? 'Active Version' : 'Archived'}
+                                                    {isLatest ? t('libraries.activeVersion') : t('libraries.archived')}
                                                 </span>
                                                 <p className="text-xs text-muted mt-1">
                                                     {new Date(v.uploaded_at).toLocaleDateString()}
@@ -192,7 +194,7 @@ export default function VisionLibrary() {
                                     <div>
                                         <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border mb-3 border-pink-500/20 bg-pink-500/10 text-pink-500`}>
                                             <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
-                                            {selectedVision.id === visions[0]?.id ? 'Current Phase' : 'Archived Phase'}
+                                            {selectedVision.id === visions[0]?.id ? t('libraries.currentPhase') : t('libraries.archivedPhase')}
                                         </span>
                                         <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedVision.title}</h2>
                                     </div>
@@ -202,7 +204,7 @@ export default function VisionLibrary() {
                                             onClick={() => setViewingVision(selectedVision)}
                                             icon={<Eye size={16} />}
                                         >
-                                            Present
+                                            {t('libraries.present')}
                                         </Button>
                                         <a 
                                             href={`${API_BASE_URL}/static/uploads/${selectedVision.filename}`} 
@@ -210,7 +212,7 @@ export default function VisionLibrary() {
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
                                         >
-                                            <Download size={14} /> Download
+                                            <Download size={14} /> {t('libraries.download')}
                                         </a>
                                     </div>
                                 </div>
@@ -221,7 +223,7 @@ export default function VisionLibrary() {
                                 <iframe 
                                     src={`${API_BASE_URL}/static/uploads/${selectedVision.filename}#toolbar=0`}
                                     className="w-full h-full border-none pointer-events-none opacity-60"
-                                    title="Active Vision Preview"
+                                    title={t('libraries.activeVisionPreview')}
                                 />
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/60 opacity-0 hover:opacity-100 transition-opacity text-foreground backdrop-blur-sm">
                                     <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-4 border border-white/20">
@@ -232,7 +234,7 @@ export default function VisionLibrary() {
                                         onClick={() => setViewingVision(selectedVision)}
                                         className="shadow-xl"
                                     >
-                                        Click to Present Fullscreen
+                                        {t('libraries.fullscreenView')}
                                     </Button>
                                 </div>
                             </div>
@@ -242,9 +244,9 @@ export default function VisionLibrary() {
                             <div className="w-20 h-20 rounded-full bg-surface-hover flex items-center justify-center text-muted mb-6 shadow-none">
                                 <FileText size={40} />
                             </div>
-                            <h3 className="text-xl font-bold text-foreground mb-2">No Vision Found</h3>
-                            <p className="text-muted max-w-xs mb-8">Upload your tactical vision PDF to share it with your staff.</p>
-                            <Button onClick={() => setShowUploadModal(true)}>Upload Your First Vision</Button>
+                            <h3 className="text-xl font-bold text-foreground mb-2">{t('libraries.noVisionFound')}</h3>
+                            <p className="text-muted max-w-xs mb-8">{t('libraries.noVisionFoundSub')}</p>
+                            <Button onClick={() => setShowUploadModal(true)}>{t('libraries.uploadFirstVision')}</Button>
                         </Card>
                     )}
                 </div>
@@ -254,15 +256,15 @@ export default function VisionLibrary() {
             <Modal
                 isOpen={showUploadModal}
                 onClose={() => setShowUploadModal(false)}
-                title="Upload New Vision"
+                title={t('libraries.uploadNewVision')}
                 icon={<Upload className="text-blue-400" />}
             >
                 <form onSubmit={handleFileUpload} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-400 mb-2">Version Title</label>
+                        <label className="block text-sm font-semibold text-slate-400 mb-2">{t('libraries.versionTitle')}</label>
                         <input
                             type="text"
-                            placeholder="e.g., Pre-Season Vision 2024"
+                            placeholder={t('libraries.versionTitlePlaceholder')}
                             className="w-full bg-surface-raised border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary/50 transition-colors"
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
@@ -287,9 +289,9 @@ export default function VisionLibrary() {
                                 <Upload size={24} />
                             </div>
                             <span className="text-sm font-medium text-foreground mb-1">
-                                {selectedFile ? selectedFile.name : "Choose PDF Vision"}
+                                {selectedFile ? selectedFile.name : t('libraries.choosePdf')}
                             </span>
-                            <span className="text-xs text-slate-500">Only .pdf files supported</span>
+                            <span className="text-xs text-slate-500">{t('libraries.onlyPdfSupported')}</span>
                         </label>
                     </div>
 
@@ -301,13 +303,13 @@ export default function VisionLibrary() {
                             disabled={uploading || !selectedFile || !newTitle}
                             isLoading={uploading}
                         >
-                            Upload & Set as Active
+                            {t('libraries.uploadAndSet')}
                         </Button>
                         <Button 
                             variant="secondary" 
                             onClick={() => setShowUploadModal(false)}
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     </div>
                 </form>
@@ -331,7 +333,7 @@ export default function VisionLibrary() {
                              <div className="text-slate-500 text-xs">
                                 Uploaded on {new Date(viewingVision.uploaded_at).toLocaleString()}
                             </div>
-                            <Button variant="secondary" onClick={() => setViewingVision(null)}>Close Presenter</Button>
+                            <Button variant="secondary" onClick={() => setViewingVision(null)}>{t('libraries.closePresenter')}</Button>
                         </div>
                     </div>
                 )}

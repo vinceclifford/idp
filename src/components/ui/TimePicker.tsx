@@ -5,7 +5,9 @@ import { TimePickerProps } from "../../types/ui";
 import { parseFlexibleTime } from "../../lib/dateParse";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); 
+// 5-minute steps for fast picking. The input still accepts any minute
+// (the wheel just scrolls to the nearest 5-min for visual context).
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
 
 
@@ -22,9 +24,13 @@ interface WheelProps {
 function Wheel({ items, selectedValue, onSelect, label }: WheelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isInternalScroll = useRef(false);
-  
+  // True while we are about to set scrollTop programmatically. The browser
+  // will fire a scroll event in response — we use this flag so the scroll
+  // handler ignores that event and doesn't call onSelect.
+  const programmaticScroll = useRef(false);
+
   // Use more sets to ensure even hard flicks don't hit physical boundaries
-  const REPS = 20; 
+  const REPS = 20;
   const displayItems = Array(REPS).fill(items).flat();
   const ITEM_HEIGHT = 40;
   const SET_HEIGHT = items.length * ITEM_HEIGHT;
@@ -33,8 +39,20 @@ function Wheel({ items, selectedValue, onSelect, label }: WheelProps) {
   // Center scroll on mount or external change
   useEffect(() => {
     if (scrollRef.current && !isInternalScroll.current) {
-      const indexInSet = items.indexOf(selectedValue);
+      let indexInSet = items.indexOf(selectedValue);
+      if (indexInSet === -1) {
+        // Selected value isn't one of our discrete options (e.g. user typed
+        // a precise minute like 12 and the wheel only offers 5-minute steps).
+        // Show the nearest option for visual context, but the programmatic
+        // scroll guard below stops handleScroll from rewriting the user's
+        // precise value back to that nearest option.
+        const nearest = items.reduce((best, item) =>
+          Math.abs(item - selectedValue) < Math.abs(best - selectedValue) ? item : best
+        );
+        indexInSet = items.indexOf(nearest);
+      }
       const targetScroll = (MIDDLE_SET * SET_HEIGHT) + (indexInSet * ITEM_HEIGHT);
+      programmaticScroll.current = true;
       scrollRef.current.scrollTop = targetScroll;
     }
     isInternalScroll.current = false;
@@ -42,6 +60,15 @@ function Wheel({ items, selectedValue, onSelect, label }: WheelProps) {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
+
+    // Ignore the scroll event we just triggered ourselves by setting
+    // scrollTop. Without this guard a programmatic re-center would land on
+    // the closest discrete item and then call onSelect, silently rewriting
+    // a precise value (e.g. typing "13:12" would snap to "13:55").
+    if (programmaticScroll.current) {
+      programmaticScroll.current = false;
+      return;
+    }
 
     // DEBOUNCED SELECTION & SEAMLESS RE-CENTERING
     // We avoid jumping during active scrolling to preserve inertia.
@@ -52,14 +79,15 @@ function Wheel({ items, selectedValue, onSelect, label }: WheelProps) {
       const finalScrollTop = target.scrollTop;
       const index = Math.round(finalScrollTop / ITEM_HEIGHT);
       const actualValue = displayItems[index];
-      
-      // Re-center to middle set if we strayed too far. 
+
+      // Re-center to middle set if we strayed too far.
       // Since the user stopped scrolling, this jump is invisible and preserves "infinity".
       const currentSet = Math.floor(index / items.length);
       if (currentSet !== MIDDLE_SET && index >= 0 && index < displayItems.length) {
           const indexInSet = index % items.length;
           const newScrollTop = (MIDDLE_SET * SET_HEIGHT) + (indexInSet * ITEM_HEIGHT);
           isInternalScroll.current = true;
+          programmaticScroll.current = true;
           target.scrollTop = newScrollTop;
       }
 

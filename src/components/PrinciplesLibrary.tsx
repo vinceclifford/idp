@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Plus, Edit2, Trash2, Upload, Video as VideoIcon, FileText, X, BookOpen, ChevronRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -72,15 +73,27 @@ const PHASE_COLORS: Record<string, {
   },
 };
 
-const PHASE_SHORT: Record<string, string> = {
-  "In Possession": "In Possession",
-  "Transition After Losing Possession": "Trans. Losing",
-  "Out of Possession": "Out of Possession",
-  "Transition After Winning Possession": "Trans. Winning",
-  "Set Pieces": "Set Pieces",
+const getPhaseShort = (phase: string, t: (key: string) => string) => {
+  switch (phase) {
+    case "In Possession": return t('phases.inPossessionShort');
+    case "Transition After Losing Possession": return t('phases.transitionLosingShort');
+    case "Out of Possession": return t('phases.outOfPossessionShort');
+    case "Transition After Winning Possession": return t('phases.transitionWinningShort');
+    case "Set Pieces": return t('phases.setPiecesShort');
+    default: return phase;
+  }
 };
 
-const getPhaseShort = (phase: string) => PHASE_SHORT[phase] ?? phase;
+const getPhaseLong = (phase: string, t: (key: string) => string) => {
+  switch (phase) {
+    case "In Possession": return t('phases.inPossession');
+    case "Transition After Losing Possession": return t('phases.transitionLosing');
+    case "Out of Possession": return t('phases.outOfPossession');
+    case "Transition After Winning Possession": return t('phases.transitionWinning');
+    case "Set Pieces": return t('phases.setPieces');
+    default: return phase;
+  }
+};
 
 const getPhaseColor = (phase: string) => PHASE_COLORS[phase] ?? DEFAULT_PHASE_COLOR;
 
@@ -105,6 +118,7 @@ const resolveMediaUrl = (url: string) =>
   url.startsWith('http://') || url.startsWith('https://') ? url : `${API_BASE_URL}${url}`;
 
 export default function PrinciplesLibrary() {
+  const { t } = useTranslation();
   const [principles, setPrinciples] = useState<Principle[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activePhase, setActivePhase] = useState<string>('All');
@@ -132,7 +146,7 @@ export default function PrinciplesLibrary() {
   }, []);
 
   const handleSave = async () => {
-    if (!formData.name || !formData.description) return toast.error('Fill required fields');
+    if (!formData.name || !formData.description) return toast.error(t('login.validationFillFields'));
 
     const principleToSave: Principle = {
       id: formData.id,
@@ -155,9 +169,9 @@ export default function PrinciplesLibrary() {
         setPrinciples(prev => [...prev, saved]);
         setSelectedId(saved.id);
       }
-      toast.success(isEditing ? 'Updated!' : 'Created!');
+      toast.success(isEditing ? t('libraries.principleUpdated') : t('libraries.principleCreated'));
       closeModal();
-    } catch { toast.error('Connection failed'); }
+    } catch { toast.error(t('modals.saveFailed')); }
   };
 
   const handleDelete = async (id: string) => {
@@ -169,13 +183,13 @@ export default function PrinciplesLibrary() {
       if (selectedId === id) setSelectedId(next[0]?.id ?? null);
       return next;
     });
-    toast.success('Deleted');
+    toast.success(t('training.deleted'));
     try {
       await LibraryService.deletePrinciple(id);
     } catch {
       setPrinciples(principlesBefore);
       setSelectedId(selectedBefore);
-      toast.error('Failed to delete');
+      toast.error(t('training.deleteFailed'));
     }
   };
 
@@ -187,16 +201,16 @@ export default function PrinciplesLibrary() {
     const isPdf = file.type === 'application/pdf';
 
     if (!isImage && !isVideo && !isPdf) {
-      toast.error('Unsupported media type. Please upload an image, video, or PDF.');
+      toast.error(t('libraries.unsupportedMedia'));
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) return toast.error('File too large. Max 100MB.');
+    if (file.size > 100 * 1024 * 1024) return toast.error(t('libraries.fileTooLarge'));
     if (isImage) setMediaPreview(URL.createObjectURL(file));
     try {
       const url = await uploadFile(file);
       setMediaPreview(url);
-    } catch { toast.error('Upload failed'); setMediaPreview(null); }
+    } catch { toast.error(t('libraries.uploadFailed')); setMediaPreview(null); }
   };
 
   const closeModal = () => {
@@ -235,16 +249,16 @@ export default function PrinciplesLibrary() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-purple-500 flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Principles Library</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.principlesTitle')}</h1>
             <p className="text-sm text-muted mt-0.5">
-              {principles.length} {principles.length === 1 ? 'principle' : 'principles'}
-              {activePhasesCount > 0 && <> &middot; {activePhasesCount} phase{activePhasesCount > 1 ? 's' : ''}</>}
+              {t('libraries.principleCount', { count: principles.length })}
+              {activePhasesCount > 0 && <> &middot; {t('libraries.phaseCount', { count: activePhasesCount })}</>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
-          <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Add Principle</Button>
+          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>{t('libraries.managePlaybook')}</Button>
+          <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>{t('libraries.addPrinciple')}</Button>
         </div>
       </div>
 
@@ -258,7 +272,7 @@ export default function PrinciplesLibrary() {
               : 'bg-transparent border-border text-muted hover:text-foreground hover:bg-surface-hover'
           }`}
         >
-          All <span className="ml-1 opacity-60">{principles.length}</span>
+          {t('common.all')} <span className="ml-1 opacity-60">{principles.length}</span>
         </button>
         {GAME_PHASES.map(phase => {
           const c = getPhaseColor(phase);
@@ -274,7 +288,7 @@ export default function PrinciplesLibrary() {
             >
               <span className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${c.dot} ${isActive ? '' : 'opacity-40 group-hover:opacity-70'}`} />
-                {PHASE_SHORT[phase]}
+                {getPhaseShort(phase, t)}
                 <span className="opacity-60">{count}</span>
               </span>
             </button>
@@ -288,7 +302,7 @@ export default function PrinciplesLibrary() {
         {/* LEFT: List */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
           <div className="flex-shrink-0">
-            <Input icon={<Search size={15} />} placeholder="Search principles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Input icon={<Search size={15} />} placeholder={t('libraries.searchPrinciples')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
           <div className="space-y-2 lg:overflow-y-auto custom-scrollbar pr-1 lg:flex-1 lg:min-h-0">
@@ -296,7 +310,7 @@ export default function PrinciplesLibrary() {
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
                   <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No principles found</p>
+                  <p className="text-sm">{t('libraries.noPrinciplesFound')}</p>
                 </div>
               )}
               {filtered.map(p => {
@@ -317,7 +331,7 @@ export default function PrinciplesLibrary() {
                     <div className="pl-3 flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-bold truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>{p.name}</p>
-                        <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${c.text}`}>{getPhaseShort(p.gamePhase)}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 inline-block ${c.text}`}>{getPhaseShort(p.gamePhase, t)}</span>
                         <p className="text-xs text-muted mt-1.5 line-clamp-2 leading-relaxed">{p.description}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
@@ -357,7 +371,7 @@ export default function PrinciplesLibrary() {
                   <div>
                     <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border mb-3 ${colors.badgeBg} ${colors.badge}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                      {selected.gamePhase}
+                      {getPhaseLong(selected.gamePhase, t)}
                     </span>
                     <h2 className="text-2xl font-bold text-foreground tracking-tight">{selected.name}</h2>
                   </div>
@@ -366,11 +380,11 @@ export default function PrinciplesLibrary() {
                       <button
                         onClick={() => openEdit(selected)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
-                      ><Edit2 size={12} /> Edit</button>
+                      ><Edit2 size={12} /> {t('common.edit')}</button>
                       <button
                         onClick={() => setConfirmDeleteId(selected.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-rose-500/10 text-muted hover:text-rose-500 text-xs font-bold border border-border transition-colors"
-                      ><Trash2 size={12} /> Delete</button>
+                      ><Trash2 size={12} /> {t('common.delete')}</button>
                     </div>
                   )}
                 </div>
@@ -378,14 +392,14 @@ export default function PrinciplesLibrary() {
 
               <div className="p-6 space-y-6">
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-2">Description</h4>
+                  <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-2">{t('common.description')}</h4>
                   <p className="text-foreground/80 text-sm leading-relaxed">{selected.description}</p>
                 </div>
 
                 {selected.coachingNotes && (
                   <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-4">
                     <h4 className="text-amber-600 dark:text-amber-500 text-[10px] uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Coaching Notes
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {t('libraries.coachingNotes')}
                     </h4>
                     <p className="text-foreground/80 text-sm leading-relaxed">{selected.coachingNotes}</p>
                   </div>
@@ -393,7 +407,7 @@ export default function PrinciplesLibrary() {
 
                 {selected.implementationTips && (
                   <div>
-                    <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Key Implementation Points</h4>
+                    <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.keyPoints')}</h4>
                     <ul className="space-y-2.5">
                       {selected.implementationTips.split('\n').filter(t => t.trim()).map((tip, i) => (
                         <li key={i} className="flex items-start gap-3 text-foreground/80 text-sm">
@@ -409,23 +423,23 @@ export default function PrinciplesLibrary() {
                   const type = getMediaType(selected.mediaUrl);
                     if (type === 'image') return (
                       <div>
-                        <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                        <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                         <img src={resolveMediaUrl(selected.mediaUrl!)} alt="Media" className="w-full max-h-72 object-cover rounded-xl border border-border cursor-zoom-in hover:opacity-90 transition-opacity" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))} />
                       </div>
                     );
                   if (type === 'video') return (
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                       <div className="w-full h-40 bg-background rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))}>
-                        <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">Play Video</span></div>
+                        <div className="flex flex-col items-center gap-2 text-foreground/60 group-hover:text-foreground transition-colors"><VideoIcon size={32} /><span className="text-xs font-bold uppercase tracking-widest">{t('libraries.watchVideo')}</span></div>
                       </div>
                     </div>
                   );
                   if (type === 'pdf') return (
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">Media</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted font-bold mb-3">{t('libraries.visuals')}</h4>
                       <div className="w-full h-40 bg-surface-hover rounded-xl border border-border flex items-center justify-center group cursor-pointer hover:border-border transition-colors" onClick={() => setViewMedia(resolveMediaUrl(selected.mediaUrl!))}>
-                        <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors"><FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">Open PDF</span></div>
+                        <div className="flex flex-col items-center gap-2 text-muted group-hover:text-foreground transition-colors"><FileText size={32} /><span className="text-xs font-bold uppercase tracking-widest">{t('libraries.pdfDoc')}</span></div>
                       </div>
                     </div>
                   );
@@ -436,7 +450,7 @@ export default function PrinciplesLibrary() {
           ) : (
             <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface flex flex-col items-center justify-center text-muted">
               <BookOpen size={40} className="mb-3 opacity-30" />
-              <p className="text-sm font-medium">Select a principle to view details</p>
+              <p className="text-sm font-medium">{t('libraries.selectPrincipleToView')}</p>
             </div>
           )}
         </div>
@@ -445,47 +459,47 @@ export default function PrinciplesLibrary() {
       {/* Create / Edit Modal */}
       <Modal
         isOpen={showCreateModal} onClose={closeModal}
-        title={isEditing ? 'Edit Principle' : 'New Principle'}
+        title={isEditing ? t('libraries.editPrinciple') : t('libraries.newPrinciple')}
         footer={
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
-            <Button onClick={handleSave} className="flex-1 bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/20">Save</Button>
+            <Button variant="ghost" onClick={closeModal} className="flex-1">{t('common.cancel')}</Button>
+            <Button onClick={handleSave} className="flex-1 bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/20">{t('common.save')}</Button>
           </div>
         }
       >
         <div className="space-y-5">
-          <Input label="Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. High Press" />
-          <Select label="Phase" value={formData.gamePhase} onChange={val => setFormData({ ...formData, gamePhase: val as string })} options={GAME_PHASES.map(p => ({ label: p, value: p }))} />
+          <Input label={t('common.name')} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder={t('libraries.principleNamePlaceholder')} />
+          <Select label={t('libraries.gamePhaseLabel')} value={formData.gamePhase} onChange={val => setFormData({ ...formData, gamePhase: val as string })} options={GAME_PHASES.map(p => ({ label: getPhaseLong(p, t), value: p }))} />
           <div>
-            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">Media</label>
+            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">{t('libraries.visuals')}</label>
             <div className="h-28 bg-surface-hover border-2 border-dashed border-border rounded-xl relative group hover:border-primary/30 transition-colors flex items-center justify-center overflow-hidden cursor-pointer">
               {mediaPreview ? (
                 <>
                   {getMediaType(mediaPreview) === 'image' && <img src={mediaPreview} className="w-full h-full object-cover" />}
-                  {getMediaType(mediaPreview) === 'video' && <div className="text-primary flex flex-col items-center gap-1"><VideoIcon size={28} /><span className="text-xs font-bold">Video Selected</span></div>}
-                  {getMediaType(mediaPreview) === 'pdf' && <div className="text-primary flex flex-col items-center gap-1"><FileText size={28} /><span className="text-xs font-bold">PDF Selected</span></div>}
+                  {getMediaType(mediaPreview) === 'video' && <div className="text-primary flex flex-col items-center gap-1"><VideoIcon size={28} /><span className="text-xs font-bold">{t('libraries.videoSelected')}</span></div>}
+                  {getMediaType(mediaPreview) === 'pdf' && <div className="text-primary flex flex-col items-center gap-1"><FileText size={28} /><span className="text-xs font-bold">{t('libraries.pdfSelected')}</span></div>}
                   <button onClick={e => { e.stopPropagation(); setMediaPreview(null); setFormData({ ...formData, mediaUrl: '' }); }} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"><X size={14} /></button>
                 </>
               ) : (
                 <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center text-muted hover:text-primary transition-colors gap-1">
                   <Upload size={22} />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">Upload File</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider">{t('libraries.uploadFile')}</span>
                   <input type="file" className="hidden" accept="image/*,video/*,application/pdf" onChange={handleFileUpload} />
                 </label>
               )}
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">Description</label>
-            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-primary/50 focus:ring-4 focus:ring-primary/10 resize-none h-24 custom-scrollbar transition-colors" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the principle..." />
+            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">{t('common.description')}</label>
+            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-primary/50 focus:ring-4 focus:ring-primary/10 resize-none h-24 custom-scrollbar transition-colors" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder={t('libraries.describePrinciplePlaceholder')} />
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-widest ml-1">Coaching Notes</label>
-            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 resize-none h-20 custom-scrollbar transition-colors" value={formData.coachingNotes} onChange={e => setFormData({ ...formData, coachingNotes: e.target.value })} placeholder="Key coaching details..." />
+            <label className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-widest ml-1">{t('libraries.coachingNotes')}</label>
+            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/10 resize-none h-20 custom-scrollbar transition-colors" value={formData.coachingNotes} onChange={e => setFormData({ ...formData, coachingNotes: e.target.value })} placeholder={t('libraries.coachingNotesPlaceholder')} />
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">Implementation Tips <span className="normal-case text-muted font-normal">(one per line)</span></label>
-            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-primary/50 focus:ring-4 focus:ring-primary/10 resize-none h-24 custom-scrollbar transition-colors" value={formData.implementationTips} onChange={e => setFormData({ ...formData, implementationTips: e.target.value })} placeholder={"Trigger press on back pass\nSecond striker supports"} />
+            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">{t('libraries.implementationTipsLabel')}</label>
+            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:border-primary/50 focus:ring-4 focus:ring-primary/10 resize-none h-24 custom-scrollbar transition-colors" value={formData.implementationTips} onChange={e => setFormData({ ...formData, implementationTips: e.target.value })} placeholder={t('libraries.implementationTipsPlaceholder')} />
           </div>
         </div>
       </Modal>
@@ -514,9 +528,9 @@ export default function PrinciplesLibrary() {
 
       <ConfirmDialog
         isOpen={confirmDeleteId !== null}
-        title="Delete principle?"
-        message="This will permanently remove this principle from the library."
-        confirmLabel="Delete"
+        title={t('libraries.deletePrincipleTitle')}
+        message={t('libraries.deletePrincipleMsg')}
+        confirmLabel={t('common.delete')}
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
         onCancel={() => setConfirmDeleteId(null)}
       />

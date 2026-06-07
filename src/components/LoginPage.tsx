@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Trophy, Mail, Lock, AlertCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 // UI Components
 import { Card } from './ui/Card';
@@ -15,6 +16,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState(''); // Name field for Registration
@@ -67,18 +69,18 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
     // 1. Basic Validation
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError(t('login.validationFillFields'));
       setLoading(false);
       return;
     }
     if (isRegister) {
       if (!fullName) {
-        setError('Please enter your full name');
+        setError(t('login.validationFullName'));
         setLoading(false);
         return;
       }
       if (password !== confirmPassword) {
-        setError('Passwords do not match');
+        setError(t('login.validationPasswordsMatch'));
         setLoading(false);
         return;
       }
@@ -98,7 +100,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
       // Success Action
       if (isRegister) {
-        toast.success('Account created! Please check your email to verify your account before signing in.');
+        toast.success(t('login.toastAccountCreated'));
         console.log("[LoginPage] Switching to Login view...");
         setIsRegister(false); // Redirect to Login view
         setFullName('');
@@ -107,7 +109,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       } else {
         const response = data as AuthResponse;
         console.log(`[LoginPage] Welcome back, ${response.user.full_name || 'Coach'}!`);
-        toast.success(`Welcome back, ${response.user.full_name || 'Coach'}!`);
+        toast.success(t('login.toastWelcomeBack', { name: response.user.full_name || 'Coach' }));
 
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('access_token', response.access_token);
@@ -137,7 +139,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('Please enter your email address');
+      setError(t('login.validationEmailAddress'));
       return;
     }
     setLoading(true);
@@ -157,13 +159,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || !confirmNewPassword) {
-      setError('Please fill in all fields');
-      toast.error('Please fill in all fields');
+      setError(t('login.validationFillFields'));
+      toast.error(t('login.validationFillFields'));
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      setError('Passwords do not match');
-      toast.error('Passwords do not match');
+      setError(t('login.validationPasswordsMatch'));
+      toast.error(t('login.validationPasswordsMatch'));
       return;
     }
     setLoading(true);
@@ -218,10 +220,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             className="max-w-xl"
           >
             <h1 className="text-5xl xl:text-6xl font-bold tracking-tight leading-[1.1] mb-6">
-              The complete platform for football coaches.
+              {t('login.heroTitle')}
             </h1>
             <p className="text-lg xl:text-xl text-white/80 leading-relaxed">
-              Plan training, manage your squad, run match-day, and turn data into decisions — all in one place.
+              {t('login.heroSubtitle')}
             </p>
           </motion.div>
 
@@ -231,7 +233,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             transition={{ delay: 0.4 }}
             className="flex items-center gap-8 text-sm text-white/60"
           >
-            <span>Players · Sessions · Matches · Tactics</span>
+            <span>{t('login.heroFooter')}</span>
           </motion.div>
         </div>
       </div>
@@ -255,32 +257,32 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         <div className="mb-6 hidden lg:block">
           <h2 className="text-2xl font-bold text-foreground tracking-tight">
             {isResetPassword
-              ? 'Set new password'
+              ? t('login.setNewPassword')
               : isForgotPassword
-                ? 'Reset password'
+                ? t('login.resetPasswordTitle')
                 : isRegister
-                  ? 'Create your account'
-                  : 'Welcome back'}
+                  ? t('login.createAccountTitle')
+                  : t('login.welcomeBackTitle')}
           </h2>
           <p className="text-muted mt-2 font-medium">
             {isResetPassword
-              ? 'Choose a strong password you haven\'t used before.'
+              ? t('login.newPasswordDesc')
               : isForgotPassword
-                ? 'We\'ll email you a link to reset your password.'
+                ? t('login.forgotPasswordDesc')
                 : isRegister
-                  ? 'Start your coaching journey today.'
-                  : 'Sign in to your CoachHub account.'}
+                  ? t('login.createAccountDesc')
+                  : t('login.welcomeBackDesc')}
           </p>
         </div>
         <div className="text-center mb-8 lg:hidden">
           <p className="text-muted font-medium">
             {isResetPassword
-              ? 'Set your new password'
+              ? t('login.resetPasswordSubMobile')
               : isForgotPassword
-                ? 'Reset your password'
+                ? t('login.forgotPasswordSubMobile')
                 : isRegister
-                  ? 'Start your coaching journey'
-                  : 'Welcome back to the pitch'}
+                  ? t('login.createAccountSubMobile')
+                  : t('login.welcomeBackSubMobile')}
           </p>
         </div>
 
@@ -300,44 +302,44 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 )}
               </AnimatePresence>
              <Input
-                label="New Password"
+                label={t('login.newPasswordLabel')}
                 type="password"
                 icon={<Lock size={16} />}
-                placeholder="••••••••"
+                placeholder={t('login.placeholderPassword')}
                 value={newPassword}
                 onChange={(e) => { setNewPassword(e.target.value); if (error) setError(''); }}
               />
               <Input
-                label="Confirm New Password"
+                label={t('login.confirmNewPasswordLabel')}
                 type="password"
                 icon={<Lock size={16} />}
-                placeholder="••••••••"
+                placeholder={t('login.placeholderPassword')}
                 value={confirmNewPassword}
                 onChange={(e) => { setConfirmNewPassword(e.target.value); if (error) setError(''); }}
               />
               <Button type="submit" className="w-full shadow-lg shadow-blue-600/20" isLoading={loading}>
-                Reset Password
+                {t('login.resetPasswordBtn')}
               </Button>
               <Button 
                 variant="ghost" 
                 onClick={() => setIsResetPassword(false)} 
                 className="w-full text-slate-500"
               >
-                Back to login
+                {t('login.backToLoginBtn')}
               </Button>
           </form>
         ) : isForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-6">
              <Input
-                label="Email Address"
+                label={t('login.emailLabel')}
                 type="email"
                 icon={<Mail size={16} />}
-                placeholder="coach@example.com"
+                placeholder={t('login.placeholderUsername')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Button type="submit" className="w-full shadow-lg shadow-blue-600/20" isLoading={loading}>
-                Send Reset Link
+                {t('login.sendResetLinkBtn')}
               </Button>
               <Button 
                 variant="ghost" 
@@ -345,7 +347,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 className="w-full text-slate-500"
                 icon={<ArrowLeft size={16} />}
               >
-                Back to login
+                {t('login.backToLoginBtn')}
               </Button>
           </form>
         ) : (
@@ -377,7 +379,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 >
                   <div className="pb-4">
                     <Input
-                      label="Full Name"
+                      label={t('login.fullNameLabel')}
                       type="text"
                       icon={<User size={16} />}
                       placeholder="John Doe"
@@ -390,10 +392,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             </AnimatePresence>
 
             <Input
-              label="Email Address"
+              label={t('login.emailLabel')}
               type="email"
               icon={<Mail size={16} />}
-              placeholder="coach@example.com"
+              placeholder={t('login.placeholderUsername')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={error ? "border-red-500/50" : ""}
@@ -401,10 +403,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
             <div className="space-y-1">
               <Input
-                label="Password"
+                label={t('login.password')}
                 type="password"
                 icon={<Lock size={16} />}
-                placeholder="••••••••"
+                placeholder={t('login.placeholderPassword')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
@@ -418,10 +420,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   className="overflow-hidden mt-4"
                 >
                   <Input
-                    label="Confirm Password"
+                    label={t('login.confirmPasswordLabel')}
                     type="password"
                     icon={<Lock size={16} />}
-                    placeholder="••••••••"
+                    placeholder={t('login.placeholderPassword')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
@@ -436,14 +438,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                     onClick={() => { setIsForgotPassword(true); setError(''); }}
                     className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
                   >
-                    Forgot password?
+                    {t('login.forgotPasswordLink')}
                   </button>
                 </div>
               )}
             </div>
 
             <Button type="submit" className="w-full shadow-lg shadow-blue-600/20" isLoading={loading}>
-              {isRegister ? 'Create Account' : 'Sign In'}
+              {isRegister ? t('login.createAccountBtn') : t('login.submit')}
             </Button>
 
           </form>
@@ -453,7 +455,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         {!isForgotPassword && !isResetPassword && (
           <div className="mt-5 text-center border-t border-border pt-4">
             <p className="text-muted text-sm mb-2">
-              {isRegister ? "Already have an account?" : "Don't have an account?"}
+              {isRegister ? t('login.alreadyHaveAccount') : t('login.dontHaveAccount')}
             </p>
             <Button
               variant="ghost"
@@ -466,7 +468,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               }}
               className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 w-full"
             >
-              {isRegister ? 'Sign in instead' : "Create an account"}
+              {isRegister ? t('login.signInInstead') : t('login.createAccountLink')}
             </Button>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, Download, Calendar, Clock, Users, Activity, Dumbbell, Zap, BookOpen, Layers, Target, Image as ImageIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatDate } from '../../lib/utils';
 import { Exercise } from '../../types/models';
 
@@ -21,6 +22,7 @@ const getMediaType = (url?: string) => {
 export default function SessionSlideOver({
     session, allPlayers, allExercises, isPast, onClose, onEdit, onDelete, onExportPDF,
 }: SessionSlideOverProps) {
+    const { t } = useTranslation();
     if (!session) return null;
 
     const style = intensityStyles[session.intensity] ?? intensityStyles.Medium;
@@ -82,7 +84,7 @@ export default function SessionSlideOver({
                                     <h2 className="text-xl font-bold text-foreground truncate">{session.focus}</h2>
                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${style.badge}`}>
-                                            {session.intensity}
+                                            {session.intensity === 'High' ? t('common.high') : session.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                         </span>
                                         <span className="flex items-center gap-1 text-[11px] text-muted">
                                             <Calendar size={10} /> {formatDate(session.date)}
@@ -98,8 +100,10 @@ export default function SessionSlideOver({
                             {/* Intensity bar */}
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5"><Zap size={10} /> Intensity</span>
-                                    <span className={`text-xs font-bold ${style.badge.split(' ').find(c => c.startsWith('text-'))}`}>{session.intensity}</span>
+                                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5"><Zap size={10} /> {t('training.intensity')}</span>
+                                    <span className={`text-xs font-bold ${style.badge.split(' ').find(c => c.startsWith('text-'))}`}>
+                                        {session.intensity === 'High' ? t('common.high') : session.intensity === 'Low' ? t('common.low') : t('common.medium')}
+                                    </span>
                                 </div>
                                 <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
                                     <motion.div
@@ -114,9 +118,9 @@ export default function SessionSlideOver({
                             {/* Quick stats */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { icon: <Clock size={13} />, label: 'Duration', value: durationLabel, color: 'text-cyan-400' },
-                                    { icon: <Users size={13} />, label: 'Players', value: String(players.length), color: 'text-indigo-400' },
-                                    { icon: <Dumbbell size={13} />, label: 'Drills', value: String(exercises.length), color: 'text-amber-400' },
+                                    { icon: <Clock size={13} />, label: t('training.duration'), value: durationLabel, color: 'text-cyan-400' },
+                                    { icon: <Users size={13} />, label: t('common.players'), value: String(players.length), color: 'text-indigo-400' },
+                                    { icon: <Dumbbell size={13} />, label: t('common.drills'), value: String(exercises.length), color: 'text-amber-400' },
                                 ].map(stat => (
                                     <div key={stat.label} className="bg-surface-hover border border-border-subtle rounded-xl p-3 text-center">
                                         <div className={`flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider mb-1.5 ${stat.color}`}>
@@ -131,7 +135,7 @@ export default function SessionSlideOver({
                             <div className="flex items-center gap-3 px-4 py-3 bg-surface-hover border border-border-subtle rounded-xl">
                                 <Clock size={15} className="text-muted flex-shrink-0" />
                                 <div>
-                                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">Session Time</p>
+                                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">{t('training.sessionTime')}</p>
                                     <p className="text-sm font-semibold text-foreground font-mono">{session.startTime} – {session.endTime}</p>
                                 </div>
                             </div>
@@ -140,7 +144,7 @@ export default function SessionSlideOver({
                             {exercises.length > 0 && (
                                 <div>
                                     <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                        <Dumbbell size={10} /> Drill Sequence
+                                        <Dumbbell size={10} /> {t('training.drillSequence')}
                                         <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px]">{exercises.length}</span>
                                     </p>
                                     <div className="space-y-2">
@@ -162,7 +166,7 @@ export default function SessionSlideOver({
                                                             </div>
                                                             {ex.intensity && (
                                                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${intensityStyles[ex.intensity]?.badge ?? 'text-muted border-border'}`}>
-                                                                    {ex.intensity}
+                                                                    {ex.intensity === 'High' ? t('common.high') : ex.intensity === 'Low' ? t('common.low') : t('common.medium')}
                                                                 </span>
                                                             )}
                                                             {ex.equipment && ex.equipment.length > 0 && ex.equipment[0] !== '' && (
@@ -201,7 +205,7 @@ export default function SessionSlideOver({
                             {players.length > 0 && (
                                 <div>
                                     <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                        <Users size={10} /> Attending Players
+                                        <Users size={10} /> {t('training.attendingPlayersLabel')}
                                         <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px]">{players.length}</span>
                                     </p>
                                     <div className="flex flex-wrap gap-2">
@@ -221,19 +225,19 @@ export default function SessionSlideOver({
                                 onClick={() => onEdit(session)}
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-cyan-500/20"
                             >
-                                <Edit2 size={15} /> Edit
+                                <Edit2 size={15} /> {t('common.edit')}
                             </button>
                             <button
                                 onClick={() => onExportPDF(session)}
                                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface-hover hover:bg-surface-hover text-foreground border border-border-subtle text-sm font-semibold transition-all"
-                                title="Export PDF"
+                                title={`${t('libraries.download')} PDF`}
                             >
                                 <Download size={15} />
                             </button>
                             <button
                                 onClick={() => onDelete(session.id)}
                                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface-hover hover:bg-rose-500/10 text-muted hover:text-rose-400 border border-border-subtle hover:border-rose-500/20 text-sm font-semibold transition-all"
-                                title="Delete"
+                                title={t('common.delete')}
                             >
                                 <Trash2 size={15} />
                             </button>

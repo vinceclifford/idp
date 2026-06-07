@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Save, Info } from 'lucide-react';
 import { Modal } from './ui/Modal';
@@ -29,6 +30,7 @@ const INITIAL_SLOTS: PositionSlot[] = [
 ];
 
 export default function CustomFormationModal({ isOpen, onClose, onSuccess }: CustomFormationModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [slots, setSlots] = useState<PositionSlot[]>(INITIAL_SLOTS);
   const [isSaving, setIsSaving] = useState(false);
@@ -74,31 +76,31 @@ export default function CustomFormationModal({ isOpen, onClose, onSuccess }: Cus
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Please enter a name for the formation');
+      toast.error(t('libraries.enterFormationNameToast'));
       return;
     }
 
     setIsSaving(true);
     try {
       const result = await FormationService.create(name, slots);
-      toast.success('Custom formation saved!');
+      toast.success(t('libraries.formationSavedToast'));
       onSuccess(result);
       onClose();
     } catch (error) {
-      toast.error('Failed to save formation');
+      toast.error(t('libraries.formationSaveFailedToast'));
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Custom Formation" maxWidth="max-w-4xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('libraries.customFormation')} maxWidth="max-w-4xl">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar */}
         <div className="w-full lg:w-64 space-y-6">
           <Input 
-            label="Formation Name" 
-            placeholder="e.g. Aggressive 3-4-3" 
+            label={t('libraries.formationNameLabel')} 
+            placeholder={t('libraries.formationNamePlaceholder')} 
             value={name} 
             onChange={(e) => setName(e.target.value)}
           />
@@ -106,15 +108,15 @@ export default function CustomFormationModal({ isOpen, onClose, onSuccess }: Cus
           <div className="bg-surface-raised p-4 rounded-xl border border-border">
             <div className="flex items-center gap-2 mb-2 text-primary">
               <Info size={16} />
-              <p className="text-xs font-bold uppercase tracking-widest">Instructions</p>
+              <p className="text-xs font-bold uppercase tracking-widest">{t('libraries.instructionsLabel')}</p>
             </div>
             <p className="text-xs text-muted leading-relaxed">
-              Drag the 11 markers on the pitch to define their positions. These will become the slots where you can drop players in your matches.
+              {t('libraries.instructionsText')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-1">Player Slots</p>
+            <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-1">{t('libraries.playerSlotsLabel')}</p>
             <div className="grid grid-cols-2 gap-2">
               {slots.map(slot => (
                 <div key={slot.id} className="bg-surface border border-border rounded-lg p-2 flex items-center justify-between">
@@ -127,10 +129,10 @@ export default function CustomFormationModal({ isOpen, onClose, onSuccess }: Cus
 
           <div className="pt-4 space-y-3">
             <Button onClick={handleSave} isLoading={isSaving} className="w-full" icon={<Save size={18} />}>
-              Save Formation
+              {t('libraries.saveFormationBtn')}
             </Button>
             <Button onClick={onClose} variant="ghost" className="w-full">
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         </div>

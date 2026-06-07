@@ -8,8 +8,10 @@ import { Calendar, Copy } from 'lucide-react';
 import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
+  const { t } = useTranslation();
   const { seasons, refreshSeasons, setActiveSeasonId } = useSeason();
   const { activeTeam } = useTeam();
   const [name, setName] = useState('');
@@ -19,7 +21,7 @@ export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Season name is required');
+      toast.error(t('modals.seasonNameRequired'));
       return;
     }
 
@@ -28,7 +30,7 @@ export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen
       // Check for duplicate season name
       const isDuplicate = seasons.some(s => s.name.toLowerCase() === name.trim().toLowerCase());
       if (isDuplicate) {
-        toast.error(`A season named "${name}" already exists.`);
+        toast.error(t('modals.seasonExistsError', { name }));
         setLoading(false);
         return;
       }
@@ -39,26 +41,26 @@ export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen
         await TeamService.clone(activeTeam.id, newSeason.id);
       }
 
-      toast.success('Season created successfully');
+      toast.success(t('modals.saveSeasonSuccess'));
       await refreshSeasons();
       setActiveSeasonId(newSeason.id);
       
       setName('');
       onSuccess();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create season');
+      toast.error(err.message || t('modals.saveFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Season">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('modals.createSeasonTitle')}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input 
-          label="Season Name" 
+          label={t('modals.seasonNameLabel')} 
           icon={<Calendar size={16} />} 
-          placeholder="e.g. 2025/2026" 
+          placeholder={t('modals.seasonNamePlaceholder')} 
           value={name} 
           onChange={(e) => setName(e.target.value)} 
           required 
@@ -78,10 +80,10 @@ export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Copy size={14} className="text-blue-400" />
-                  Carry over "{activeTeam.name}" to this season
+                  {t('modals.carryOverTeam', { teamName: activeTeam.name })}
                 </p>
                 <p className="text-xs text-muted mt-1 leading-relaxed">
-                  Automatically creates the same team and roster in the new season.
+                  {t('modals.carryOverTeamDesc')}
                 </p>
               </div>
             </label>
@@ -89,8 +91,8 @@ export default function SeasonFormModal({ isOpen, onClose, onSuccess }: { isOpen
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" isLoading={loading}>Create Season</Button>
+          <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button type="submit" isLoading={loading}>{t('modals.createSeasonBtn')}</Button>
         </div>
       </form>
     </Modal>

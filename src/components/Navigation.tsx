@@ -1,43 +1,45 @@
 import { useState } from 'react';
-import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor, BarChart2, MessageSquare } from 'lucide-react';
+import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor, BarChart2, MessageSquare, Globe } from 'lucide-react';
 import { Page, NavigationProps } from '../types/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSwitcher from './TeamSwitcher';
 import SeasonSwitcher from './SeasonSwitcher';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const NAV_GROUPS: { 
-  label: string; 
-  items: { id: Page; label: string; icon: React.ElementType; color: string; activeBar: string; activeBg: string }[] 
+  labelKey: 'nav.sectionTeam' | 'nav.sectionPlaybook' | 'nav.sectionVision'; 
+  items: { id: Page; labelKey: 'nav.dashboard' | 'nav.statistics' | 'nav.squadRoster' | 'nav.training' | 'nav.matches' | 'nav.exercises' | 'nav.basics' | 'nav.principles' | 'nav.tactics' | 'nav.visionLibrary'; icon: React.ElementType; color: string; activeBar: string; activeBg: string }[] 
 }[] = [
   {
-    label: 'Team',
+    labelKey: 'nav.sectionTeam',
     items: [
-      { id: 'dashboard',       label: 'Dashboard',    icon: Home,      color: 'text-blue-500',    activeBar: 'bg-blue-500',    activeBg: 'bg-blue-500/15 dark:bg-blue-500/25' },
-      { id: 'statistics',      label: 'Statistics',   icon: BarChart2, color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
-      { id: 'team',            label: 'Squad Roster', icon: Users,     color: 'text-indigo-500',  activeBar: 'bg-indigo-500',  activeBg: 'bg-indigo-500/15 dark:bg-indigo-500/25' },
-      { id: 'session-planner', label: 'Training',     icon: Calendar,  color: 'text-cyan-500',    activeBar: 'bg-cyan-500',    activeBg: 'bg-cyan-500/15 dark:bg-cyan-500/25' },
-      { id: 'match',           label: 'Matches',      icon: Target,    color: 'text-rose-500',    activeBar: 'bg-rose-500',    activeBg: 'bg-rose-500/15 dark:bg-rose-500/25' },
+      { id: 'dashboard',       labelKey: 'nav.dashboard',    icon: Home,      color: 'text-blue-500',    activeBar: 'bg-blue-500',    activeBg: 'bg-blue-500/15 dark:bg-blue-500/25' },
+      { id: 'statistics',      labelKey: 'nav.statistics',   icon: BarChart2, color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
+      { id: 'team',            labelKey: 'nav.squadRoster',  icon: Users,     color: 'text-indigo-500',  activeBar: 'bg-indigo-500',  activeBg: 'bg-indigo-500/15 dark:bg-indigo-500/25' },
+      { id: 'session-planner', labelKey: 'nav.training',     icon: Calendar,  color: 'text-cyan-500',    activeBar: 'bg-cyan-500',    activeBg: 'bg-cyan-500/15 dark:bg-cyan-500/25' },
+      { id: 'match',           labelKey: 'nav.matches',      icon: Target,    color: 'text-rose-500',    activeBar: 'bg-rose-500',    activeBg: 'bg-rose-500/15 dark:bg-rose-500/25' },
     ]
   },
   {
-    label: 'Playbook',
+    labelKey: 'nav.sectionPlaybook',
     items: [
-      { id: 'training',        label: 'Exercises',    icon: Clipboard, color: 'text-amber-500',   activeBar: 'bg-amber-500',   activeBg: 'bg-amber-500/15 dark:bg-amber-500/25' },
-      { id: 'basics',          label: 'Basics',       icon: BookOpen,  color: 'text-sky-500',     activeBar: 'bg-sky-500',     activeBg: 'bg-sky-500/15 dark:bg-sky-500/25' },
-      { id: 'principles',      label: 'Principles',   icon: Lightbulb, color: 'text-purple-500',  activeBar: 'bg-purple-500',  activeBg: 'bg-purple-500/15 dark:bg-purple-500/25' },
-      { id: 'tactics',         label: 'Tactics',      icon: Trophy,    color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
+      { id: 'training',        labelKey: 'nav.exercises',    icon: Clipboard, color: 'text-amber-500',   activeBar: 'bg-amber-500',   activeBg: 'bg-amber-500/15 dark:bg-amber-500/25' },
+      { id: 'basics',          labelKey: 'nav.basics',       icon: BookOpen,  color: 'text-sky-500',     activeBar: 'bg-sky-500',     activeBg: 'bg-sky-500/15 dark:bg-sky-500/25' },
+      { id: 'principles',      labelKey: 'nav.principles',   icon: Lightbulb, color: 'text-purple-500',  activeBar: 'bg-purple-500',  activeBg: 'bg-purple-500/15 dark:bg-purple-500/25' },
+      { id: 'tactics',         labelKey: 'nav.tactics',      icon: Trophy,    color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
     ]
   },
   {
-    label: 'Vision',
+    labelKey: 'nav.sectionVision',
     items: [
-      { id: 'vision',          label: 'Vision Library', icon: Target,    color: 'text-pink-500',    activeBar: 'bg-pink-500',    activeBg: 'bg-pink-500/15 dark:bg-pink-500/25' },
+      { id: 'vision',          labelKey: 'nav.visionLibrary', icon: Target,    color: 'text-pink-500',    activeBar: 'bg-pink-500',    activeBg: 'bg-pink-500/15 dark:bg-pink-500/25' },
     ]
   }
 ];
 
 export default function Navigation({ currentPage, onNavigate, onLogout, isMobileOpen, onMobileClose }: NavigationProps) {
+  const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -52,6 +54,11 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
   const cycleTheme = () => {
     if (theme === 'light') setTheme('dark');
     else setTheme('light');
+  };
+
+  const cycleLanguage = () => {
+    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de';
+    i18n.changeLanguage(nextLang);
   };
 
   const ThemeIcon = theme === 'system' ? Monitor : theme === 'light' ? Sun : Moon;
@@ -105,11 +112,11 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
       {/* Nav Items */}
       <nav className="flex-1 flex flex-col gap-6 px-2 py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="flex flex-col gap-1">
+          <div key={group.labelKey} className="flex flex-col gap-1">
             {!collapsed && (
               <div className="px-3 mb-1">
                 <span className="text-[10px] font-bold text-muted uppercase tracking-widest leading-none">
-                  {group.label}
+                  {t(group.labelKey)}
                 </span>
               </div>
             )}
@@ -123,7 +130,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                     onNavigate(item.id);
                     if (onMobileClose) onMobileClose();
                   }}
-                  title={collapsed && !isMobileOpen ? item.label : undefined}
+                  title={collapsed && !isMobileOpen ? t(item.labelKey) : undefined}
                   className={`relative flex items-center gap-3 w-full rounded-xl px-3 py-2 transition-all duration-150 group
                     ${isActive
                       ? `${item.activeBg} border border-transparent`
@@ -154,7 +161,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                         className={`text-sm font-medium whitespace-nowrap overflow-hidden
                           ${isActive ? 'text-foreground' : 'text-muted group-hover:text-foreground'}`}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -182,7 +189,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
               }}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-surface-hover hover:bg-surface-hover/80 border border-border text-[10px] font-semibold text-muted cursor-pointer transition-colors"
             >
-              <span>Search</span>
+              <span>{t('nav.search')}</span>
               <div className="flex items-center gap-0.5">
                 <kbd className="px-1 py-0.5 rounded bg-surface-raised border border-border">⌘</kbd>
                 <kbd className="px-1 py-0.5 rounded bg-surface-raised border border-border">K</kbd>
@@ -192,30 +199,60 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
         )}
       </AnimatePresence>
 
-      {/* Bottom: Theme + Logout + Toggle */}
+      {/* Bottom: Theme + Language + Logout + Toggle */}
       <div className="px-2 py-3 border-t border-border space-y-1">
-        {/* Theme Toggle */}
-        <button
-          type="button"
-          onClick={cycleTheme}
-          title={collapsed && !isMobileOpen ? `Theme: ${theme}` : undefined}
-          className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted hover:text-primary hover:bg-primary/10 border border-transparent transition-all duration-150 group"
-        >
-          <ThemeIcon className="w-[18px] h-[18px] flex-shrink-0" />
-          <AnimatePresence>
-            {(!collapsed || isMobileOpen) && (
-              <motion.span
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -6 }}
-                transition={{ duration: 0.12 }}
-                className="text-sm font-medium whitespace-nowrap capitalize"
-              >
-                {theme} Mode
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </button>
+        {/* Switchers Row (Theme & Language side-by-side when expanded, stacked when collapsed) */}
+        <div className={collapsed && !isMobileOpen ? "flex flex-col gap-1" : "flex gap-1.5"}>
+          {/* Theme Toggle */}
+          <button
+            type="button"
+            onClick={cycleTheme}
+            title={collapsed && !isMobileOpen ? `Theme: ${theme}` : undefined}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-muted hover:text-primary hover:bg-primary/10 border border-transparent transition-all duration-150 group ${
+              collapsed && !isMobileOpen ? 'w-full' : 'flex-1'
+            }`}
+          >
+            <ThemeIcon className="w-[18px] h-[18px] flex-shrink-0" />
+            <AnimatePresence>
+              {(!collapsed || isMobileOpen) && (
+                <motion.span
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -6 }}
+                  transition={{ duration: 0.12 }}
+                  className="text-xs font-medium whitespace-nowrap capitalize"
+                >
+                  {theme}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+
+          {/* Language Toggle */}
+          <button
+            type="button"
+            onClick={cycleLanguage}
+            title={collapsed && !isMobileOpen ? `Language: ${i18n.language.startsWith('de') ? 'German' : 'English'}` : undefined}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-muted hover:text-primary hover:bg-primary/10 border border-transparent transition-all duration-150 group ${
+              collapsed && !isMobileOpen ? 'w-full' : 'flex-1'
+            }`}
+          >
+            <Globe className="w-[18px] h-[18px] flex-shrink-0" />
+            <AnimatePresence>
+              {(!collapsed || isMobileOpen) && (
+                <motion.span
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -6 }}
+                  transition={{ duration: 0.12 }}
+                  className="text-xs font-medium whitespace-nowrap"
+                >
+                  {i18n.language.startsWith('de') ? 'Deutsch' : 'English'}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+        </div>
 
         {/* Feedback */}
         <button
@@ -224,7 +261,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
             onNavigate('feedback');
             if (onMobileClose) onMobileClose();
           }}
-          title={collapsed && !isMobileOpen ? 'Feedback' : undefined}
+          title={collapsed && !isMobileOpen ? t('nav.feedback') : undefined}
           className={`flex items-center gap-3 w-full rounded-xl px-3 py-2 border border-transparent transition-all duration-150 group ${
             currentPage === 'feedback'
               ? 'bg-teal-500/15 dark:bg-teal-500/25 text-foreground'
@@ -241,16 +278,17 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                 transition={{ duration: 0.12 }}
                 className="text-sm font-medium whitespace-nowrap"
               >
-                Feedback
+                {t('nav.feedback')}
               </motion.span>
             )}
           </AnimatePresence>
         </button>
 
+        {/* Logout */}
         <button
           type="button"
           onClick={onLogout}
-          title={collapsed && !isMobileOpen ? 'Logout' : undefined}
+          title={collapsed && !isMobileOpen ? t('nav.logout') : undefined}
           className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted hover:text-red-500 hover:bg-red-500/10 border border-transparent transition-all duration-150 group"
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
@@ -263,7 +301,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                 transition={{ duration: 0.12 }}
                 className="text-sm font-medium whitespace-nowrap"
               >
-                Logout
+                {t('nav.logout')}
               </motion.span>
             )}
           </AnimatePresence>
@@ -272,7 +310,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          title={collapsed && !isMobileOpen ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed && !isMobileOpen ? t('nav.expand') : t('nav.collapse')}
           className="hidden md:flex items-center gap-3 w-full rounded-xl px-3 py-2 text-muted/60 hover:text-muted hover:bg-surface-hover border border-transparent transition-all duration-150"
         >
           {collapsed
@@ -288,7 +326,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
                 transition={{ duration: 0.12 }}
                 className="text-xs font-medium text-muted/60 whitespace-nowrap"
               >
-                Collapse
+                {t('nav.collapse')}
               </motion.span>
             )}
           </AnimatePresence>
@@ -298,3 +336,4 @@ export default function Navigation({ currentPage, onNavigate, onLogout, isMobile
     </>
   );
 }
+

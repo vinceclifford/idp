@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, X, Search, Upload, Check, Image as ImageIcon, FileText, Video as VideoIcon, ChevronDown, ChevronRight, Maximize2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -54,6 +55,7 @@ const getIntensityStyles = (intensity: string) => {
 const equipmentOptions = ['Balls', 'Cones', 'Bibs/Vests', 'Goals', 'Hurdles', 'Poles', 'Agility Ladder', 'Markers', 'Mannequins', 'Mini Goals'];
 
 export default function ExercisesLibrary() {
+    const { t } = useTranslation();
     const [exercises, setExercises] = useState<Exercise[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeIntensity, setActiveIntensity] = useState<string>('All');
@@ -91,7 +93,7 @@ export default function ExercisesLibrary() {
             .then(data => {
                 setExercises(data); // Set fetched data
             })
-            .catch(() => { toast.error("Backend offline"); });
+            .catch(() => { toast.error(t('training.saveFailed')); });
     };
 
     useEffect(() => {
@@ -117,7 +119,7 @@ export default function ExercisesLibrary() {
 
     // --- 2. SAVE DATA ---
     const handleSave = async () => {
-        if (!formData.name || !formData.description) return toast.error('Name and Description are required');
+        if (!formData.name || !formData.description) return toast.error(t('libraries.nameRequired'));
 
         // Ensure we use the latest media preview if it exists
         const exerciseToSave: Exercise = {
@@ -130,14 +132,14 @@ export default function ExercisesLibrary() {
             if (isEditing && formData.id) {
                 saved = await ExerciseService.update(formData.id, exerciseToSave);
                 setExercises(prev => prev.map(ex => ex.id === saved.id ? saved : ex));
-                toast.success('Exercise Updated!');
+                toast.success(t('libraries.exerciseUpdated'));
             } else {
                 saved = await ExerciseService.create(exerciseToSave);
                 setExercises(prev => [...prev, saved]);
-                toast.success('Exercise Created!');
+                toast.success(t('libraries.exerciseCreated'));
             }
             closeModal();
-        } catch (error) { toast.error('Failed to save'); }
+        } catch (error) { toast.error(t('modals.saveFailed')); }
     };
 
     const handleDeleteExercise = async (id: string) => {
@@ -146,13 +148,13 @@ export default function ExercisesLibrary() {
         const selectedBefore = selectedExercise;
         setExercises(prev => prev.filter(ex => ex.id !== id));
         setSelectedExercise(null);
-        toast.success('Deleted');
+        toast.success(t('training.deleted'));
         try {
             await ExerciseService.delete(id);
         } catch (e) {
             setExercises(exercisesBefore);
             setSelectedExercise(selectedBefore);
-            toast.error('Connection failed');
+            toast.error(t('training.saveFailed'));
         }
     };
 
@@ -179,11 +181,11 @@ export default function ExercisesLibrary() {
         const isPdf = file.type === 'application/pdf';
 
         if (!isImage && !isVideo && !isPdf) {
-            toast.error('Unsupported media type. Please upload an image, video, or PDF.');
+            toast.error(t('libraries.unsupportedMedia'));
             return;
         }
 
-        if (file.size > 100 * 1024 * 1024) return toast.error("File too large. Max 100MB");
+        if (file.size > 100 * 1024 * 1024) return toast.error(t('libraries.fileTooLarge'));
         // Show a local object-URL preview immediately while the upload runs
         if (isImage) {
             setMediaPreview(URL.createObjectURL(file));
@@ -192,7 +194,7 @@ export default function ExercisesLibrary() {
             const url = await uploadFile(file);
             setMediaPreview(url);
         } catch {
-            toast.error('File upload failed. Please try again.');
+            toast.error(t('libraries.uploadFailed'));
             setMediaPreview(null);
         }
     };
@@ -231,7 +233,7 @@ export default function ExercisesLibrary() {
                 {isPreview ? (
                     <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-blue-400 transition-colors">
                         <VideoIcon size={32} />
-                        <span className="text-[10px] uppercase font-bold tracking-widest">Watch Video</span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest">{t('libraries.watchVideo')}</span>
                     </div>
                 ) : (
                     <video src={url} controls className="w-full h-full rounded-lg" />
@@ -245,12 +247,12 @@ export default function ExercisesLibrary() {
                 onClick={openLightbox}
             >
                 <FileText size={48} className="mb-2 group-hover:text-primary transition-colors" />
-                <span className="text-sm">PDF Document</span>
-                {!isPreview && <a href={resolveMediaUrl(url)} download="exercise.pdf" className="mt-2 text-blue-500 text-xs hover:underline">Download</a>}
+                <span className="text-sm">{t('libraries.pdfDoc')}</span>
+                {!isPreview && <a href={resolveMediaUrl(url)} download="exercise.pdf" className="mt-2 text-blue-500 text-xs hover:underline">{t('libraries.download')}</a>}
             </div>
         );
 
-        return <div className="flex items-center justify-center h-full text-slate-500">Unsupported Media</div>;
+        return <div className="flex items-center justify-center h-full text-slate-500">{t('libraries.unsupportedMedia')}</div>;
     };
 
     return (
@@ -259,15 +261,15 @@ export default function ExercisesLibrary() {
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-10 rounded-full bg-amber-500 flex-shrink-0" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Exercises Library</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.exercisesTitle')}</h1>
                         <p className="text-sm text-muted mt-0.5">
-                            {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
+                            {t('libraries.exerciseCount', { count: exercises.length })}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
-                    <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>Add Exercise</Button>
+                    <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>{t('libraries.managePlaybook')}</Button>
+                    <Button onClick={() => { resetForm(); setShowCreateModal(true) }} icon={<Plus size={18} />}>{t('libraries.addExercise')}</Button>
                 </div>
             </div>
 
@@ -281,7 +283,7 @@ export default function ExercisesLibrary() {
                             : 'bg-transparent border-border text-muted hover:text-foreground hover:border-border'
                     }`}
                 >
-                    All <span className="ml-1 opacity-60">{exercises.length}</span>
+                    {t('common.all')} <span className="ml-1 opacity-60">{exercises.length}</span>
                 </button>
                 {(['Low', 'Medium', 'High'] as const).map(level => {
                     const count = exercises.filter(ex => ex.intensity === level).length;
@@ -291,6 +293,7 @@ export default function ExercisesLibrary() {
                         High:   { active: 'bg-rose-500/15 border-rose-500/50 text-rose-400',     hover: 'hover:border-rose-500/30 hover:text-rose-400',     dot: 'bg-rose-500'    },
                     }[level];
                     const isActive = activeIntensity === level;
+                    const levelLabel = level === 'Low' ? t('common.low') : level === 'Medium' ? t('common.medium') : t('common.high');
                     return (
                         <button
                             key={level}
@@ -301,7 +304,7 @@ export default function ExercisesLibrary() {
                         >
                             <span className="flex items-center gap-1.5">
                                 <span className={`w-1.5 h-1.5 rounded-full ${styles.dot} ${isActive ? 'opacity-100' : 'opacity-30'}`} />
-                                {level}
+                                {levelLabel}
                                 <span className="opacity-60">{count}</span>
                             </span>
                         </button>
@@ -311,7 +314,7 @@ export default function ExercisesLibrary() {
 
             {/* Search */}
             <div className="flex-shrink-0">
-                <Input icon={<Search size={18} />} placeholder="Search exercises..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <Input icon={<Search size={18} />} placeholder={t('libraries.searchExercises')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-6">
@@ -352,20 +355,20 @@ export default function ExercisesLibrary() {
             />
 
             {/* CREATE / EDIT FORM MODAL */}
-            <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Exercise' : 'Create New Exercise'} maxWidth="max-w-3xl"
-                footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button><Button onClick={handleSave} className="flex-1">Save Exercise</Button></div>}>
+            <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? t('libraries.editExercise') : t('libraries.addExercise')} maxWidth="max-w-3xl"
+                footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">{t('common.cancel')}</Button><Button onClick={handleSave} className="flex-1">{t('common.save')}</Button></div>}>
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-4">
-                            <Input label="Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Rondo 4v2" />
+                            <Input label={t('common.name')} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Rondo 4v2" />
                             <div className="grid grid-cols-2 gap-4">
-                                <Select label="Intensity" value={formData.intensity} onChange={val => setFormData({ ...formData, intensity: val as any })} options={['Low', 'Medium', 'High'].map(v => ({ label: v, value: v }))} />
-                                <Input label="Goalkeepers" type="number" value={formData.goalkeepers} onChange={e => setFormData({ ...formData, goalkeepers: parseInt(e.target.value) || 0 })} />
+                                <Select label={t('training.focus')} value={formData.intensity} onChange={val => setFormData({ ...formData, intensity: val as any })} options={['Low', 'Medium', 'High'].map(v => ({ label: v === 'High' ? t('common.high') : v === 'Low' ? t('common.low') : t('common.medium'), value: v }))} />
+                                <Input label={t('libraries.goalkeepers')} type="number" value={formData.goalkeepers} onChange={e => setFormData({ ...formData, goalkeepers: parseInt(e.target.value) || 0 })} />
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">Visuals</label>
+                            <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-2 block">{t('libraries.visuals')}</label>
                             <div className="h-32 bg-surface-hover border-2 border-dashed border-border rounded-xl relative group hover:border-primary/30 transition-colors flex flex-col items-center justify-center text-muted overflow-hidden cursor-pointer">
                                 {mediaPreview ? (
                                     <>
@@ -377,7 +380,7 @@ export default function ExercisesLibrary() {
                                 ) : (
                                     <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center hover:text-blue-400 transition-colors">
                                         <Upload size={24} className="mb-2" />
-                                        <span className="text-[10px] uppercase font-bold tracking-wider">Upload Media</span>
+                                        <span className="text-[10px] uppercase font-bold tracking-wider">{t('libraries.uploadMedia')}</span>
                                         <input type="file" className="hidden" accept="image/*,video/*,application/pdf" onChange={handleFileUpload} />
                                     </label>
                                 )}
@@ -386,14 +389,19 @@ export default function ExercisesLibrary() {
                     </div>
 
                     <div className="space-y-4">
-                        {['Description', 'Setup', 'Variations', 'Coaching Points'].map(field => (
-                            <div key={field}>
-                                <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-1 block">{field}</label>
+                        {[
+                            { label: t('common.description'), key: 'description', placeholder: t('libraries.enterDescription') },
+                            { label: t('libraries.setup'), key: 'setup', placeholder: t('libraries.enterSetup') },
+                            { label: t('libraries.variations'), key: 'variations', placeholder: t('libraries.enterVariations') },
+                            { label: t('libraries.coachingPoints'), key: 'coachingPoints', placeholder: t('libraries.enterCoachingPoints') }
+                        ].map(field => (
+                            <div key={field.key}>
+                                <label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1 mb-1 block">{field.label}</label>
                                 <textarea
                                     className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3 text-sm outline-none transition-all focus:bg-surface focus:border-primary/50 hover:border-border resize-none h-20 custom-scrollbar placeholder:text-dimmed"
-                                    value={(formData as any)[field === 'Coaching Points' ? 'coachingPoints' : field.toLowerCase()]}
-                                    onChange={e => setFormData({ ...formData, [field === 'Coaching Points' ? 'coachingPoints' : field.toLowerCase()]: e.target.value })}
-                                    placeholder={`Enter ${field.toLowerCase()}...`}
+                                    value={(formData as any)[field.key]}
+                                    onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
+                                    placeholder={field.placeholder}
                                 />
                             </div>
                         ))}
@@ -402,7 +410,7 @@ export default function ExercisesLibrary() {
                     <div className="w-full h-[1px] bg-border"></div>
 
                     <div>
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Equipment</label>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">{t('libraries.equipment')}</label>
                         <div className="flex flex-wrap gap-2">
                             {equipmentOptions.map(item => (
                                 <button key={item} type="button" onClick={() => toggleSelection('equipment', item)}
@@ -417,9 +425,9 @@ export default function ExercisesLibrary() {
 
                     <div className="space-y-3">
                         {[
-                            { label: 'Related Basics', list: allBasics, field: 'linkedBasics' as const, search: basicsSearch, setSearch: setBasicsSearch, color: 'text-blue-400', borderHover: 'hover:border-blue-500/30' },
-                            { label: 'Related Principles', list: allPrinciples, field: 'linkedPrinciples' as const, search: principlesSearch, setSearch: setPrinciplesSearch, color: 'text-purple-400', borderHover: 'hover:border-purple-500/30' },
-                            { label: 'Related Tactics', list: allTactics, field: 'linkedTactics' as const, search: tacticsSearch, setSearch: setTacticsSearch, color: 'text-emerald-400', borderHover: 'hover:border-emerald-500/30' },
+                            { label: t('libraries.linkedBasics'), list: allBasics, field: 'linkedBasics' as const, search: basicsSearch, setSearch: setBasicsSearch, color: 'text-blue-400', borderHover: 'hover:border-blue-500/30' },
+                            { label: t('libraries.linkedPrinciples'), list: allPrinciples, field: 'linkedPrinciples' as const, search: principlesSearch, setSearch: setPrinciplesSearch, color: 'text-purple-400', borderHover: 'hover:border-purple-500/30' },
+                            { label: t('libraries.linkedTactics'), list: allTactics, field: 'linkedTactics' as const, search: tacticsSearch, setSearch: setTacticsSearch, color: 'text-emerald-400', borderHover: 'hover:border-emerald-500/30' },
                         ].map(section => {
                             const isOpen = openSection === section.label;
                             const count = formData[section.field].length;
@@ -428,7 +436,7 @@ export default function ExercisesLibrary() {
                                     <button onClick={() => setOpenSection(isOpen ? null : section.label)} className="w-full flex items-center justify-between p-4 text-left hover:bg-surface transition-colors">
                                         <span className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isOpen ? section.color : 'text-muted'}`}>
                                             {section.label}
-                                            {count > 0 && <span className={`bg-white/10 px-2 py-0.5 rounded-md text-[10px] text-white`}>{count} Selected</span>}
+                                            {count > 0 && <span className={`bg-white/10 px-2 py-0.5 rounded-md text-[10px] text-white`}>{t('libraries.equipmentSelected', { count })}</span>}
                                         </span>
                                         {isOpen ? <ChevronDown size={16} className={section.color} /> : <ChevronRight size={16} className="text-slate-500" />}
                                     </button>
@@ -436,7 +444,7 @@ export default function ExercisesLibrary() {
                                         <div className="p-4 pt-0 border-t border-border">
                                             <div className="flex items-center gap-2 mb-3 mt-3">
                                                 <Search size={14} className="text-slate-500" />
-                                                <input className="bg-transparent outline-none text-sm w-full text-slate-300 placeholder-slate-600" placeholder={`Search ${section.label.toLowerCase()}...`} value={section.search} onChange={e => section.setSearch(e.target.value)} />
+                                                <input className="bg-transparent outline-none text-sm w-full text-slate-300 placeholder-slate-600" placeholder={`${t('common.search')}...`} value={section.search} onChange={e => section.setSearch(e.target.value)} />
                                             </div>
                                             <div className="max-h-40 overflow-y-auto space-y-1 custom-scrollbar">
                                                 {section.list.filter(item => item.name.toLowerCase().includes(section.search.toLowerCase())).map(item => (
@@ -498,9 +506,9 @@ export default function ExercisesLibrary() {
 
             <ConfirmDialog
                 isOpen={confirmDeleteId !== null}
-                title="Delete exercise?"
-                message="This will permanently remove this exercise from the library."
-                confirmLabel="Delete"
+                title={t('libraries.deleteExerciseTitle')}
+                message={t('libraries.deleteExerciseMsg')}
+                confirmLabel={t('common.delete')}
                 onConfirm={() => { if (confirmDeleteId) handleDeleteExercise(confirmDeleteId); setConfirmDeleteId(null); }}
                 onCancel={() => setConfirmDeleteId(null)}
             />

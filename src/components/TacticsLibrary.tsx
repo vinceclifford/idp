@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Plus, Edit2, Trash2, BookOpen, ChevronRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -18,6 +19,7 @@ import { uuid } from '../lib/uuid';
 const ALL_FORMATIONS = ['4-4-2','4-3-3','4-2-3-1','4-3-2-1','4-1-4-1','4-1-2-1-2','4-4-2 DM','3-5-2','3-4-3','3-4-1-2','5-3-2','5-4-1'];
 
 export default function TacticsLibrary() {
+  const { t } = useTranslation();
   const [tactics, setTactics] = useState<Tactic[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export default function TacticsLibrary() {
             setTactics(dbItems);
             if (dbItems.length > 0 && !selectedId) setSelectedId(dbItems[0].id);
         })
-        .catch(() => toast.error('Backend offline'));
+        .catch(() => toast.error(t('libraries.tacticSaveFailed')));
   };
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function TacticsLibrary() {
   };
 
   const handleSave = async () => {
-    if (!formData.name) return toast.error('Name required');
+    if (!formData.name) return toast.error(t('libraries.tacticNameRequired'));
     // Optimistic save. Client mints the id for new tactics so the row React
     // renders never has its key change after the server responds.
     const finalId = isEditing && formData.id ? formData.id : uuid();
@@ -72,7 +74,7 @@ export default function TacticsLibrary() {
       setTactics(prev => [...prev, tacticToSave]);
       setSelectedId(finalId);
     }
-    toast.success(isEditing ? 'Updated!' : 'Created!');
+    toast.success(isEditing ? t('libraries.tacticUpdated') : t('libraries.tacticCreated'));
     closeModal();
 
     try {
@@ -84,7 +86,7 @@ export default function TacticsLibrary() {
     } catch {
       setTactics(tacticsBefore);
       setSelectedId(selectedBefore);
-      toast.error('Failed to save');
+      toast.error(t('libraries.tacticSaveFailed'));
     }
   };
 
@@ -97,13 +99,13 @@ export default function TacticsLibrary() {
       if (selectedId === id) setSelectedId(next[0]?.id ?? null);
       return next;
     });
-    toast.success('Deleted');
+    toast.success(t('libraries.tacticDeleted'));
     try {
       await LibraryService.deleteTactic(id);
     } catch {
       setTactics(tacticsBefore);
       setSelectedId(selectedBefore);
-      toast.error('Failed to delete');
+      toast.error(t('libraries.tacticDeleteFailed'));
     }
   };
 
@@ -127,16 +129,16 @@ export default function TacticsLibrary() {
         <div className="flex items-center gap-3">
           <div className="w-1 h-10 rounded-full bg-emerald-500 flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Tactics Library</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('page.tacticsTitle')}</h1>
             <p className="text-sm text-muted mt-0.5">
-              {tactics.length} {tactics.length === 1 ? 'tactic' : 'tactics'}
-              {usedFormations.length > 0 && <> &middot; {usedFormations.length} formation{usedFormations.length > 1 ? 's' : ''}</>}
+              {t('libraries.tacticCount', { count: tactics.length })}
+              {usedFormations.length > 0 && <> &middot; {t('libraries.formationCount', { count: usedFormations.length })}</>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>Manage Playbook</Button>
-          <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>Add Tactic</Button>
+          <Button variant="secondary" onClick={() => setShowPlaybookModal(true)} icon={<Share2 size={18} />}>{t('libraries.managePlaybook')}</Button>
+          <Button onClick={() => setShowCreateModal(true)} icon={<Plus size={18} />}>{t('libraries.addTactic')}</Button>
         </div>
       </div>
 
@@ -150,7 +152,7 @@ export default function TacticsLibrary() {
               : 'bg-transparent border-border text-muted hover:text-foreground hover:bg-surface-hover'
           }`}
         >
-          All <span className="ml-1 opacity-60">{tactics.length}</span>
+          {t('common.all')} <span className="ml-1 opacity-60">{tactics.length}</span>
         </button>
         {usedFormations.map(f => {
           const count = tactics.filter(t => t.formation === f).length;
@@ -181,7 +183,7 @@ export default function TacticsLibrary() {
         {/* LEFT: List */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
           <div className="flex-shrink-0">
-            <Input icon={<Search size={15} />} placeholder="Search tactics..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Input icon={<Search size={15} />} placeholder={t('libraries.searchTactics')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
           <div className="space-y-2 lg:overflow-y-auto custom-scrollbar pr-1 lg:flex-1 lg:min-h-0">
@@ -189,7 +191,7 @@ export default function TacticsLibrary() {
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-muted">
                   <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No tactics found</p>
+                  <p className="text-sm">{t('libraries.noTacticsFound')}</p>
                 </div>
               )}
               {filtered.map(t => {
@@ -260,11 +262,11 @@ export default function TacticsLibrary() {
                       <button
                         onClick={() => openEdit(selected)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-surface text-muted hover:text-foreground text-xs font-bold border border-border transition-colors"
-                      ><Edit2 size={12} /> Edit</button>
+                      ><Edit2 size={12} /> {t('common.edit')}</button>
                       <button
                         onClick={() => setConfirmDeleteId(selected.id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-hover hover:bg-rose-900/50 text-muted hover:text-rose-400 text-xs font-bold border border-border transition-colors"
-                      ><Trash2 size={12} /> Delete</button>
+                      ><Trash2 size={12} /> {t('common.delete')}</button>
                     </div>
                   )}
                 </div>
@@ -278,13 +280,13 @@ export default function TacticsLibrary() {
                   <div className="absolute top-0 bottom-0 left-1/2 border-l border-emerald-500/10" />
                   <div className="text-center z-10">
                     <span className="text-5xl font-bold text-emerald-400 block tracking-tighter drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]">{selected.formation}</span>
-                    <span className="text-[10px] uppercase text-emerald-500/60 tracking-[0.2em] font-bold mt-2 block">Formation</span>
+                    <span className="text-[10px] uppercase text-emerald-500/60 tracking-[0.2em] font-bold mt-2 block">{t('libraries.formationLabel')}</span>
                   </div>
                 </div>
 
                 {selected.description && (
                   <div>
-                    <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Description</h4>
+                    <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">{t('common.description')}</h4>
                     <p className="text-slate-300 text-sm leading-relaxed">{selected.description}</p>
                   </div>
                 )}
@@ -292,7 +294,7 @@ export default function TacticsLibrary() {
                 {selected.suggestedDrills && (
                   <div className="bg-orange-500/5 border border-orange-500/15 rounded-xl p-4">
                     <h4 className="text-orange-400 text-[10px] uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Suggested Drills
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> {t('libraries.suggestedDrillsLabel')}
                     </h4>
                     <ul className="space-y-2">
                       {selected.suggestedDrills.split('\n').filter(d => d.trim()).map((drill, i) => (
@@ -309,24 +311,24 @@ export default function TacticsLibrary() {
           ) : (
             <div className="lg:h-full min-h-[400px] rounded-2xl border border-border bg-surface-hover/20 flex flex-col items-center justify-center text-dimmed">
               <BookOpen size={40} className="mb-3 opacity-30" />
-              <p className="text-sm font-medium">Select a tactic to view details</p>
+              <p className="text-sm font-medium">{t('libraries.selectTacticToView')}</p>
             </div>
           )}
         </div>
       </div>
 
-      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? 'Edit Tactic' : 'New Tactic'}
-        footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button><Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/20">Save</Button></div>}>
+      <Modal isOpen={showCreateModal} onClose={closeModal} title={isEditing ? t('libraries.editTactic') : t('libraries.newTactic')}
+        footer={<div className="flex gap-3"><Button variant="ghost" onClick={closeModal} className="flex-1">{t('common.cancel')}</Button><Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/20">{t('common.save')}</Button></div>}>
         <div className="space-y-6">
-            <Input label="Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Counter Attack" />
+            <Input label={t('common.name')} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder={t('libraries.tacticNamePlaceholder')} />
             <div className="space-y-2">
               <Select
-                label="Formation"
+                label={t('libraries.formationLabel')}
                 value={formData.formation}
                 onChange={val => setFormData({...formData, formation: val as string})}
                 options={[
                   ...ALL_FORMATIONS.map(f => ({ label: f, value: f })),
-                  ...customFormations.map(f => ({ label: `${f.name} (Custom)`, value: f.name })),
+                  ...customFormations.map(f => ({ label: t('libraries.customFormationLabel', { name: f.name }), value: f.name })),
                 ]}
               />
               <button
@@ -335,13 +337,13 @@ export default function TacticsLibrary() {
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-bold transition-all border border-blue-500/30"
               >
                 <Plus size={14} />
-                Create Custom Formation
+                {t('libraries.customFormation')}
               </button>
             </div>
-            <div className="space-y-2"><label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">Description</label>
+            <div className="space-y-2"><label className="text-[11px] font-bold text-muted uppercase tracking-widest ml-1">{t('common.description')}</label>
             <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:bg-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 hover:border-border resize-none h-24 custom-scrollbar transition-all" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
-            <div className="space-y-2"><label className="text-[11px] font-bold text-orange-400 uppercase tracking-widest ml-1">Suggested Drills (Line Separated)</label>
-            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:bg-surface focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/10 hover:border-border resize-none h-20 custom-scrollbar transition-all" value={formData.suggestedDrills} onChange={e => setFormData({...formData, suggestedDrills: e.target.value})} placeholder="Rondo&#10;Small Sided Game" /></div>
+            <div className="space-y-2"><label className="text-[11px] font-bold text-orange-400 uppercase tracking-widest ml-1">{t('libraries.suggestedDrills')}</label>
+            <textarea className="w-full bg-surface-hover border border-border text-foreground rounded-xl px-4 py-3.5 text-sm outline-none placeholder:text-muted focus:bg-surface focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/10 hover:border-border resize-none h-20 custom-scrollbar transition-all" value={formData.suggestedDrills} onChange={e => setFormData({...formData, suggestedDrills: e.target.value})} placeholder={t('libraries.suggestedDrillsPlaceholder')} /></div>
         </div>
       </Modal>
 
@@ -353,9 +355,9 @@ export default function TacticsLibrary() {
 
       <ConfirmDialog
         isOpen={confirmDeleteId !== null}
-        title="Delete tactic?"
-        message="This will permanently remove this tactic from the library."
-        confirmLabel="Delete"
+        title={t('libraries.deleteTacticTitle')}
+        message={t('libraries.deleteTacticMsg')}
+        confirmLabel={t('common.delete')}
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
         onCancel={() => setConfirmDeleteId(null)}
       />
