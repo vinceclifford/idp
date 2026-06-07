@@ -53,7 +53,7 @@ export default function TeamManagement() {
     };
 
     const [formData, setFormData] = useState<Player>({
-        id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
+        id: '', firstName: '', lastName: '', dateOfBirth: '', position: 'Forward', jerseyNumber: 0, status: 'Active', playerPhone: '', height: 0, weight: 0, clothingSize: '', strongFoot: '', motherName: '', motherPhone: '', fatherName: '', fatherPhone: '', imageUrl: '', attendance: 0, performance: 0
     });
     // Mirrors formData.weight as a string so the user can type a partial
     // decimal like "72." without us silently dropping the trailing dot.
