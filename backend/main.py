@@ -15,8 +15,15 @@ import uuid, os, shutil, secrets
 
 models.Base.metadata.create_all(bind=database.engine)
 
-# Ensure uploads directory exists (relative to main.py)
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+# Resolve the uploads directory. Defaults to ./static/uploads but can be
+# pointed at a mounted persistent volume via the UPLOAD_DIR env var. This
+# matters in production: the container filesystem on Railway (and similar
+# hosts) is ephemeral, so without a volume every redeploy/restart wipes the
+# uploads folder — which is why uploaded player images vanish after a while.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR") or os.path.join(STATIC_DIR, "uploads")
+os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
@@ -44,8 +51,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve uploaded files as static assets
-app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")), name="static")
+# Serve uploaded media. The uploads mount is registered first (and explicitly)
+# so it keeps serving files even when UPLOAD_DIR points outside the source tree
+# at a mounted volume; the broader /static mount handles anything else.
+app.mount("/static/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

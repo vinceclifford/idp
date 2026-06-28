@@ -69,11 +69,15 @@ export default function BasicsLibrary() {
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error(t('login.validationFillFields'));
 
+    // Never persist a temporary blob: preview — if the user hits Save before
+    // the upload finishes, fall back to the last real URL instead of saving a
+    // blob that dies on reload.
+    const resolvedMedia = mediaPreview && !mediaPreview.startsWith('blob:') ? mediaPreview : formData.diagramUrl;
     const basicToSave: Basic = {
       id: formData.id,
       name: formData.name,
       description: formData.description,
-      diagramUrl: mediaPreview || formData.diagramUrl,
+      diagramUrl: resolvedMedia,
       isCustom: true // Default for UI-created basics
     };
 

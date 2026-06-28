@@ -123,10 +123,14 @@ export default function ExercisesLibrary() {
     const handleSave = async () => {
         if (!formData.name || !formData.description) return toast.error(t('libraries.nameRequired'));
 
-        // Ensure we use the latest media preview if it exists
+        // Ensure we use the latest media preview if it exists, but never
+        // persist a temporary blob: preview — if the user hits Save before the
+        // upload finishes, fall back to the last real URL instead of saving a
+        // blob that dies on reload.
+        const resolvedMedia = mediaPreview && !mediaPreview.startsWith('blob:') ? mediaPreview : formData.mediaUrl;
         const exerciseToSave: Exercise = {
             ...formData,
-            mediaUrl: mediaPreview || formData.mediaUrl
+            mediaUrl: resolvedMedia
         };
 
         try {

@@ -150,6 +150,10 @@ export default function PrinciplesLibrary() {
   const handleSave = async () => {
     if (!formData.name || !formData.description) return toast.error(t('login.validationFillFields'));
 
+    // Never persist a temporary blob: preview — if the user hits Save before
+    // the upload finishes, fall back to the last real URL instead of saving a
+    // blob that dies on reload.
+    const resolvedMedia = mediaPreview && !mediaPreview.startsWith('blob:') ? mediaPreview : formData.mediaUrl;
     const principleToSave: Principle = {
       id: formData.id,
       name: formData.name,
@@ -157,7 +161,7 @@ export default function PrinciplesLibrary() {
       description: formData.description,
       coachingNotes: formData.coachingNotes,
       implementationTips: formData.implementationTips,
-      mediaUrl: mediaPreview || formData.mediaUrl,
+      mediaUrl: resolvedMedia,
       isCustom: true
     };
 
