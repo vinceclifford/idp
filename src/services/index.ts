@@ -11,3 +11,4 @@ export * from './season-service';
 export * from './formation-service';
 export * from './playbook-service';
 export * from './feedback-service';
+export * from './event-service';

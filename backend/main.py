@@ -113,6 +113,7 @@ def delete_team_cascade(db: Session, team: models.Team):
     # Sessions before series — sessions hold the FK to training_series.
     db.query(models.TrainingSession).filter(models.TrainingSession.team_id == team.id).delete()
     db.query(models.TrainingSeries).filter(models.TrainingSeries.team_id == team.id).delete()
+    db.query(models.Event).filter(models.Event.team_id == team.id).delete()
     db.delete(team)  # player_assignments are removed via the relationship cascade
 
 # --- PUBLIC AUTH ROUTES ---
@@ -318,6 +319,7 @@ def delete_season(season_id: str, db: Session = Depends(database.get_db), curren
         db.delete(match)
     db.query(models.TrainingSession).filter(models.TrainingSession.season_id == season_id).delete()
     db.query(models.TrainingSeries).filter(models.TrainingSeries.season_id == season_id).delete()
+    db.query(models.Event).filter(models.Event.season_id == season_id).delete()
 
     db.delete(season)
     db.commit()
@@ -356,6 +358,63 @@ def create_feedback(item: schemas.FeedbackRequestCreate, db: Session = Depends(d
     db.commit()
     db.refresh(db_item)
     return db_item
+
+# ==========================
+#      CALENDAR EVENTS
+# ==========================
+@app.get("/events", response_model=list[schemas.Event])
+def get_events(team_id: Optional[str] = None, season_id: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    query = db.query(models.Event).filter(models.Event.coach_id == current_user.id)
+    if team_id:
+        query = query.filter(models.Event.team_id == team_id)
+    if season_id:
+        query = query.filter(models.Event.season_id == season_id)
+    return query.all()
+
+@app.post("/events", response_model=schemas.Event)
+def create_event(item: schemas.EventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    if item.team_id:
+        require_owned_team(db, current_user, item.team_id)
+    date_obj = parse_iso_date(item.date)
+    db_item = models.Event(
+        title=item.title,
+        description=item.description,
+        location=item.location,
+        date=date_obj,
+        start_time=item.start_time,
+        end_time=item.end_time,
+        team_id=item.team_id,
+        season_id=item.season_id,
+        coach_id=current_user.id,
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.put("/events/{id}", response_model=schemas.Event)
+def update_event(id: str, item: schemas.EventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Event).filter(models.Event.id == id, models.Event.coach_id == current_user.id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Event not found")
+    db_item.title = item.title
+    db_item.description = item.description
+    db_item.location = item.location
+    db_item.date = parse_iso_date(item.date)
+    db_item.start_time = item.start_time
+    db_item.end_time = item.end_time
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/events/{id}")
+def delete_event(id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    db_item = db.query(models.Event).filter(models.Event.id == id, models.Event.coach_id == current_user.id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Event not found")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Deleted"}
 
 # ==========================
 #    CUSTOM FORMATIONS

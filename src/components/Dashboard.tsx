@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity, Shield } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
@@ -10,15 +10,29 @@ import { toast } from 'sonner';
 import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { CountUp } from "./ui/CountUp";
-import { Player, TrainingSession, Match } from "../types/models";
+import { Player, TrainingSession, Match, CalendarEvent } from "../types/models";
 import { Page } from "../types/ui";
-import { PlayerService, TrainingService, MatchService } from '../services';
+import { PlayerService, TrainingService, MatchService, EventService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
+import WeekCalendar, { CalendarItem } from './WeekCalendar';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
+
+const mondayOfDate = (input: Date): Date => {
+  const d = new Date(input);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+const addMins = (time: string, mins: number): string => {
+  const [h, m] = (time || '').split(':').map(Number);
+  if (Number.isNaN(h)) return time;
+  const total = h * 60 + (Number.isNaN(m) ? 0 : m) + mins;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { t, i18n } = useTranslation();
@@ -27,6 +41,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [calculatedAttendance, setCalculatedAttendance] = useState(0);
 
@@ -64,6 +79,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       setPlayers([]);
       setSessions([]);
       setMatches([]);
+      setEvents([]);
       setAttendanceData([]);
       setCalculatedAttendance(0);
       return;
@@ -71,15 +87,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
     const fetchData = async () => {
       try {
-        const [playersData, sessionsData, matchesData] = await Promise.all([
+        const [playersData, sessionsData, matchesData, eventsData] = await Promise.all([
           PlayerService.getAll(activeTeam.id, activeSeason?.id),
           TrainingService.getAll(activeTeam.id, activeSeason?.id),
-          MatchService.getAll(activeTeam.id, activeSeason?.id)
+          MatchService.getAll(activeTeam.id, activeSeason?.id),
+          EventService.getAll(activeTeam.id, activeSeason?.id)
         ]);
 
         setPlayers(playersData);
         setSessions(sessionsData);
         setMatches(matchesData);
+        setEvents(eventsData);
 
         // Calculate attendance from training session participation.
         // Always set it so switching to a team without sessions doesn't
@@ -171,6 +189,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     const lastMonthAvg = avgAttendanceForGroup(sessions.filter(s => s.date.slice(0, 7) === lastMonth));
     return lastMonthAvg > 0 ? Math.round(thisMonthAvg - lastMonthAvg) : null;
   }, [sessions, players]);
+
+  // Combined items for the "This Week" calendar widget.
+  const weekStart = useMemo(() => mondayOfDate(new Date()), []);
+  const calendarItems = useMemo<CalendarItem[]>(() => {
+    const out: CalendarItem[] = [];
+    sessions.forEach(s => out.push({ id: s.id, kind: 'training', title: s.focus || t('nav.training'), date: s.date, startTime: s.startTime, endTime: s.endTime, subtitle: s.intensity }));
+    matches.forEach(m => {
+      const start = m.time && m.time.includes(':') ? m.time : '15:00';
+      out.push({ id: m.id, kind: 'match', title: `vs ${m.opponent}`, date: m.date, startTime: start, endTime: addMins(start, 120), subtitle: m.location });
+    });
+    events.forEach(ev => out.push({ id: ev.id, kind: 'event', title: ev.title, date: ev.date, startTime: ev.startTime, endTime: ev.endTime, subtitle: ev.location }));
+    return out;
+  }, [sessions, matches, events, t]);
 
   return (
     <div className="h-full w-full flex flex-col p-3 sm:p-6 lg:p-8 max-w-[1600px] mx-auto overflow-y-auto custom-scrollbar gap-4 sm:gap-6">
@@ -435,42 +466,24 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </Card>
         </div>
 
-        {/* Upcoming Schedule */}
-        {upcomingSessions.length > 0 && (
-          <Card animate delay={0.5} className="p-6 md:p-8">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-foreground">{t('dashboard.upcomingSchedule')}</h3>
-              <button onClick={() => onNavigate('session-planner')} className="text-xs text-primary hover:text-primary-hover transition-colors font-semibold">
-                {t('dashboard.viewAll')} →
-              </button>
-            </div>
-            <div className="space-y-2">
-              {upcomingSessions.slice(0, 5).map((s) => (
-                <div key={s.id} className="flex items-center gap-4 p-3 rounded-xl bg-surface-hover/50 border border-border hover:border-primary/30 transition-colors group">
-                  <div className="w-11 h-11 rounded-lg bg-blue-500/10 border border-blue-500/20 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-[9px] font-bold text-blue-500 uppercase leading-none">
-                      {new Date(s.date + 'T12:00:00').toLocaleDateString(i18n.language, { month: 'short' })}
-                    </span>
-                    <span className="text-base font-bold text-foreground leading-tight">{s.date.slice(8, 10)}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{s.focus}</p>
-                    <p className="text-xs text-muted flex items-center gap-1.5 mt-0.5">
-                      <Clock size={11} /> {s.startTime} – {s.endTime}
-                      <span className="text-muted/30">·</span>
-                      <Shield size={11} /> {t('dashboard.playersCount', { count: s.selectedPlayers.split(',').filter(id => id.trim()).length })}
-                    </p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider shrink-0 ${
-                    s.intensity === 'High'   ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
-                    s.intensity === 'Low'    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
-                                              'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                  }`}>{s.intensity === 'High' ? t('common.high') : s.intensity === 'Low' ? t('common.low') : t('common.medium')}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
+        {/* This Week calendar */}
+        <Card animate delay={0.5} className="p-6 md:p-8">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-bold text-foreground">{t('dashboard.calendarTitle')}</h3>
+            <button onClick={() => onNavigate('calendar')} className="text-xs text-primary hover:text-primary-hover transition-colors font-semibold">
+              {t('dashboard.openCalendar')} →
+            </button>
+          </div>
+          <div className="h-[380px]">
+            <WeekCalendar
+              weekStart={weekStart}
+              items={calendarItems}
+              compact
+              onItemClick={() => onNavigate('calendar')}
+              onSlotClick={() => onNavigate('calendar')}
+            />
+          </div>
+        </Card>
 
       </motion.div>
     </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Users, Calendar, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor, BarChart2, MessageSquare, Globe } from 'lucide-react';
+import { Home, Users, Calendar, CalendarDays, BookOpen, Lightbulb, Trophy, Target, LogOut, Clipboard, ChevronLeft, ChevronRight, Sun, Moon, Monitor, BarChart2, MessageSquare, Globe } from 'lucide-react';
 import { Page, NavigationProps } from '../types/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamSwitcher from './TeamSwitcher';
@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 
 const NAV_GROUPS: { 
   labelKey: 'nav.sectionTeam' | 'nav.sectionPlaybook' | 'nav.sectionVision'; 
-  items: { id: Page; labelKey: 'nav.dashboard' | 'nav.statistics' | 'nav.squadRoster' | 'nav.training' | 'nav.matches' | 'nav.exercises' | 'nav.basics' | 'nav.principles' | 'nav.tactics' | 'nav.visionLibrary'; icon: React.ElementType; color: string; activeBar: string; activeBg: string }[] 
+  items: { id: Page; labelKey: 'nav.dashboard' | 'nav.statistics' | 'nav.squadRoster' | 'nav.calendar' | 'nav.training' | 'nav.matches' | 'nav.exercises' | 'nav.basics' | 'nav.principles' | 'nav.tactics' | 'nav.visionLibrary'; icon: React.ElementType; color: string; activeBar: string; activeBg: string }[]
 }[] = [
   {
     labelKey: 'nav.sectionTeam',
@@ -17,6 +17,7 @@ const NAV_GROUPS: {
       { id: 'dashboard',       labelKey: 'nav.dashboard',    icon: Home,      color: 'text-blue-500',    activeBar: 'bg-blue-500',    activeBg: 'bg-blue-500/15 dark:bg-blue-500/25' },
       { id: 'statistics',      labelKey: 'nav.statistics',   icon: BarChart2, color: 'text-emerald-500', activeBar: 'bg-emerald-500', activeBg: 'bg-emerald-500/15 dark:bg-emerald-500/25' },
       { id: 'team',            labelKey: 'nav.squadRoster',  icon: Users,     color: 'text-indigo-500',  activeBar: 'bg-indigo-500',  activeBg: 'bg-indigo-500/15 dark:bg-indigo-500/25' },
+      { id: 'calendar',        labelKey: 'nav.calendar',     icon: CalendarDays, color: 'text-fuchsia-500', activeBar: 'bg-fuchsia-500', activeBg: 'bg-fuchsia-500/15 dark:bg-fuchsia-500/25' },
       { id: 'session-planner', labelKey: 'nav.training',     icon: Calendar,  color: 'text-cyan-500',    activeBar: 'bg-cyan-500',    activeBg: 'bg-cyan-500/15 dark:bg-cyan-500/25' },
       { id: 'match',           labelKey: 'nav.matches',      icon: Target,    color: 'text-rose-500',    activeBar: 'bg-rose-500',    activeBg: 'bg-rose-500/15 dark:bg-rose-500/25' },
     ]

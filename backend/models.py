@@ -244,6 +244,24 @@ class User(Base):
     verification_token_expires = Column(DateTime, nullable=True)
 
 
+# --- CALENDAR EVENTS ---
+# Generic team events (meetings, team-building, etc.) shown on the calendar
+# alongside training sessions and matches, which keep their own richer models.
+class Event(Base):
+    __tablename__ = "events"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    coach_id = Column(String, ForeignKey("users.id"), nullable=True)
+    team_id = Column(String, ForeignKey("teams.id"), nullable=True)
+    season_id = Column(String, ForeignKey("seasons.id"), nullable=True)
+    title = Column(String)
+    description = Column(Text, nullable=True)
+    location = Column(String, nullable=True)
+    date = Column(Date)
+    start_time = Column(String)
+    end_time = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 # --- FEEDBACK ---
 class FeedbackRequest(Base):
     __tablename__ = "feedback_requests"

@@ -120,8 +120,20 @@ export interface Tactic {
   isCustom: boolean;
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  date: string;       // YYYY-MM-DD
+  startTime: string;  // HH:MM
+  endTime: string;    // HH:MM
+  season_id?: string;
+  team_id?: string;
+}
+
 export interface SelectorItem {
-  id: string; name: string; 
+  id: string; name: string;
 }
 
 export interface PositionSlot { id: string; position: string; x: number; y: number; }

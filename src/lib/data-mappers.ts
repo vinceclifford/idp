@@ -1,5 +1,5 @@
 // src/lib/data-mappers.ts
-import { Player, TrainingSession, Basic, Principle, Tactic, Exercise, Match, MatchDetails, SelectorItem } from '../types/models';
+import { Player, TrainingSession, Basic, Principle, Tactic, Exercise, Match, MatchDetails, SelectorItem, CalendarEvent } from '../types/models';
 
 /**
  * Maps a raw player object from the snake_case API response
@@ -258,6 +258,31 @@ export const mapMatchDetailsToApi = (m: MatchDetails) => ({
   goals_for: m.goalsFor,
   goals_against: m.goalsAgainst,
   notes: m.notes,
+});
+
+/**
+ * Maps a raw calendar event from the snake_case API response.
+ */
+export const mapEventFromApi = (e: any): CalendarEvent => ({
+  id: e.id,
+  title: e.title || '',
+  description: e.description || '',
+  location: e.location || '',
+  date: e.date || '',
+  startTime: e.start_time || '',
+  endTime: e.end_time || '',
+});
+
+/**
+ * Maps a clean CalendarEvent back to the snake_case format expected by the API.
+ */
+export const mapEventToApi = (e: CalendarEvent) => ({
+  title: e.title,
+  description: e.description,
+  location: e.location,
+  date: e.date,
+  start_time: e.startTime,
+  end_time: e.endTime,
 });
 
 /**

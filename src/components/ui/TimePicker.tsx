@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Clock, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TimePickerProps } from "../../types/ui";
@@ -146,23 +146,30 @@ export function TimePicker({ value, onChange, label }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState<string>(value || '');
   const [draftInvalid, setDraftInvalid] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // True only while the user is actively typing in the text field. The wheel
+  // updates `value` while the input is still focused, so a focus check alone
+  // would leave the visible text stale — the field would keep showing the old
+  // time even though the wheel moved. Tracking typing explicitly lets the
+  // field follow the wheel.
+  const typingRef = useRef(false);
 
   const parts = value ? value.split(':') : ['09', '00'];
   const h24 = parseInt(parts[0], 10);
   const minute = parseInt(parts[1], 10);
 
-  // Keep the input synced when value changes from the wheel picker — unless
-  // the user is actively typing into it.
+  // Keep the input text synced with the value unless the user is mid-typing.
   useEffect(() => {
-    if (document.activeElement !== inputRef.current) {
+    if (!typingRef.current) {
       setDraft(value || '');
       setDraftInvalid(false);
     }
   }, [value]);
 
   const commitDraft = () => {
+    typingRef.current = false;
     const trimmed = draft.trim();
     if (!trimmed) {
       setDraftInvalid(false);
@@ -189,6 +196,21 @@ export function TimePicker({ value, onChange, label }: TimePickerProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Position the popup with fixed, viewport-clamped coordinates so it never
+  // gets clipped by a modal's overflow or run off the screen edge. Layout
+  // effect so it's placed before paint (no first-frame flash at 0,0).
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const PW = 288, PH = 330;
+    setCoords({
+      top: Math.max(8, Math.min(r.bottom + 8, window.innerHeight - PH - 8)),
+      left: Math.max(8, Math.min(r.left, window.innerWidth - PW - 8)),
+    });
+  }, [isOpen]);
 
   const setHour = (h: number) => {
     onChange(`${String(h).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
@@ -222,6 +244,7 @@ export function TimePicker({ value, onChange, label }: TimePickerProps) {
           placeholder="HH:MM"
           value={draft}
           onChange={e => {
+            typingRef.current = true;
             setDraft(e.target.value);
             if (draftInvalid) setDraftInvalid(false);
           }}
@@ -233,6 +256,7 @@ export function TimePicker({ value, onChange, label }: TimePickerProps) {
               commitDraft();
               inputRef.current?.blur();
             } else if (e.key === 'Escape') {
+              typingRef.current = false;
               setDraft(value || '');
               setDraftInvalid(false);
               inputRef.current?.blur();
@@ -257,7 +281,8 @@ export function TimePicker({ value, onChange, label }: TimePickerProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute top-full left-0 mt-2 bg-background backdrop-blur-xl border border-border rounded-2xl shadow-2xl z-50 p-6 w-72 overflow-hidden"
+            style={{ position: 'fixed', top: coords?.top ?? 0, left: coords?.left ?? 0, width: 288, zIndex: 9999 }}
+            className="bg-background backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-6 overflow-hidden"
           >
             <div className="flex gap-4 items-center mb-6">
               <Wheel items={HOURS} selectedValue={h24} onSelect={setHour} label="Hour" />

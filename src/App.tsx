@@ -26,6 +26,7 @@ import SeasonFormModal from './components/SeasonFormModal';
 import VisionLibrary from './components/VisionLibrary';
 import StatisticsView from './components/StatisticsView';
 import FeedbackView from './components/FeedbackView';
+import CalendarView from './components/CalendarView';
 import { Page } from './types/ui';
 
 // Services
@@ -204,6 +205,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
   const pageContent: Record<Exclude<Page, 'login'>, React.ReactNode> = {
     dashboard:      <Dashboard onNavigate={navigateToPage} />,
     team:           <TeamManagement />,
+    calendar:       <CalendarView onNavigate={navigateToPage} />,
     training:       <ExercisesLibrary />,
     'session-planner': <TrainingManager />,
     basics:         <BasicsLibrary />,

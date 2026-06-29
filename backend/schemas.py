@@ -277,6 +277,26 @@ class PerformanceUpdate(BaseModel):
     team_id: Optional[str] = None
 
 # ==========================
+#      CALENDAR EVENTS
+# ==========================
+class EventCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    location: Optional[str] = ""
+    date: str            # YYYY-MM-DD
+    start_time: str
+    end_time: str
+    team_id: Optional[str] = None
+    season_id: Optional[str] = None
+
+class Event(EventCreate):
+    id: str
+    date: date
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+# ==========================
 #         FEEDBACK
 # ==========================
 class FeedbackRequestCreate(BaseModel):
