@@ -15,14 +15,14 @@ import { uploadFile } from "../lib/uploadFile";
 import { PlayerRowSkeleton } from "./ui/Skeleton";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import PlayerSlideOver from "./PlayerSlideOver";
-import DeleteTeamModal from "./DeleteTeamModal";
 import { Player, Team } from '../types/models';
+import { Page } from '../types/ui';
 import { PlayerService, TrainingService } from '../services';
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
 import { uuid } from '../lib/uuid';
 
-export default function TeamManagement() {
+export default function TeamManagement({ onNavigate }: { onNavigate: (page: Page) => void }) {
     const { t } = useTranslation();
     const { activeTeam, teams } = useTeam();
     const { activeSeason } = useSeason();
@@ -45,7 +45,6 @@ export default function TeamManagement() {
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-    const [showDeleteTeam, setShowDeleteTeam] = useState(false);
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -359,11 +358,8 @@ export default function TeamManagement() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {activeTeam && viewMode === 'squad' && (
-                        <Button onClick={() => setShowDeleteTeam(true)} variant="danger" icon={<Trash2 size={18} />} className="shadow-lg">{t('team.deleteTeam')}</Button>
-                    )}
-                    <Button onClick={() => window.dispatchEvent(new Event('open-create-team'))} variant="secondary" icon={<TrendingUp size={18} />} className="shadow-lg hover:border-emerald-500/50">{t('team.addTeam')}</Button>
-                    <Button onClick={openCreate} icon={<Plus size={18} />} disabled={!activeTeam} className="shadow-lg shadow-blue-500/20">{t('team.addPlayer')}</Button>
+                    <Button onClick={() => onNavigate('session-planner')} icon={<Plus size={18} />} className="shadow-lg shadow-primary/20">{t('nav.training')}</Button>
+                    <Button variant="secondary" onClick={openCreate} icon={<Plus size={18} />} disabled={!activeTeam}>{t('team.playerCol')}</Button>
                 </div>
             </div>
 
@@ -720,11 +716,6 @@ export default function TeamManagement() {
                 onClose={() => setSelectedPlayer(null)}
                 onEdit={(p) => { setSelectedPlayer(null); openEdit(p); }}
                 onDelete={(id) => { setSelectedPlayer(null); setConfirmRemoveId(id); }}
-            />
-
-            <DeleteTeamModal
-                team={showDeleteTeam ? activeTeam : null}
-                onClose={() => setShowDeleteTeam(false)}
             />
 
             <Modal

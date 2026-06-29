@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Plus, Clock, MapPin, Activity, Trash2 } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
@@ -16,6 +16,7 @@ import { PlayerService, TrainingService, MatchService, EventService } from '../s
 import { useTeam } from '../contexts/TeamContext';
 import { useSeason } from '../contexts/SeasonContext';
 import WeekCalendar, { CalendarItem } from './WeekCalendar';
+import DeleteTeamModal from './DeleteTeamModal';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -44,6 +45,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [calculatedAttendance, setCalculatedAttendance] = useState(0);
+  const [showDeleteTeam, setShowDeleteTeam] = useState(false);
 
   // Calculate attendance rate based on training session participation
   const calculateAttendance = (playerList: Player[], sessionList: TrainingSession[]) => {
@@ -216,20 +218,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <Button 
-            onClick={() => onNavigate('session-planner')} 
-            icon={<Plus size={16} />}
-            className="shadow-lg shadow-primary/20"
+          {activeTeam && (
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteTeam(true)}
+              icon={<Trash2 size={16} />}
+              className="shadow-lg"
+            >
+              {t('team.deleteTeam')}
+            </Button>
+          )}
+
+          <Button
+            variant="secondary"
+            onClick={() => window.dispatchEvent(new Event('open-create-team'))}
+            icon={<TrendingUp size={16} />}
+            className="shadow-lg hover:border-emerald-500/50"
           >
-            {t('nav.training')}
+            {t('team.addTeam')}
           </Button>
 
-          <Button 
-            variant="secondary" 
-            onClick={() => onNavigate('team')} 
+          <Button
+            onClick={() => onNavigate('team')}
             icon={<Plus size={16} />}
+            className="shadow-lg shadow-blue-500/20"
           >
-            {t('team.playerCol')}
+            {t('team.addPlayer')}
           </Button>
         </div>
       </div>
@@ -486,6 +500,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
 
       </motion.div>
+
+      <DeleteTeamModal
+        team={showDeleteTeam ? activeTeam : null}
+        onClose={() => setShowDeleteTeam(false)}
+      />
     </div>
   );
 }

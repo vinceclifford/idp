@@ -204,7 +204,7 @@ function AppLayout({ currentPage, navigateToPage, handleLogout }: { currentPage:
 
   const pageContent: Record<Exclude<Page, 'login'>, React.ReactNode> = {
     dashboard:      <Dashboard onNavigate={navigateToPage} />,
-    team:           <TeamManagement />,
+    team:           <TeamManagement onNavigate={navigateToPage} />,
     calendar:       <CalendarView onNavigate={navigateToPage} />,
     training:       <ExercisesLibrary />,
     'session-planner': <TrainingManager />,
