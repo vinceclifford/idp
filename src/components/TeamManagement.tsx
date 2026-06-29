@@ -360,7 +360,7 @@ export default function TeamManagement() {
                 </div>
                 <div className="flex items-center gap-3">
                     {activeTeam && viewMode === 'squad' && (
-                        <Button onClick={() => setShowDeleteTeam(true)} variant="ghost" icon={<Trash2 size={18} />} className="text-rose-500 hover:bg-rose-500/10">{t('team.deleteTeam')}</Button>
+                        <Button onClick={() => setShowDeleteTeam(true)} variant="danger" icon={<Trash2 size={18} />} className="shadow-lg">{t('team.deleteTeam')}</Button>
                     )}
                     <Button onClick={() => window.dispatchEvent(new Event('open-create-team'))} variant="secondary" icon={<TrendingUp size={18} />} className="shadow-lg hover:border-emerald-500/50">{t('team.addTeam')}</Button>
                     <Button onClick={openCreate} icon={<Plus size={18} />} disabled={!activeTeam} className="shadow-lg shadow-blue-500/20">{t('team.addPlayer')}</Button>
