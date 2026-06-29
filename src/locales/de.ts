@@ -280,6 +280,13 @@ export const de: TranslationDict = {
     profileLabel: 'Profil',
     trainingHistory: 'Trainingsverlauf',
     sessionsPerMonth: 'Einheiten pro Monat',
+    deleteTeam: 'Team löschen',
+    deleteTeamTitle: 'Team löschen',
+    deleteTeamWarning: 'Wenn Sie „{{name}}“ löschen, werden das Team sowie alle zugehörigen Spiele, Trainingseinheiten und Aufstellungen dauerhaft entfernt. Die Spieler selbst bleiben in Ihrem globalen Pool erhalten.',
+    deleteTeamPrompt: 'Geben Sie zur Bestätigung den genauen Teamnamen ein.',
+    deleteTeamConfirm: 'Team löschen',
+    teamDeleted: 'Team „{{name}}“ gelöscht',
+    teamDeleteFailed: 'Team konnte nicht gelöscht werden',
   },
   training: {
     newSession: 'Neues Training',

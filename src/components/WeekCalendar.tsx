@@ -102,7 +102,9 @@ export default function WeekCalendar({
 }: WeekCalendarProps) {
   const { i18n } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [measuredH, setMeasuredH] = useState(0);
+  const [headerH, setHeaderH] = useState(0);
 
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -139,7 +141,8 @@ export default function WeekCalendar({
   // calendar instead of leaving a big empty gap at the bottom. On short
   // screens a minimum row height kicks in and the grid scrolls instead.
   const minRow = compact ? 34 : 44;
-  const rowHeight = Math.max(minRow, measuredH > 0 ? measuredH / totalHours : minRow);
+  const availH = Math.max(0, measuredH - headerH);
+  const rowHeight = Math.max(minRow, availH > 0 ? availH / totalHours : minRow);
   const gridHeight = totalHours * rowHeight;
 
   const hours = useMemo(
@@ -164,7 +167,10 @@ export default function WeekCalendar({
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const update = () => setMeasuredH(el.clientHeight);
+    const update = () => {
+      setMeasuredH(el.clientHeight);
+      if (headerRef.current) setHeaderH(headerRef.current.offsetHeight);
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -183,29 +189,32 @@ export default function WeekCalendar({
 
   return (
     <div className="flex flex-col h-full min-h-0 rounded-2xl border border-border bg-surface overflow-hidden">
-      {/* Day header row */}
-      <div className="flex border-b border-border bg-surface/80 backdrop-blur-sm flex-shrink-0">
-        <div style={{ width: gutterWidth }} className="flex-shrink-0" />
-        {days.map(day => {
-          const key = ymdLocal(day);
-          const isToday = key === todayStr;
-          return (
-            <div key={key} className="flex-1 min-w-0 py-2 text-center border-l border-border">
-              <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-muted'}`}>
-                {day.toLocaleDateString(i18n.language, { weekday: 'short' })}
-              </p>
-              <p className={`text-sm font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
-                <span className={isToday ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white' : ''}>
-                  {day.getDate()}
-                </span>
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Scrollable time grid */}
+      {/* Header and grid live in the same scroll container so their columns
+          share identical widths — otherwise the body's scrollbar makes the
+          grid columns narrower than the header columns and they drift apart. */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+        {/* Sticky day header row */}
+        <div ref={headerRef} className="flex border-b border-border bg-surface sticky top-0 z-20">
+          <div style={{ width: gutterWidth }} className="flex-shrink-0" />
+          {days.map(day => {
+            const key = ymdLocal(day);
+            const isToday = key === todayStr;
+            return (
+              <div key={key} className="flex-1 min-w-0 py-2 text-center border-l border-border">
+                <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-primary' : 'text-muted'}`}>
+                  {day.toLocaleDateString(i18n.language, { weekday: 'short' })}
+                </p>
+                <p className={`text-sm font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
+                  <span className={isToday ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white' : ''}>
+                    {day.getDate()}
+                  </span>
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Time grid */}
         <div className="flex" style={{ height: gridHeight }}>
           {/* Hour gutter */}
           <div style={{ width: gutterWidth }} className="flex-shrink-0 relative">

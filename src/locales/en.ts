@@ -278,6 +278,13 @@ export const en = {
     profileLabel: 'Profile',
     trainingHistory: 'Training History',
     sessionsPerMonth: 'Sessions per Month',
+    deleteTeam: 'Delete Team',
+    deleteTeamTitle: 'Delete Team',
+    deleteTeamWarning: 'Deleting "{{name}}" permanently removes the team along with all of its matches, training sessions and lineups. The players themselves stay in your global pool.',
+    deleteTeamPrompt: 'To confirm, type the exact team name below.',
+    deleteTeamConfirm: 'Delete Team',
+    teamDeleted: 'Team "{{name}}" deleted',
+    teamDeleteFailed: 'Failed to delete team',
   },
   training: {
     newSession: 'New Session',
